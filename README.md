@@ -2,7 +2,7 @@
 
 __Author:__ Louis-Philippe Gauthier.
 
-Asynchronous Erlang network client framework
+Non-blocking Erlang network client framework
 
 ### Requirements
 
