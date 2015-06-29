@@ -1,0 +1,4 @@
+%% encoding: UTF-8
+{application,shackle}.
+{modules,[shackle_app,shackle_backlog,shackle_backoff,shackle_cache,
+          shackle_queue,shackle_server,shackle_sup]}.

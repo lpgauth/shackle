@@ -1,0 +1,5 @@
+-define(APP, shackle).
+-define(DEFAULT_BACKLOG_SIZE, 1024).
+-define(ETS_TABLE_BACKLOG, shackle_backlog).
+-define(ETS_TABLE_CACHE, shackle_cache).
+-define(ETS_TABLE_QUEUE, shackle_queue).
