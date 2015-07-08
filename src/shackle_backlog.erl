@@ -9,7 +9,6 @@
     new/1
 ]).
 
-
 %% internal
 -spec check(atom()) -> boolean().
 

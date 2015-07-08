@@ -1,1 +1,2 @@
 -module(shackle_backoff).
+-include("shackle.hrl").

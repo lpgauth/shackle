@@ -1,5 +1,8 @@
 -define(APP, shackle).
 -define(DEFAULT_BACKLOG_SIZE, 1024).
+-define(DEFAULT_POOL_SIZE, 16).
+-define(CHILD(Name, Mod), {Name, {Mod, start_link, [Name]}, permanent, 5000, worker, [Mod]}).
 -define(ETS_TABLE_BACKLOG, shackle_backlog).
 -define(ETS_TABLE_CACHE, shackle_cache).
 -define(ETS_TABLE_QUEUE, shackle_queue).
+-define(SERVER, shackle_server).

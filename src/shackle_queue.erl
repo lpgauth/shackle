@@ -28,15 +28,21 @@ init() ->
         {write_concurrency, true}
     ]).
 
--spec in(atom(), non_neg_integer(), term()) -> true.
+-spec in(atom(), non_neg_integer(), term()) -> ok.
 
 in(ServerName, Stream, Item) ->
-    ets:insert(?ETS_TABLE_QUEUE, {{ServerName, Stream}, Item}).
+    ets:insert(?ETS_TABLE_QUEUE, {{ServerName, Stream}, Item}),
+    ok.
 
--spec out(atom(), non_neg_integer()) -> term().
+-spec out(atom(), non_neg_integer()) -> {ok, term()} | {error, not_found}.
 
 out(ServerName, Stream) ->
     Key = {ServerName, Stream},
-    Item = ets:lookup_element(?ETS_TABLE_QUEUE, Key, 2),
-    ets:delete(?ETS_TABLE_QUEUE, Key),
-    Item.
+    try
+        Item = ets:lookup_element(?ETS_TABLE_QUEUE, Key, 2),
+        ets:delete(?ETS_TABLE_QUEUE, Key),
+        Item
+    catch
+        error:badarg ->
+            {error, not_found}
+    end.
