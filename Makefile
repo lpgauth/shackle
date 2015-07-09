@@ -1,4 +1,4 @@
-PROJECT=anchor
+PROJECT=shackle
 REBAR=./rebar
 
 all: deps compile doc

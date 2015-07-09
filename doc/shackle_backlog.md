@@ -21,7 +21,7 @@
 ### check/1 ###
 
 <pre><code>
-check(ServerName::atom()) -&gt; boolean()
+check(Key::atom()) -&gt; boolean()
 </code></pre>
 <br />
 
@@ -30,7 +30,7 @@ check(ServerName::atom()) -&gt; boolean()
 ### decrement/1 ###
 
 <pre><code>
-decrement(ServerName::atom()) -&gt; non_neg_integer() | {error, tid_missing}
+decrement(Key::atom()) -&gt; non_neg_integer() | {error, tid_missing}
 </code></pre>
 <br />
 
@@ -48,7 +48,7 @@ init() -&gt; shackle_backlog
 ### new/1 ###
 
 <pre><code>
-new(ServerName::atom()) -&gt; true
+new(Key::atom()) -&gt; true
 </code></pre>
 <br />
 

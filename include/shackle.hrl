@@ -5,4 +5,5 @@
 -define(ETS_TABLE_BACKLOG, shackle_backlog).
 -define(ETS_TABLE_CACHE, shackle_cache).
 -define(ETS_TABLE_QUEUE, shackle_queue).
--define(SERVER, shackle_server).
+-define(LOOKUP(Key, List), ?LOOKUP(Key, List, undefined)).
+-define(LOOKUP(Key, List, Default), shackle_utils:lookup(Key, List, Default)).

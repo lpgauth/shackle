@@ -12,9 +12,9 @@
 %% internal
 -spec check(atom()) -> boolean().
 
-check(ServerName) ->
+check(Key) ->
     MaxBacklogSize = backlog_size(),
-    case increment(ServerName) of
+    case increment(Key) of
         [MaxBacklogSize, MaxBacklogSize] ->
             false;
         [_, Value] when Value =< MaxBacklogSize ->
@@ -25,8 +25,8 @@ check(ServerName) ->
 
 -spec decrement(atom()) -> non_neg_integer() | {error, tid_missing}.
 
-decrement(ServerName) ->
-    safe_update_counter(ServerName, {2, -1, 0, 0}).
+decrement(Key) ->
+    safe_update_counter(Key, {2, -1, 0, 0}).
 
 -spec init() -> ?ETS_TABLE_BACKLOG.
 init() ->
@@ -38,19 +38,19 @@ init() ->
 
 -spec new(atom()) -> true.
 
-new(ServerName) ->
-    ets:insert(?ETS_TABLE_BACKLOG, {ServerName, 0}).
+new(Key) ->
+    ets:insert(?ETS_TABLE_BACKLOG, {Key, 0}).
 
 %% private
-increment(ServerName) ->
+increment(Key) ->
     MaxBacklogSize = backlog_size(),
-    safe_update_counter(ServerName, [{2, 0}, {2, 1, MaxBacklogSize, MaxBacklogSize}]).
+    safe_update_counter(Key, [{2, 0}, {2, 1, MaxBacklogSize, MaxBacklogSize}]).
 
 backlog_size() ->
     application:get_env(?APP, backlog_size, ?DEFAULT_BACKLOG_SIZE).
 
-safe_update_counter(ServerName, UpdateOp) ->
-    try ets:update_counter(?ETS_TABLE_BACKLOG, ServerName, UpdateOp)
+safe_update_counter(Key, UpdateOp) ->
+    try ets:update_counter(?ETS_TABLE_BACKLOG, Key, UpdateOp)
     catch
         error:badarg ->
             {error, tid_missing}

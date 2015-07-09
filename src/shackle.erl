@@ -1,19 +1,21 @@
+% TODO: add specs
+% TODO: store pool info in ETS (size, selection)
+
 -module(shackle).
 -include("shackle.hrl").
 
 -export([
     cast/4,
     call/4,
-    child_name/2,
-    child_specs/2,
-    receive_response/3
+    receive_response/3,
+    start/2
 ]).
 
 %% public
 cast(Namespace, Msg, Pid, PoolSize) ->
     Ref = make_ref(),
     Server = random_server(Namespace, PoolSize),
-    case anchor_backlog:check(Server) of
+    case shackle_backlog:check(Server) of
         true ->
             Server ! {call, Ref, Pid, Msg},
             {ok, Ref};
@@ -29,29 +31,25 @@ call(Namespace, Msg, Timeout, PoolSize) ->
             {error, Reason}
     end.
 
-child_specs(Namespace, PoolSize) ->
-    [?CHILD(child_name(Namespace, N), ?SERVER) || N <- lists:seq(1, PoolSize)].
-
 receive_response(Namespace, Ref, Timeout) ->
     Timestamp = os:timestamp(),
     receive
         {Namespace, Ref, Reply} ->
             Reply;
         {Namespace, _, _} ->
-            Timeout2 = timeout(Timeout, Timestamp),
+            Timeout2 = shackle_utils:timeout(Timeout, Timestamp),
             receive_response(Namespace, Ref, Timeout2)
     after Timeout ->
         {error, timeout}
     end.
 
+start(_Module, _PoolSize) ->
+    % % supervisor:start_link({local, ?MODULE}, ?MODULE, []).
+    % child_specs(Module, PoolSize).
+    ok.
+
 %% private
-child_name(Namespace, N) ->
-    list_to_atom(Namespace ++ integer_to_list(N)).
-
 random_server(Namespace, PoolSize) ->
+    % TODO: round_robin
     Random = erlang:phash2({os:timestamp(), self()}, PoolSize) + 1,
-    child_name(Namespace, Random).
-
-timeout(Timeout, Timestamp) ->
-    Diff = timer:now_diff(os:timestamp(), Timestamp) div 1000,
-    Timeout - Diff.
+    shackle_utils:child_name(Namespace, Random).

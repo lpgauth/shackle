@@ -21,7 +21,7 @@
 ### erase/1 ###
 
 <pre><code>
-erase(Key::binary()) -&gt; true | {error, not_found}
+erase(Key::binary()) -&gt; ok | {error, not_found}
 </code></pre>
 <br />
 
@@ -48,7 +48,7 @@ init() -&gt; shackle_cache
 ### put/2 ###
 
 <pre><code>
-put(Key::binary(), Value::term()) -&gt; true
+put(Key::binary(), Value::term()) -&gt; ok
 </code></pre>
 <br />
 

@@ -30,7 +30,7 @@ all(ServerName::atom()) -&gt; [term()]
 ### in/3 ###
 
 <pre><code>
-in(ServerName::atom(), Stream::non_neg_integer(), Item::term()) -&gt; true
+in(ServerName::atom(), Stream::non_neg_integer(), Item::term()) -&gt; ok
 </code></pre>
 <br />
 
@@ -48,7 +48,7 @@ init() -&gt; shackle_queue
 ### out/2 ###
 
 <pre><code>
-out(ServerName::atom(), Stream::non_neg_integer()) -&gt; term()
+out(ServerName::atom(), Stream::non_neg_integer()) -&gt; {ok, term()} | {error, not_found}
 </code></pre>
 <br />
 
