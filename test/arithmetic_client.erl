@@ -4,12 +4,8 @@
 -export([
     add/2,
     multiply/2,
-    start/0
-]).
-
--behavior(supervisor).
--export([
-    init/1
+    start/0,
+    stop/0
 ]).
 
 -behavior(shackle_server).
@@ -21,25 +17,27 @@
     terminate/1
 ]).
 
+-define(MAX_REQUEST_ID, 256).
 -define(NAMESPACE, arithmetic).
--define(POOL_SIZE, 4).
--record(state, {}).
+% TODO: bump to 4
+-define(POOL_SIZE, 1).
+
+-record(state, {
+    request_counter = 0
+}).
 
 %% public
 add(A, B) ->
-    shackle:call(arithmetic, {add, A, B}, 1000, ?POOL_SIZE).
+    shackle:call(arithmetic_client, {add, A, B}, 1000, ?POOL_SIZE).
 
 multiply(A, B) ->
-    shackle:call(arithmetic, {multiply, A, B}, 1000, ?POOL_SIZE).
+    shackle:call(arithmetic_client, {multiply, A, B}, 1000, ?POOL_SIZE).
 
 start() ->
-    supervisor:start_link({local, ?MODULE}, ?MODULE, []).
+    shackle:start_pool(arithmetic_client, ?POOL_SIZE).
 
-%% supervisor callbacks
-init([]) ->
-    {ok, {{one_for_one, 5, 10},
-        shackle:child_specs(?NAMESPACE, ?POOL_SIZE)
-    }}.
+stop() ->
+    shackle:stop_pool(arithmetic_client, ?POOL_SIZE).
 
 %% shackle_server callbacks
 init() ->
@@ -52,8 +50,21 @@ init() ->
 
 after_connect(Socket, State) -> {ok, Socket, State}.
 
-handle_cast(_Request, State) -> {ok, <<>>, State}.
+handle_cast({Operation, A, B}, #state {
+        request_counter = RequestCounter
+    }) ->
 
-handle_data(_Data, State) -> {ok, ok, State}.
+    RequestId = RequestCounter rem ?MAX_REQUEST_ID,
+    Data = <<RequestId:8/integer, (opcode(Operation)), A:8/integer, B:8/integer>>,
+
+    {ok, RequestId, Data, #state {
+        request_counter = RequestCounter + 1
+    }}.
+
+handle_data(<<ReqId:8/integer, A:16/integer>>, State) ->
+    {ok, [{ReqId, A}], State}.
 
 terminate(_State) -> ok.
+
+opcode(add) -> 1;
+opcode(multiply) -> 2.

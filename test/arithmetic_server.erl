@@ -20,19 +20,27 @@ stop() ->
 
 %% private
 accept(LSocket) ->
-    {ok, Socket} = gen_tcp:accept(LSocket),
-    spawn(fun() -> loop(Socket) end),
-    accept(LSocket).
+    case gen_tcp:accept(LSocket) of
+        {error, closed} ->
+            io:format("closed~n", []);
+        {ok, Socket} ->
+            spawn(fun() -> loop(Socket) end),
+            accept(LSocket)
+    end.
 
 loop(Socket) ->
     case gen_tcp:recv(Socket, 0) of
         {ok, <<ReqId:8/integer, 1, A:8/integer, B:8/integer>>} ->
-            Reply = <<ReqId:8/integer, (integer_to_binary(A + B))/binary>>,
+            io:format("A: ~p, B: ~p~n", [A, B]),
+            Reply = <<ReqId:8/integer, (A + B):16/integer>>,
             gen_tcp:send(Socket, Reply),
             loop(Socket);
         {ok, <<ReqId:8/integer, 2, A:8/integer, B:8/integer>>} ->
-            Reply = <<ReqId:8/integer, (integer_to_binary(A * B))/binary>>,
+            Reply = <<ReqId:8/integer, (A * B):16/integer>>,
             gen_tcp:send(Socket, Reply),
+            loop(Socket);
+        {ok, X} ->
+            ?debugFmt("~p~n", [X]),
             loop(Socket);
         {error, closed} ->
             ok

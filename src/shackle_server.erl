@@ -22,13 +22,15 @@
 %% callbacks
 -callback init() -> {ok, init_opts()}.
 -callback after_connect(Socket :: inet:socket(), State :: term()) -> {ok, Socket :: inet:socket(), State :: term()}.
--callback handle_cast(Request :: term(), State :: term()) -> {ok, Data :: binary(), State :: term()}.
--callback handle_data(Data :: binary(), State :: term()) -> {ok, Reply :: term(), State :: term()}.
+-callback handle_cast(Request :: term(), State :: term()) -> {ok, RequestId :: term(), Data :: binary(), State :: term()}.
+-callback handle_data(Data :: binary(), State :: term()) -> {ok, [{RequestId :: term(), Reply :: term()}], State :: term()}.
 -callback terminate(State :: term()) -> ok.
 
 -record(state, {
     connect_retry = 0         :: non_neg_integer(),
     ip            = undefined :: inet:ip_address() | inet:hostname(),
+    module        = undefined :: module(),
+    name          = undefined :: atom(),
     parent        = undefined :: pid(),
     port          = undefined :: inet:port_number(),
     reconnect     = true      :: boolean(),
@@ -59,6 +61,8 @@ init(Name, Module, Parent) ->
 
     loop(#state {
         ip = ?LOOKUP(ip, Opts),
+        module = Module,
+        name = Name,
         parent = Parent,
         port = ?LOOKUP(port, Opts),
         reconnect = ?LOOKUP(reconnect, Opts),
@@ -66,9 +70,100 @@ init(Name, Module, Parent) ->
     }).
 
 %% private
+% TODO: use shackle_backoff
+connect_retry(#state {reconnect = false} = State) ->
+    {ok, State#state {
+        socket = undefined
+    }};
+connect_retry(#state {connect_retry = ConnectRetry} = State) ->
+    {ok, State#state {
+        connect_retry = ConnectRetry + 1,
+        socket = undefined,
+        timer = erlang:send_after(timeout(State), self(), ?MSG_CONNECT)
+    }}.
+
 -spec handle_msg(term(), state()) -> {ok, state()}.
-handle_msg(_Msg, State) ->
-    {ok, State}.
+
+handle_msg(?MSG_CONNECT, #state {
+        ip = Ip,
+        port = Port
+    } = State) ->
+
+    Opts = [
+        binary,
+        {active, true},
+        {packet, raw},
+        {send_timeout, ?DEFAULT_SEND_TIMEOUT},
+        {send_timeout_close, true}
+    ],
+
+    case gen_tcp:connect(Ip, Port, Opts) of
+        {ok, Socket} ->
+            {ok, State#state {
+                socket = Socket,
+                connect_retry = 0
+            }};
+        {error, Reason} ->
+            shackle_utils:warning_msg("tcp connect error: ~p", [Reason]),
+            connect_retry(State)
+    end;
+handle_msg({call, Ref, From, _Msg}, #state {
+        socket = undefined,
+        module = Module,
+        name = Name
+    } = State) ->
+
+    reply(Module, Name, Ref, From, {error, no_socket}),
+    {ok, State};
+handle_msg({call, Ref, From, Request}, #state {
+        module = Module,
+        name = Name,
+        socket = Socket,
+        state = ClientState
+    } = State) ->
+
+    {ok, RequestId, Data, ClientState2} = Module:handle_cast(Request, ClientState),
+
+    case gen_tcp:send(Socket, Data) of
+        ok ->
+            shackle_queue:in(Name, RequestId, {Ref, From}),
+            {ok, State#state {
+                state = ClientState2
+            }};
+        {error, Reason} ->
+            shackle_utils:warning_msg("tcp send error: ~p", [Reason]),
+            gen_tcp:close(Socket),
+            tcp_close(State)
+    end;
+handle_msg({tcp, _Port, Data}, #state {
+        module = Module,
+        name = Name,
+        state = ClientState
+    } = State) ->
+
+    {ok, Replys, ClientState2} = Module:handle_data(Data, ClientState),
+
+    lists:foreach(fun ({RequestId, Reply}) ->
+        {Ref, From} = shackle_queue:out(Name, RequestId),
+        reply(Module, Name, Ref, From, Reply)
+    end, Replys),
+
+    {ok, State#state {
+        state = ClientState2
+    }};
+handle_msg({tcp_closed, Socket}, #state {
+        socket = Socket
+    } = State) ->
+
+    shackle_utils:warning_msg("tcp closed", []),
+    tcp_close(State);
+handle_msg({tcp_error, Socket, Reason}, #state {
+        socket = Socket
+    } = State) ->
+
+    shackle_utils:warning_msg("tcp error: ~p", [Reason]),
+    gen_tcp:close(Socket),
+    tcp_close(State).
 
 loop(#state {parent = Parent} = State) ->
     receive
@@ -81,6 +176,11 @@ loop(#state {parent = Parent} = State) ->
             loop(State2)
     end.
 
+reply(Module, Name, Ref, From, Msg) ->
+    shackle_backlog:decrement(Name),
+    % TODO: fix me
+    From ! {Module, Ref, Msg}.
+
 system_code_change(State, _Moduleule, _OldVsn, _Extra) ->
     {ok, State}.
 
@@ -90,4 +190,16 @@ system_continue(_Parent, _Debug, State) ->
 system_terminate(Reason, _Parent, _Debug, _State) ->
     exit(Reason).
 
+tcp_close(#state {module = Module, name = Name} = State) ->
+    Msg = {error, tcp_closed},
+    Items = shackle_queue:all(Name),
+    [reply(Module, Name, Ref, From, Msg) || {Ref, From} <- Items],
+    connect_retry(State).
+
 terminate(_Reason, _State) -> ok.
+
+% TODO: move to shackle_backoff
+timeout(#state {connect_retry = ConnectRetry}) when ConnectRetry > 10 ->
+    ?DEFAULT_CONNECT_RETRY * 10;
+timeout(#state {connect_retry = ConnectRetry}) ->
+    ?DEFAULT_CONNECT_RETRY * ConnectRetry.

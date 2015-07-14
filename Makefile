@@ -32,7 +32,7 @@ eunit:
 	@echo "Running rebar eunit..."
 	@$(REBAR) skip_deps=true eunit
 
-test: all eunit
+test: build-plt dialyze eunit xref
 
 xref:
 	@$(REBAR) skip_deps=true xref

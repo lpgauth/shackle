@@ -3,18 +3,17 @@
 
 %% internal
 -export([
-    check/1,
+    check/2,
     decrement/1,
     init/0,
     new/1
 ]).
 
 %% internal
--spec check(atom()) -> boolean().
+-spec check(atom(), pos_integer()) -> boolean().
 
-check(Key) ->
-    MaxBacklogSize = backlog_size(),
-    case increment(Key) of
+check(Key, MaxBacklogSize) ->
+    case increment(Key, MaxBacklogSize) of
         [MaxBacklogSize, MaxBacklogSize] ->
             false;
         [_, Value] when Value =< MaxBacklogSize ->
@@ -42,12 +41,8 @@ new(Key) ->
     ets:insert(?ETS_TABLE_BACKLOG, {Key, 0}).
 
 %% private
-increment(Key) ->
-    MaxBacklogSize = backlog_size(),
+increment(Key, MaxBacklogSize) ->
     safe_update_counter(Key, [{2, 0}, {2, 1, MaxBacklogSize, MaxBacklogSize}]).
-
-backlog_size() ->
-    application:get_env(?APP, backlog_size, ?DEFAULT_BACKLOG_SIZE).
 
 safe_update_counter(Key, UpdateOp) ->
     try ets:update_counter(?ETS_TABLE_BACKLOG, Key, UpdateOp)

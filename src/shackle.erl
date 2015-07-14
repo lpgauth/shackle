@@ -5,30 +5,33 @@
 -include("shackle.hrl").
 
 -export([
-    cast/4,
     call/4,
+    cast/4,
     receive_response/3,
-    start/2
+    start_pool/2,
+    stop_pool/2
 ]).
 
 %% public
-cast(Namespace, Msg, Pid, PoolSize) ->
-    Ref = make_ref(),
-    Server = random_server(Namespace, PoolSize),
-    case shackle_backlog:check(Server) of
-        true ->
-            Server ! {call, Ref, Pid, Msg},
-            {ok, Ref};
-        false ->
-            {error, backlog_full}
-    end.
-
 call(Namespace, Msg, Timeout, PoolSize) ->
     case cast(Namespace, Msg, self(), PoolSize) of
         {ok, Ref} ->
             receive_response(Namespace, Ref, Timeout);
         {error, Reason} ->
             {error, Reason}
+    end.
+
+cast(Namespace, Msg, Pid, PoolSize) ->
+    Ref = make_ref(),
+    Server = random_server(Namespace, PoolSize),
+    % TODO: fix me
+    BacklogSize = 1024,
+    case shackle_backlog:check(Server, BacklogSize) of
+        true ->
+            Server ! {call, Ref, Pid, Msg},
+            {ok, Ref};
+        false ->
+            {error, backlog_full}
     end.
 
 receive_response(Namespace, Ref, Timeout) ->
@@ -43,13 +46,18 @@ receive_response(Namespace, Ref, Timeout) ->
         {error, timeout}
     end.
 
-start(_Module, _PoolSize) ->
-    % % supervisor:start_link({local, ?MODULE}, ?MODULE, []).
-    % child_specs(Module, PoolSize).
-    ok.
+start_pool(Module, PoolSize) ->
+    ChildNames = shackle_utils:child_names(Module, PoolSize),
+    ChildSpecs = [?CHILD(ChildName, Module) || ChildName <- ChildNames],
+    [supervisor:start_child(?SUPERVISOR, ChildSpec) || ChildSpec <- ChildSpecs].
+
+% TODO: fix me
+stop_pool(Module, PoolSize) ->
+    ChildNames = shackle_utils:child_names(Module, PoolSize),
+    [supervisor:delete_child(?SUPERVISOR, ChildName) || ChildName <- ChildNames].
 
 %% private
+% TODO: random or round_robin
 random_server(Namespace, PoolSize) ->
-    % TODO: round_robin
     Random = erlang:phash2({os:timestamp(), self()}, PoolSize) + 1,
     shackle_utils:child_name(Namespace, Random).

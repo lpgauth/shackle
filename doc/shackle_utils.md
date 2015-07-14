@@ -9,7 +9,7 @@
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#child_name-2">child_name/2</a></td><td></td></tr><tr><td valign="top"><a href="#lookup-3">lookup/3</a></td><td></td></tr><tr><td valign="top"><a href="#timeout-2">timeout/2</a></td><td></td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#child_name-2">child_name/2</a></td><td></td></tr><tr><td valign="top"><a href="#child_names-2">child_names/2</a></td><td></td></tr><tr><td valign="top"><a href="#info_msg-2">info_msg/2</a></td><td></td></tr><tr><td valign="top"><a href="#lookup-3">lookup/3</a></td><td></td></tr><tr><td valign="top"><a href="#timeout-2">timeout/2</a></td><td></td></tr><tr><td valign="top"><a href="#warning_msg-2">warning_msg/2</a></td><td></td></tr></table>
 
 
 <a name="functions"></a>
@@ -20,7 +20,22 @@
 
 ### child_name/2 ###
 
-`child_name(Mod, N) -> any()`
+`child_name(Module, N) -> any()`
+
+<a name="child_names-2"></a>
+
+### child_names/2 ###
+
+`child_names(Module, PoolSize) -> any()`
+
+<a name="info_msg-2"></a>
+
+### info_msg/2 ###
+
+<pre><code>
+info_msg(Format::string(), Data::[term()]) -&gt; ok
+</code></pre>
+<br />
 
 <a name="lookup-3"></a>
 
@@ -33,4 +48,13 @@
 ### timeout/2 ###
 
 `timeout(Timeout, Timestamp) -> any()`
+
+<a name="warning_msg-2"></a>
+
+### warning_msg/2 ###
+
+<pre><code>
+warning_msg(Format::string(), Data::[term()]) -&gt; ok
+</code></pre>
+<br />
 
