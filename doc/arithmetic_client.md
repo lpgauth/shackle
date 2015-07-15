@@ -32,7 +32,7 @@
 
 ### handle_cast/2 ###
 
-`handle_cast(Request, State) -> any()`
+`handle_cast(X1, State) -> any()`
 
 <a name="handle_data-2"></a>
 

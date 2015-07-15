@@ -70,16 +70,17 @@ init(Name, Module, Parent) ->
     }).
 
 %% private
-% TODO: use shackle_backoff
 connect_retry(#state {reconnect = false} = State) ->
     {ok, State#state {
         socket = undefined
     }};
 connect_retry(#state {connect_retry = ConnectRetry} = State) ->
+    Timeout = shackle_backoff:timeout(ConnectRetry),
+
     {ok, State#state {
         connect_retry = ConnectRetry + 1,
         socket = undefined,
-        timer = erlang:send_after(timeout(State), self(), ?MSG_CONNECT)
+        timer = erlang:send_after(Timeout, self(), ?MSG_CONNECT)
     }}.
 
 -spec handle_msg(term(), state()) -> {ok, state()}.
@@ -197,9 +198,3 @@ tcp_close(#state {module = Module, name = Name} = State) ->
     connect_retry(State).
 
 terminate(_Reason, _State) -> ok.
-
-% TODO: move to shackle_backoff
-timeout(#state {connect_retry = ConnectRetry}) when ConnectRetry > 10 ->
-    ?DEFAULT_CONNECT_RETRY * 10;
-timeout(#state {connect_retry = ConnectRetry}) ->
-    ?DEFAULT_CONNECT_RETRY * ConnectRetry.

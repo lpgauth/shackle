@@ -22,7 +22,7 @@ child_names(Module, PoolSize) ->
 -spec info_msg(string(), [term()]) -> ok.
 
 info_msg(Format, Data) ->
-    ?IF_DEF_TEST(ok, error_logger:info_msg(Format, Data)).
+    ?IF_DEF_TEST(fun () -> error_logger:info_msg(Format, Data) end).
 
 lookup(Key, List, Default) ->
     case lists:keyfind(Key, 1, List) of
@@ -37,8 +37,4 @@ timeout(Timeout, Timestamp) ->
 -spec warning_msg(string(), [term()]) -> ok.
 
 warning_msg(Format, Data) ->
-    ?IF_DEF_TEST(ok, error_logger:warning_msg(Format, Data)).
-
-
-
-
+    ?IF_DEF_TEST(fun () -> error_logger:warning_msg(Format, Data) end).

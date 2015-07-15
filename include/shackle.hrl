@@ -12,8 +12,7 @@
 -define(SUPERVISOR, shackle_sup).
 
 -ifdef(TEST).
--define(IF_DEF_TEST, fun (A, _) -> A end).
+-define(IF_DEF_TEST, fun (_F) -> ok end).
 -else.
--define(IF_DEF_TEST, fun (_, B) -> B end).
+-define(IF_DEF_TEST, fun (F) -> F() end).
 -endif.
-
