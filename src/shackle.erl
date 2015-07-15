@@ -3,6 +3,7 @@
 -module(shackle).
 -include("shackle.hrl").
 
+%% public
 -export([
     call/4,
     cast/4,

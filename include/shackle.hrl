@@ -1,3 +1,4 @@
+%% macros
 -define(APP, shackle).
 -define(CHILD(Name, Mod), {Name, {shackle_server, start_link, [Name, Mod]}, permanent, 5000, worker, [Mod]}).
 -define(DEFAULT_BACKLOG_SIZE, 1024).
@@ -9,6 +10,7 @@
 -define(ETS_TABLE_QUEUE, shackle_queue).
 -define(LOOKUP(Key, List), ?LOOKUP(Key, List, undefined)).
 -define(LOOKUP(Key, List, Default), shackle_utils:lookup(Key, List, Default)).
+-define(MSG_CONNECT, connect).
 -define(SUPERVISOR, shackle_sup).
 
 -ifdef(TEST).
@@ -16,3 +18,11 @@
 -else.
 -define(IF_DEF_TEST, fun (F) -> F() end).
 -endif.
+
+%% types
+-type init_opt() :: {ip, inet:ip_address() | inet:hostname()} |
+                    {port, inet:port_number()} |
+                    {reconnect, boolean()} |
+                    {state, term()}.
+
+-type init_opts() :: [init_opt()].

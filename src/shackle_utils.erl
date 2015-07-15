@@ -1,6 +1,7 @@
 -module(shackle_utils).
 -include("shackle.hrl").
 
+%% public
 -export([
     child_name/2,
     child_names/2,

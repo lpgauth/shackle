@@ -20,29 +20,44 @@
 
 ### call/4 ###
 
-`call(Namespace, Msg, Timeout, PoolSize) -> any()`
+<pre><code>
+call(Namespace::module(), Msg::term(), Timeout::pos_integer(), PoolSize::pos_integer()) -&gt; {ok, term()} | {error, term()}
+</code></pre>
+<br />
 
 <a name="cast-4"></a>
 
 ### cast/4 ###
 
-`cast(Namespace, Msg, Pid, PoolSize) -> any()`
+<pre><code>
+cast(Namespace::module(), Msg::term(), Pid::pid(), PoolSize::pos_integer()) -&gt; {ok, reference()} | {error, term()}
+</code></pre>
+<br />
 
 <a name="receive_response-3"></a>
 
 ### receive_response/3 ###
 
-`receive_response(Namespace, Ref, Timeout) -> any()`
+<pre><code>
+receive_response(Namespace::module(), Ref::reference(), Timeout::pos_integer()) -&gt; {ok, reference()} | {error, term()}
+</code></pre>
+<br />
 
 <a name="start_pool-2"></a>
 
 ### start_pool/2 ###
 
-`start_pool(Module, PoolSize) -> any()`
+<pre><code>
+start_pool(Module::module(), PoolSize::pos_integer()) -&gt; [{ok, pid()}]
+</code></pre>
+<br />
 
 <a name="stop_pool-2"></a>
 
 ### stop_pool/2 ###
 
-`stop_pool(Module, PoolSize) -> any()`
+<pre><code>
+stop_pool(Module::module(), PoolSize::pos_integer()) -&gt; [ok | {error, atom()}]
+</code></pre>
+<br />
 

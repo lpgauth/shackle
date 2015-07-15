@@ -1,6 +1,7 @@
 -module(shackle_backoff).
 -include("shackle.hrl").
 
+%% public
 -export([
     timeout/1
 ]).

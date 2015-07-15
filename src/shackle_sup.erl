@@ -1,6 +1,7 @@
 -module(shackle_sup).
 -include("shackle.hrl").
 
+%% internal
 -export([
     start_link/0
 ]).
@@ -10,7 +11,7 @@
     init/1
 ]).
 
-%% public
+%% internal
 -spec start_link() -> {ok, pid()}.
 
 start_link() ->

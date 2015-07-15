@@ -1,6 +1,7 @@
 -module(shackle_app).
 -include("shackle.hrl").
 
+%% public
 -export([
     start/0
 ]).
@@ -12,11 +13,10 @@
 ]).
 
 %% public
--spec start() -> ok.
+-spec start() -> {ok, [atom()]}.
 
 start() ->
-    {ok, _} = application:ensure_all_started(?APP),
-    ok.
+    application:ensure_all_started(?APP).
 
 %% application callbacks
 -spec start(application:start_type(), term()) -> {ok, pid()}.

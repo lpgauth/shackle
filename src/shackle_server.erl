@@ -1,23 +1,18 @@
 -module(shackle_server).
 -include("shackle.hrl").
 
+%% internal
 -export([
     init/3,
     start_link/2
 ]).
 
+%% sys behavior
 -export([
     system_code_change/4,
     system_continue/3,
     system_terminate/4
 ]).
-
--type init_opt() :: {ip, inet:ip_address() | inet:hostname()} |
-                    {port, inet:port_number()} |
-                    {reconnect, boolean()} |
-                    {state, term()}.
-
--type init_opts() :: [init_opt()].
 
 %% callbacks
 -callback init() -> {ok, init_opts()}.
@@ -38,10 +33,6 @@
     state         = undefined :: term(),
     timer         = undefined :: undefined | timer:ref()
 }).
-
--type state() :: #state {}.
-
--define(MSG_CONNECT, connect).
 
 %% public
 -spec start_link(atom(), module()) -> {ok, pid()}.
@@ -100,7 +91,7 @@ connect_retry(#state {connect_retry = ConnectRetry} = State) ->
         timer = erlang:send_after(Timeout, self(), ?MSG_CONNECT)
     }}.
 
--spec handle_msg(term(), state()) -> {ok, state()}.
+-spec handle_msg(term(), #state {}) -> {ok, #state {}}.
 
 handle_msg(?MSG_CONNECT, #state {
         ip = Ip,

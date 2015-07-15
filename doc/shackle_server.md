@@ -40,17 +40,26 @@ start_link(Name::atom(), Module::module()) -&gt; {ok, pid()}
 
 ### system_code_change/4 ###
 
-`system_code_change(State, Module, OldVsn, Extra) -> any()`
+<pre><code>
+system_code_change(State::#state{connect_retry = non_neg_integer(), ip = <a href="inet.md#type-ip_address">inet:ip_address()</a> | <a href="inet.md#type-hostname">inet:hostname()</a>, module = module(), name = atom(), parent = pid(), port = <a href="inet.md#type-port_number">inet:port_number()</a>, reconnect = boolean(), socket = undefined | <a href="inet.md#type-socket">inet:socket()</a>, state = term(), timer = undefined | <a href="timer.md#type-ref">timer:ref()</a>}, Module::module(), OldVsn::undefined | term(), Extra::term()) -&gt; {ok, #state{connect_retry = non_neg_integer(), ip = <a href="inet.md#type-ip_address">inet:ip_address()</a> | <a href="inet.md#type-hostname">inet:hostname()</a>, module = module(), name = atom(), parent = pid(), port = <a href="inet.md#type-port_number">inet:port_number()</a>, reconnect = boolean(), socket = undefined | <a href="inet.md#type-socket">inet:socket()</a>, state = term(), timer = undefined | <a href="timer.md#type-ref">timer:ref()</a>}}
+</code></pre>
+<br />
 
 <a name="system_continue-3"></a>
 
 ### system_continue/3 ###
 
-`system_continue(Parent, Debug, State) -> any()`
+<pre><code>
+system_continue(Parent::pid(), Debug::[], State::#state{connect_retry = non_neg_integer(), ip = <a href="inet.md#type-ip_address">inet:ip_address()</a> | <a href="inet.md#type-hostname">inet:hostname()</a>, module = module(), name = atom(), parent = pid(), port = <a href="inet.md#type-port_number">inet:port_number()</a>, reconnect = boolean(), socket = undefined | <a href="inet.md#type-socket">inet:socket()</a>, state = term(), timer = undefined | <a href="timer.md#type-ref">timer:ref()</a>}) -&gt; ok
+</code></pre>
+<br />
 
 <a name="system_terminate-4"></a>
 
 ### system_terminate/4 ###
 
-`system_terminate(Reason, Parent, Debug, State) -> any()`
+<pre><code>
+system_terminate(Reason::term(), Parent::pid(), Debug::[], State::#state{connect_retry = non_neg_integer(), ip = <a href="inet.md#type-ip_address">inet:ip_address()</a> | <a href="inet.md#type-hostname">inet:hostname()</a>, module = module(), name = atom(), parent = pid(), port = <a href="inet.md#type-port_number">inet:port_number()</a>, reconnect = boolean(), socket = undefined | <a href="inet.md#type-socket">inet:socket()</a>, state = term(), timer = undefined | <a href="timer.md#type-ref">timer:ref()</a>}) -&gt; none()
+</code></pre>
+<br />
 
