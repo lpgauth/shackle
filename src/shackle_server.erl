@@ -43,6 +43,7 @@
 
 -define(MSG_CONNECT, connect).
 
+%% public
 -spec start_link(atom(), module()) -> {ok, pid()}.
 
 start_link(Name, Module) ->
@@ -68,6 +69,22 @@ init(Name, Module, Parent) ->
         reconnect = ?LOOKUP(reconnect, Opts),
         state = ?LOOKUP(state, Opts)
     }).
+
+%% sys callbacks
+-spec system_code_change(#state {}, module(), undefined | term(), term()) -> {ok, #state {}}.
+
+system_code_change(State, _Module, _OldVsn, _Extra) ->
+    {ok, State}.
+
+-spec system_continue(pid(), [], #state {}) -> ok.
+
+system_continue(_Parent, _Debug, State) ->
+    loop(State).
+
+-spec system_terminate(term(), pid(), [], #state {}) -> none().
+
+system_terminate(Reason, _Parent, _Debug, _State) ->
+    exit(Reason).
 
 %% private
 connect_retry(#state {reconnect = false} = State) ->
@@ -181,15 +198,6 @@ reply(Module, Name, Ref, From, Msg) ->
     shackle_backlog:decrement(Name),
     % TODO: fix me
     From ! {Module, Ref, Msg}.
-
-system_code_change(State, _Moduleule, _OldVsn, _Extra) ->
-    {ok, State}.
-
-system_continue(_Parent, _Debug, State) ->
-    loop(State).
-
-system_terminate(Reason, _Parent, _Debug, _State) ->
-    exit(Reason).
 
 tcp_close(#state {module = Module, name = Name} = State) ->
     Msg = {error, tcp_closed},

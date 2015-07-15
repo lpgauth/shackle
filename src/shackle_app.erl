@@ -19,8 +19,12 @@ start() ->
     ok.
 
 %% application callbacks
+-spec start(application:start_type(), term()) -> {ok, pid()}.
+
 start(_StartType, _StartArgs) ->
     shackle_sup:start_link().
+
+-spec stop(term()) -> ok.
 
 stop(_State) ->
     ok.

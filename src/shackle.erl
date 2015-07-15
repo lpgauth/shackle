@@ -1,4 +1,3 @@
-% TODO: add specs
 % TODO: store pool info in ETS (size, selection)
 
 -module(shackle).
@@ -13,6 +12,9 @@
 ]).
 
 %% public
+-spec call(module(), term(), pos_integer(), pos_integer()) ->
+    {ok, term()} | {error, term()}.
+
 call(Namespace, Msg, Timeout, PoolSize) ->
     case cast(Namespace, Msg, self(), PoolSize) of
         {ok, Ref} ->
@@ -20,6 +22,9 @@ call(Namespace, Msg, Timeout, PoolSize) ->
         {error, Reason} ->
             {error, Reason}
     end.
+
+-spec cast(module(), term(), pid(), pos_integer()) ->
+    {ok, reference()} | {error, term()}.
 
 cast(Namespace, Msg, Pid, PoolSize) ->
     Ref = make_ref(),
@@ -34,6 +39,9 @@ cast(Namespace, Msg, Pid, PoolSize) ->
             {error, backlog_full}
     end.
 
+-spec receive_response(module(), reference(), pos_integer()) ->
+    {ok, reference()} | {error, term()}.
+
 receive_response(Namespace, Ref, Timeout) ->
     Timestamp = os:timestamp(),
     receive
@@ -46,10 +54,14 @@ receive_response(Namespace, Ref, Timeout) ->
         {error, timeout}
     end.
 
+-spec start_pool(module(), pos_integer()) -> [{ok, pid()}].
+
 start_pool(Module, PoolSize) ->
     ChildNames = shackle_utils:child_names(Module, PoolSize),
     ChildSpecs = [?CHILD(ChildName, Module) || ChildName <- ChildNames],
     [supervisor:start_child(?SUPERVISOR, ChildSpec) || ChildSpec <- ChildSpecs].
+
+-spec stop_pool(module(), pos_integer()) -> [ok | {error, atom()}].
 
 % TODO: fix me
 stop_pool(Module, PoolSize) ->

@@ -22,7 +22,10 @@ __Behaviours:__ [`supervisor`](supervisor.md).
 
 ### init/1 ###
 
-`init(X1) -> any()`
+<pre><code>
+init(X1::[]) -&gt; {ok, {<a href="supervisor.md#type-sup_flags">supervisor:sup_flags()</a>, []}}
+</code></pre>
+<br />
 
 <a name="start_link-0"></a>
 

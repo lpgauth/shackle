@@ -1,6 +1,5 @@
 %% encoding: UTF-8
 {application,shackle}.
 {packages,[]}.
-{modules,[arithmetic_client,arithmetic_server,shackle,shackle_app,
-          shackle_backlog,shackle_backoff,shackle_cache,shackle_queue,
-          shackle_server,shackle_sup,shackle_utils]}.
+{modules,[shackle,shackle_app,shackle_backlog,shackle_backoff,shackle_cache,
+          shackle_queue,shackle_server,shackle_sup,shackle_utils]}.

@@ -40,7 +40,7 @@ start_link(Name::atom(), Module::module()) -&gt; {ok, pid()}
 
 ### system_code_change/4 ###
 
-`system_code_change(State, Moduleule, OldVsn, Extra) -> any()`
+`system_code_change(State, Module, OldVsn, Extra) -> any()`
 
 <a name="system_continue-3"></a>
 

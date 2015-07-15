@@ -1,5 +1,5 @@
 -module(arithmetic_client).
--include("../test/test.hrl").
+-include("test.hrl").
 
 -export([
     add/2,
@@ -18,8 +18,7 @@
 ]).
 
 -define(MAX_REQUEST_ID, 256).
-% TODO: bump to 4
--define(POOL_SIZE, 1).
+-define(POOL_SIZE, 4).
 -define(SERVER, arithmetic_client).
 
 -record(state, {

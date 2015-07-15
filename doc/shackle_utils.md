@@ -20,13 +20,19 @@
 
 ### child_name/2 ###
 
-`child_name(Module, N) -> any()`
+<pre><code>
+child_name(Module::module(), N::pos_integer()) -&gt; atom()
+</code></pre>
+<br />
 
 <a name="child_names-2"></a>
 
 ### child_names/2 ###
 
-`child_names(Module, PoolSize) -> any()`
+<pre><code>
+child_names(Module::module(), PoolSize::pos_integer()) -&gt; [atom()]
+</code></pre>
+<br />
 
 <a name="info_msg-2"></a>
 
@@ -41,13 +47,19 @@ info_msg(Format::string(), Data::[term()]) -&gt; ok
 
 ### lookup/3 ###
 
-`lookup(Key, List, Default) -> any()`
+<pre><code>
+lookup(Key::atom(), List::[{atom(), term()}], Default::term()) -&gt; term()
+</code></pre>
+<br />
 
 <a name="timeout-2"></a>
 
 ### timeout/2 ###
 
-`timeout(Timeout, Timestamp) -> any()`
+<pre><code>
+timeout(Timeout::pos_integer(), Timestamp::<a href="erlang.md#type-timestamp">erlang:timestamp()</a>) -&gt; integer()
+</code></pre>
+<br />
 
 <a name="warning_msg-2"></a>
 
