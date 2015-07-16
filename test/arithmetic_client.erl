@@ -36,6 +36,7 @@ start() ->
     shackle_pool:start(?NAME, [
         {client, arithmetic_client},
         {pool_size, 4},
+        {pool_strategy, round_robin},
         {backlog_size, 512}
     ]).
 

@@ -64,6 +64,7 @@ start(Name, PoolOpts) ->
     Client = ?LOOKUP(client, PoolOpts),
     PoolSize = ?LOOKUP(pool_size, PoolOpts, ?DEFAULT_POOL_SIZE),
     PoolStrategy = ?LOOKUP(pool_strategy, PoolOpts, ?DEFAULT_POOL_STRATEGY),
+    ets:insert(?ETS_TABLE_POOL, {{Name, round_robin}, 1}),
 
     set_opts(Name, #pool_opts {
         backlog_size = BacklogSize,
@@ -107,7 +108,8 @@ random(PoolSize) ->
     erlang:phash2({os:timestamp(), self()}, PoolSize) + 1.
 
 round_robin(Name, PoolSize) ->
-    ets:update_counter(?ETS_TABLE_POOL, {Name, round_robin}, [{2, 1, PoolSize, 0}]).
+    [X] = ets:update_counter(?ETS_TABLE_POOL, {Name, round_robin}, [{2, 1, PoolSize, 1}]),
+    X.
 
 set_opts(Name, Opts) ->
     ets:insert(?ETS_TABLE_POOL, {Name, Opts}).
