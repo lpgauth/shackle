@@ -3,8 +3,6 @@
 
 %% public
 -export([
-    child_name/2,
-    child_names/2,
     info_msg/2,
     lookup/3,
     timeout/2,
@@ -12,16 +10,6 @@
 ]).
 
 %% public
--spec child_name(module(), pos_integer()) -> atom().
-
-child_name(Module, N) ->
-    list_to_atom(atom_to_list(Module) ++ integer_to_list(N)).
-
--spec child_names(module(), pos_integer()) -> [atom()].
-
-child_names(Module, PoolSize) ->
-    [shackle_utils:child_name(Module, N) || N <- lists:seq(1, PoolSize)].
-
 -spec info_msg(string(), [term()]) -> ok.
 
 info_msg(Format, Data) ->

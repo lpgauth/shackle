@@ -18,8 +18,7 @@
 ]).
 
 -define(MAX_REQUEST_ID, 256).
--define(POOL_SIZE, 4).
--define(SERVER, arithmetic_client).
+-define(NAME, arithmetic).
 
 -record(state, {
     buffer = <<>>,
@@ -28,16 +27,20 @@
 
 %% public
 add(A, B) ->
-    shackle:call(?SERVER, {add, A, B}, 1000, ?POOL_SIZE).
+    shackle:call(?NAME, {add, A, B}).
 
 multiply(A, B) ->
-    shackle:call(?SERVER, {multiply, A, B}, 1000, ?POOL_SIZE).
+    shackle:call(?NAME, {multiply, A, B}).
 
 start() ->
-    shackle:start_pool(?SERVER, ?POOL_SIZE).
+    shackle_pool:start(?NAME, [
+        {client, arithmetic_client},
+        {pool_size, 4},
+        {backlog_size, 512}
+    ]).
 
 stop() ->
-    shackle:stop_pool(?SERVER, ?POOL_SIZE).
+    shackle_pool:stop(?NAME).
 
 %% shackle_server callbacks
 init() ->
@@ -56,9 +59,9 @@ handle_cast({Operation, A, B}, #state {
     }) ->
 
     RequestId = request_id(RequestCounter),
-    Data = <<RequestId:8/integer, (opcode(Operation)), A:8/integer, B:8/integer>>,
+    Request = request(RequestId, Operation, A, B),
 
-    {ok, RequestId, Data, #state {
+    {ok, RequestId, Request, #state {
         request_counter = RequestCounter + 1
     }}.
 
@@ -83,6 +86,9 @@ parse_replies(<<ReqId:8/integer, A:16/integer, Rest/binary>>, Acc) ->
     parse_replies(Rest, [{ReqId, A} | Acc]);
 parse_replies(Buffer, Acc) ->
     {Acc, Buffer}.
+
+request(RequestId, Operation, A, B) ->
+    <<RequestId:8/integer, (opcode(Operation)), A:8/integer, B:8/integer>>.
 
 request_id(RequestCounter) ->
     RequestCounter rem ?MAX_REQUEST_ID.

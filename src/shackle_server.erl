@@ -3,8 +3,8 @@
 
 %% internal
 -export([
-    init/3,
-    start_link/2
+    init/4,
+    start_link/3
 ]).
 
 %% sys behavior
@@ -23,6 +23,7 @@
 
 -record(state, {
     connect_retry = 0         :: non_neg_integer(),
+    child_name    = undefined :: atom(),
     ip            = undefined :: inet:ip_address() | inet:hostname(),
     module        = undefined :: module(),
     name          = undefined :: atom(),
@@ -35,29 +36,30 @@
 }).
 
 %% public
--spec start_link(atom(), module()) -> {ok, pid()}.
+-spec start_link(atom(), atom(), module()) -> {ok, pid()}.
 
-start_link(Name, Module) ->
-    proc_lib:start_link(?MODULE, init, [Name, Module, self()]).
+start_link(Name, ChildName, Module) ->
+    proc_lib:start_link(?MODULE, init, [Name, ChildName, Module, self()]).
 
--spec init(atom(), module(), pid()) -> no_return().
+-spec init(atom(), atom(), module(), pid()) -> no_return().
 
-init(Name, Module, Parent) ->
+init(Name, ChildName, Module, Parent) ->
     process_flag(trap_exit, true),
     proc_lib:init_ack(Parent, {ok, self()}),
-    register(Name, self()),
+    register(ChildName, self()),
 
     self() ! ?MSG_CONNECT,
-    shackle_backlog:new(Name),
+    shackle_backlog:new(ChildName),
     {ok, Opts} = Module:init(),
 
     loop(#state {
+        child_name = ChildName,
         ip = ?LOOKUP(ip, Opts),
         module = Module,
         name = Name,
         parent = Parent,
         port = ?LOOKUP(port, Opts),
-        reconnect = ?LOOKUP(reconnect, Opts),
+        reconnect = ?LOOKUP(reconnect, Opts, ?DEFAULT_RECONNECT),
         state = ?LOOKUP(state, Opts)
     }).
 
@@ -91,8 +93,6 @@ connect_retry(#state {connect_retry = ConnectRetry} = State) ->
         timer = erlang:send_after(Timeout, self(), ?MSG_CONNECT)
     }}.
 
--spec handle_msg(term(), #state {}) -> {ok, #state {}}.
-
 handle_msg(?MSG_CONNECT, #state {
         ip = Ip,
         port = Port
@@ -118,15 +118,15 @@ handle_msg(?MSG_CONNECT, #state {
     end;
 handle_msg({call, Ref, From, _Msg}, #state {
         socket = undefined,
-        module = Module,
+        child_name = ChildName,
         name = Name
     } = State) ->
 
-    reply(Module, Name, Ref, From, {error, no_socket}),
+    reply(Name, ChildName, Ref, From, {error, no_socket}),
     {ok, State};
 handle_msg({call, Ref, From, Request}, #state {
+        child_name = ChildName,
         module = Module,
-        name = Name,
         socket = Socket,
         state = ClientState
     } = State) ->
@@ -135,7 +135,8 @@ handle_msg({call, Ref, From, Request}, #state {
 
     case gen_tcp:send(Socket, Data) of
         ok ->
-            shackle_queue:in(Name, RequestId, {Ref, From}),
+            shackle_queue:in(ChildName, RequestId, {Ref, From}),
+
             {ok, State#state {
                 state = ClientState2
             }};
@@ -145,6 +146,7 @@ handle_msg({call, Ref, From, Request}, #state {
             tcp_close(State)
     end;
 handle_msg({tcp, _Port, Data}, #state {
+        child_name = ChildName,
         module = Module,
         name = Name,
         state = ClientState
@@ -153,8 +155,8 @@ handle_msg({tcp, _Port, Data}, #state {
     {ok, Replys, ClientState2} = Module:handle_data(Data, ClientState),
 
     lists:foreach(fun ({RequestId, Reply}) ->
-        {Ref, From} = shackle_queue:out(Name, RequestId),
-        reply(Module, Name, Ref, From, Reply)
+        {Ref, From} = shackle_queue:out(ChildName, RequestId),
+        reply(Name, ChildName, Ref, From, Reply)
     end, Replys),
 
     {ok, State#state {
@@ -185,15 +187,14 @@ loop(#state {parent = Parent} = State) ->
             loop(State2)
     end.
 
-reply(Module, Name, Ref, From, Msg) ->
-    shackle_backlog:decrement(Name),
-    % TODO: fix me
-    From ! {Module, Ref, Msg}.
+reply(Name, ChildName, Ref, From, Msg) ->
+    shackle_backlog:decrement(ChildName),
+    From ! {Name, Ref, Msg}.
 
-tcp_close(#state {module = Module, name = Name} = State) ->
+tcp_close(#state {child_name = ChildName, name = Name} = State) ->
     Msg = {error, tcp_closed},
     Items = shackle_queue:all(Name),
-    [reply(Module, Name, Ref, From, Msg) || {Ref, From} <- Items],
+    [reply(Name, ChildName, Ref, From, Msg) || {Ref, From} <- Items],
     connect_retry(State).
 
 terminate(_Reason, _State) -> ok.

@@ -9,6 +9,7 @@
 %% public
 -spec timeout(pos_integer()) -> pos_integer().
 
+% TODO: exponential backoff
 timeout(ConnectRetry) when ConnectRetry > 10 ->
     ?DEFAULT_CONNECT_RETRY * 10;
 timeout(ConnectRetry) ->
