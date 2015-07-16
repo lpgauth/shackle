@@ -48,7 +48,7 @@ init() ->
     {ok, [
         {ip, "127.0.0.1"},
         {port, ?PORT},
-        {reconnect, false},
+        {reconnect, true},
         {state, #state {}}
     ]}.
 

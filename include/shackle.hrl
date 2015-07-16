@@ -1,7 +1,7 @@
 %% macros
 -define(APP, shackle).
 -define(DEFAULT_BACKLOG_SIZE, 1024).
--define(DEFAULT_CONNECT_RETRY, 500).
+-define(DEFAULT_MAX_TIMEOUT, 120000).
 -define(DEFAULT_POOL_SIZE, 16).
 -define(DEFAULT_POOL_STRATEGY, random).
 -define(DEFAULT_RECONNECT, true).
@@ -22,6 +22,14 @@
 -define(IF_DEF_TEST, fun (F) -> F() end).
 -endif.
 
+%% records
+-record(pool_opts, {
+    backlog_size,
+    client,
+    pool_size,
+    pool_strategy
+}).
+
 %% types
 -type init_opt() :: {ip, inet:ip_address() | inet:hostname()} |
                     {port, inet:port_number()} |
@@ -29,3 +37,12 @@
                     {state, term()}.
 
 -type init_opts() :: [init_opt()].
+
+-type pool_strategy() :: random | round_robin.
+
+-type pool_opt() :: {backlog_size, pos_integer()} |
+                    {client, module()} |
+                    {pool_size, pos_integer()} |
+                    {pool_strategy, pool_strategy()}.
+
+-type pool_opts() :: [pool_opt()].

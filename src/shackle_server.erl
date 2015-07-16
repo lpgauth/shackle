@@ -22,7 +22,7 @@
 -callback terminate(State :: term()) -> ok.
 
 -record(state, {
-    connect_retry = 0         :: non_neg_integer(),
+    connect_retry = 1000      :: non_neg_integer(),
     child_name    = undefined :: atom(),
     ip            = undefined :: inet:ip_address() | inet:hostname(),
     module        = undefined :: module(),
@@ -49,6 +49,7 @@ init(Name, ChildName, Module, Parent) ->
     register(ChildName, self()),
 
     self() ! ?MSG_CONNECT,
+    random:seed(os:timestamp()),
     shackle_backlog:new(ChildName),
     {ok, Opts} = Module:init(),
 
@@ -85,12 +86,12 @@ connect_retry(#state {reconnect = false} = State) ->
         socket = undefined
     }};
 connect_retry(#state {connect_retry = ConnectRetry} = State) ->
-    Timeout = shackle_backoff:timeout(ConnectRetry),
+    ConnectRetry2 = shackle_backoff:timeout(ConnectRetry),
 
     {ok, State#state {
-        connect_retry = ConnectRetry + 1,
+        connect_retry = ConnectRetry2,
         socket = undefined,
-        timer = erlang:send_after(Timeout, self(), ?MSG_CONNECT)
+        timer = erlang:send_after(ConnectRetry2, self(), ?MSG_CONNECT)
     }}.
 
 handle_msg(?MSG_CONNECT, #state {

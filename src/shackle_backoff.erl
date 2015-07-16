@@ -9,8 +9,9 @@
 %% public
 -spec timeout(pos_integer()) -> pos_integer().
 
-% TODO: exponential backoff
-timeout(ConnectRetry) when ConnectRetry > 10 ->
-    ?DEFAULT_CONNECT_RETRY * 10;
-timeout(ConnectRetry) ->
-    ?DEFAULT_CONNECT_RETRY * ConnectRetry.
+timeout(N) when N >= ?DEFAULT_MAX_TIMEOUT ->
+    ?DEFAULT_MAX_TIMEOUT;
+timeout(N) ->
+    Width = N bsl 1,
+    N2 = N + random:uniform(Width + 1) - 1,
+    min(N2, ?DEFAULT_MAX_TIMEOUT).

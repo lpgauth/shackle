@@ -3,7 +3,8 @@
 
 %% public
 -export([
-    start/0
+    start/0,
+    stop/0
 ]).
 
 -behaviour(application).
@@ -17,6 +18,11 @@
 
 start() ->
     application:ensure_all_started(?APP).
+
+-spec stop() -> ok.
+
+stop() ->
+    application:stop(?APP).
 
 %% application callbacks
 -spec start(application:start_type(), term()) -> {ok, pid()}.

@@ -12,6 +12,7 @@
 %% public
 -spec info_msg(string(), [term()]) -> ok.
 
+% TODO: pass pool name
 info_msg(Format, Data) ->
     ?IF_DEF_TEST(fun () -> error_logger:info_msg(Format, Data) end).
 
@@ -31,5 +32,6 @@ timeout(Timeout, Timestamp) ->
 
 -spec warning_msg(string(), [term()]) -> ok.
 
+% TODO: pass pool name
 warning_msg(Format, Data) ->
     ?IF_DEF_TEST(fun () -> error_logger:warning_msg(Format, Data) end).

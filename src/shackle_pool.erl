@@ -1,61 +1,21 @@
+% TODO: cleanup
+
 -module(shackle_pool).
 -include("shackle.hrl").
 
 %% public
 -export([
-    init/0,
-    server/1,
     start/2,
     stop/1
 ]).
 
--type pool_opt() :: {backlog_size, pos_integer()} |
-                    {client, module()} |
-                    {pool_size, pos_integer()} |
-                    {pool_strategy, random | round_robin}.
-
--type pool_opts() :: [pool_opt()].
-
--record(pool_opts, {
-    backlog_size,
-    client,
-    pool_size,
-    pool_strategy
-}).
+%% internal
+-export([
+    init/0,
+    server/1
+]).
 
 %% public
--spec init() -> ?ETS_TABLE_POOL.
-
-init() ->
-    ets:new(?ETS_TABLE_POOL, [
-        named_table,
-        public,
-        {read_concurrency, true}
-    ]).
-
--spec server(atom()) -> {ok, pid()} | {error, backlog_full}.
-server(Name) ->
-    #pool_opts {
-        backlog_size = BacklogSize,
-        client = Client,
-        pool_size = PoolSize,
-        pool_strategy = PoolStrategy
-    } = opts(Name),
-
-    ServerId = case PoolStrategy of
-        random ->
-            random(PoolSize);
-        round_robin ->
-            round_robin(Name, PoolSize)
-    end,
-    Server = child_name(Client, ServerId),
-    case shackle_backlog:check(Server, BacklogSize) of
-        true ->
-            {ok, Server};
-        false ->
-            {error, backlog_full}
-    end.
-
 -spec start(module(), pool_opts()) -> [{ok, pid()}].
 
 start(Name, PoolOpts) ->
@@ -89,6 +49,39 @@ stop(Name) ->
 
     ChildNames = child_names(Client, PoolSize),
     [supervisor:delete_child(?SUPERVISOR, ChildName) || ChildName <- ChildNames].
+
+%% internal
+-spec init() -> ?ETS_TABLE_POOL.
+
+init() ->
+    ets:new(?ETS_TABLE_POOL, [
+        named_table,
+        public,
+        {read_concurrency, true}
+    ]).
+
+-spec server(atom()) -> {ok, pid()} | {error, backlog_full}.
+server(Name) ->
+    #pool_opts {
+        backlog_size = BacklogSize,
+        client = Client,
+        pool_size = PoolSize,
+        pool_strategy = PoolStrategy
+    } = opts(Name),
+
+    ServerId = case PoolStrategy of
+        random ->
+            random(PoolSize);
+        round_robin ->
+            round_robin(Name, PoolSize)
+    end,
+    Server = child_name(Client, ServerId),
+    case shackle_backlog:check(Server, BacklogSize) of
+        true ->
+            {ok, Server};
+        false ->
+            {error, backlog_full}
+    end.
 
 %% private
 child_name(Module, N) ->
