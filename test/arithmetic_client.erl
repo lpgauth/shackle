@@ -1,5 +1,5 @@
 -module(arithmetic_client).
--include("test.hrl").
+-include("../test/test.hrl").
 
 -export([
     add/2,

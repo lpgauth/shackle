@@ -20,11 +20,17 @@
 
 ### start/0 ###
 
-`start() -> any()`
+<pre><code>
+start() -&gt; ok | {error, already_started}
+</code></pre>
+<br />
 
 <a name="stop-0"></a>
 
 ### stop/0 ###
 
-`stop() -> any()`
+<pre><code>
+stop() -&gt; ok | {error, not_started}
+</code></pre>
+<br />
 

@@ -21,7 +21,7 @@
 ### check/2 ###
 
 <pre><code>
-check(Key::atom(), MaxBacklogSize::pos_integer()) -&gt; boolean()
+check(Key::atom(), BacklogSize::pos_integer()) -&gt; boolean()
 </code></pre>
 <br />
 
@@ -30,7 +30,7 @@ check(Key::atom(), MaxBacklogSize::pos_integer()) -&gt; boolean()
 ### decrement/1 ###
 
 <pre><code>
-decrement(Key::atom()) -&gt; non_neg_integer() | {error, tid_missing}
+decrement(Key::atom()) -&gt; non_neg_integer()
 </code></pre>
 <br />
 

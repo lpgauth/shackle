@@ -16,9 +16,15 @@
 
 %% callbacks
 -callback init() -> {ok, init_opts()}.
--callback after_connect(Socket :: inet:socket(), State :: term()) -> {ok, Socket :: inet:socket(), State :: term()}.
--callback handle_cast(Request :: term(), State :: term()) -> {ok, RequestId :: term(), Data :: binary(), State :: term()}.
--callback handle_data(Data :: binary(), State :: term()) -> {ok, [{RequestId :: term(), Reply :: term()}], State :: term()}.
+-callback after_connect(Socket :: inet:socket(), State :: term()) ->
+    {ok, Socket :: inet:socket(), State :: term()}.
+
+-callback handle_cast(Request :: term(), State :: term()) ->
+    {ok, RequestId :: term(), Data :: binary(), State :: term()}.
+
+-callback handle_data(Data :: binary(), State :: term()) ->
+    {ok, [{RequestId :: term(), Reply :: term()}], State :: term()}.
+
 -callback terminate(State :: term()) -> ok.
 
 -record(state, {
@@ -198,4 +204,5 @@ tcp_close(#state {child_name = ChildName, name = Name} = State) ->
     [reply(Name, ChildName, Ref, From, Msg) || {Ref, From} <- Items],
     connect_retry(State).
 
-terminate(_Reason, _State) -> ok.
+terminate(Reason, _State) ->
+    exit(Reason).

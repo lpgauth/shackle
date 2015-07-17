@@ -21,7 +21,7 @@
 ### timeout/1 ###
 
 <pre><code>
-timeout(ConnectRetry::pos_integer()) -&gt; pos_integer()
+timeout(N::pos_integer()) -&gt; pos_integer()
 </code></pre>
 <br />
 

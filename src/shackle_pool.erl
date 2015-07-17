@@ -1,5 +1,3 @@
-% TODO: cleanup
-
 -module(shackle_pool).
 -include("shackle.hrl").
 
@@ -16,8 +14,9 @@
 ]).
 
 %% public
--spec start(module(), pool_opts()) -> [{ok, pid()}].
+-spec start(module(), pool_opts()) -> [{ok, pid()} | {error, atom()}].
 
+% TODO: cleanup
 start(Name, PoolOpts) ->
     BacklogSize = ?LOOKUP(backlog_size, PoolOpts, ?DEFAULT_BACKLOG_SIZE),
     % TODO: validate presence
@@ -40,7 +39,6 @@ start(Name, PoolOpts) ->
 
 -spec stop(atom()) -> [ok | {error, atom()}].
 
-% TODO: fix me
 stop(Name) ->
     #pool_opts {
         client = Client,
@@ -48,7 +46,15 @@ stop(Name) ->
     } = opts(Name),
 
     ChildNames = child_names(Client, PoolSize),
-    [supervisor:delete_child(?SUPERVISOR, ChildName) || ChildName <- ChildNames].
+    lists:map(fun (ChildName) ->
+    	case supervisor:terminate_child(?SUPERVISOR, ChildName) of
+    		ok ->
+                % TODO: cleanup opts
+                supervisor:delete_child(?SUPERVISOR, ChildName);
+    		{error, Reason} ->
+    			{error, Reason}
+    	end
+    end, ChildNames).
 
 %% internal
 -spec init() -> ?ETS_TABLE_POOL.

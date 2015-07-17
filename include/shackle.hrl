@@ -14,6 +14,7 @@
 -define(LOOKUP(Key, List), ?LOOKUP(Key, List, undefined)).
 -define(LOOKUP(Key, List, Default), shackle_utils:lookup(Key, List, Default)).
 -define(MSG_CONNECT, connect).
+-define(MSG_TERMINATE, terminate).
 -define(SUPERVISOR, shackle_sup).
 
 -ifdef(TEST).

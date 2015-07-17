@@ -1,5 +1,5 @@
 -module(arithmetic_server).
--include("test.hrl").
+-include("../test/test.hrl").
 
 -export([
     start/0,
@@ -7,22 +7,48 @@
 ]).
 
 %% public
+-spec start() -> ok | {error, already_started}.
+
 start() ->
-    {ok, LSocket} = gen_tcp:listen(?PORT, ?TCP_OPTIONS),
-    Pid = spawn(fun () -> accept(LSocket) end),
-    register(arithmetic_server, Pid).
+    case whereis(arithmetic_server) of
+        undefined ->
+            {ok, LSocket} = gen_tcp:listen(?PORT, [binary, {active, false}, {reuseaddr, true}]),
+            Pid = spawn(fun () -> accept(LSocket) end),
+            register(arithmetic_server, Pid),
+            ok;
+        _Pid ->
+            {error, already_started}
+    end.
+
+-spec stop() -> ok | {error, not_started}.
 
 stop() ->
     case whereis(arithmetic_server) of
-        Pid -> exit(Pid, kill)
+        undefined ->
+            {error, not_started};
+        Pid ->
+            Pid ! stop,
+            ok
     end.
 
 %% private
 accept(LSocket) ->
-    case gen_tcp:accept(LSocket) of
+    case gen_tcp:accept(LSocket, 0) of
         {ok, Socket} ->
             spawn(fun() -> loop(Socket, <<>>) end),
-            accept(LSocket)
+            accept(LSocket);
+        {error, closed} ->
+            ok;
+        {error, timeout} ->
+            ok
+    end,
+    receive
+        stop ->
+            gen_tcp:close(LSocket),
+            unregister(?MODULE),
+            ok
+    after 0 ->
+        accept(LSocket)
     end.
 
 loop(Socket, Buffer) ->
