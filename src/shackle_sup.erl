@@ -22,7 +22,6 @@ start_link() ->
 
 init([]) ->
     shackle_backlog:init(),
-    shackle_cache:init(),
     shackle_pool:init(),
     shackle_queue:init(),
 

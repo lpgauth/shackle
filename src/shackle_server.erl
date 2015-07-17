@@ -61,7 +61,7 @@ init(Name, ChildName, Module, Parent) ->
 
     loop(#state {
         child_name = ChildName,
-        ip = ?LOOKUP(ip, Opts),
+        ip = ?LOOKUP(ip, Opts, ?DEFAULT_IP),
         module = Module,
         name = Name,
         parent = Parent,

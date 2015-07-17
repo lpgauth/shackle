@@ -3,7 +3,7 @@
 
 %% public
 -export([
-    start/2,
+    start/3,
     stop/1
 ]).
 
@@ -14,18 +14,14 @@
 ]).
 
 %% public
--spec start(module(), pool_opts()) -> [{ok, pid()} | {error, atom()}].
+-spec start(atom(), module(), pool_opts()) -> [{ok, pid()} | {error, atom()}].
 
-% TODO: cleanup
-start(Name, PoolOpts) ->
+start(Name, Client, PoolOpts) ->
     BacklogSize = ?LOOKUP(backlog_size, PoolOpts, ?DEFAULT_BACKLOG_SIZE),
-    % TODO: validate presence
-    Client = ?LOOKUP(client, PoolOpts),
     PoolSize = ?LOOKUP(pool_size, PoolOpts, ?DEFAULT_POOL_SIZE),
     PoolStrategy = ?LOOKUP(pool_strategy, PoolOpts, ?DEFAULT_POOL_STRATEGY),
-    ets:insert(?ETS_TABLE_POOL, {{Name, round_robin}, 1}),
 
-    set_opts(Name, #pool_opts {
+    setup(Name, #pool_opts {
         backlog_size = BacklogSize,
         client = Client,
         pool_size = PoolSize,
@@ -42,19 +38,24 @@ start(Name, PoolOpts) ->
 stop(Name) ->
     #pool_opts {
         client = Client,
-        pool_size = PoolSize
+        pool_size = PoolSize,
+        pool_strategy = PoolStrategy
     } = opts(Name),
 
     ChildNames = child_names(Client, PoolSize),
-    lists:map(fun (ChildName) ->
+    Results = lists:map(fun (ChildName) ->
     	case supervisor:terminate_child(?SUPERVISOR, ChildName) of
     		ok ->
-                % TODO: cleanup opts
                 supervisor:delete_child(?SUPERVISOR, ChildName);
     		{error, Reason} ->
     			{error, Reason}
     	end
-    end, ChildNames).
+    end, ChildNames),
+    case lists:all(fun (Result) -> Result =:= ok end, Results) of
+        true -> cleanup(Name, PoolStrategy);
+        false -> ok
+    end,
+    Results.
 
 %% internal
 -spec init() -> ?ETS_TABLE_POOL.
@@ -76,17 +77,13 @@ server(Name) ->
     } = opts(Name),
 
     ServerId = case PoolStrategy of
-        random ->
-            random(PoolSize);
-        round_robin ->
-            round_robin(Name, PoolSize)
+        random -> random(PoolSize);
+        round_robin -> round_robin(Name, PoolSize)
     end,
     Server = child_name(Client, ServerId),
     case shackle_backlog:check(Server, BacklogSize) of
-        true ->
-            {ok, Server};
-        false ->
-            {error, backlog_full}
+        true -> {ok, Server};
+        false -> {error, backlog_full}
     end.
 
 %% private
@@ -100,6 +97,12 @@ child_spec(Name, ChildName, Module) ->
     StartFunc = {shackle_server, start_link, [Name, ChildName, Module]},
     {ChildName, StartFunc, permanent, 5000, worker, [Module]}.
 
+cleanup(Name, round_robin) ->
+    ets:delete(?ETS_TABLE_POOL, Name),
+    ets:delete(?ETS_TABLE_POOL, {Name, round_robin});
+cleanup(Name, _) ->
+    ets:delete(?ETS_TABLE_POOL, Name).
+
 opts(Name) ->
     ets:lookup_element(?ETS_TABLE_POOL, Name, 2).
 
@@ -107,8 +110,12 @@ random(PoolSize) ->
     erlang:phash2({os:timestamp(), self()}, PoolSize) + 1.
 
 round_robin(Name, PoolSize) ->
-    [X] = ets:update_counter(?ETS_TABLE_POOL, {Name, round_robin}, [{2, 1, PoolSize, 1}]),
-    X.
+    UpdateOps = [{2, 1, PoolSize, 1}],
+    [RR] = ets:update_counter(?ETS_TABLE_POOL, {Name, round_robin}, UpdateOps),
+    RR.
 
-set_opts(Name, Opts) ->
+setup(Name, #pool_opts {pool_strategy = round_robin} = Opts) ->
+    ets:insert(?ETS_TABLE_POOL, {Name, Opts}),
+    ets:insert(?ETS_TABLE_POOL, {{Name, round_robin}, 1});
+setup(Name, Opts) ->
     ets:insert(?ETS_TABLE_POOL, {Name, Opts}).

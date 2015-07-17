@@ -44,7 +44,7 @@ pool_strategy() = random | round_robin
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#init-0">init/0</a></td><td></td></tr><tr><td valign="top"><a href="#server-1">server/1</a></td><td></td></tr><tr><td valign="top"><a href="#start-2">start/2</a></td><td></td></tr><tr><td valign="top"><a href="#stop-1">stop/1</a></td><td></td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#init-0">init/0</a></td><td></td></tr><tr><td valign="top"><a href="#server-1">server/1</a></td><td></td></tr><tr><td valign="top"><a href="#start-3">start/3</a></td><td></td></tr><tr><td valign="top"><a href="#stop-1">stop/1</a></td><td></td></tr></table>
 
 
 <a name="functions"></a>
@@ -69,12 +69,12 @@ server(Name::atom()) -&gt; {ok, pid()} | {error, backlog_full}
 </code></pre>
 <br />
 
-<a name="start-2"></a>
+<a name="start-3"></a>
 
-### start/2 ###
+### start/3 ###
 
 <pre><code>
-start(Name::module(), PoolOpts::<a href="#type-pool_opts">pool_opts()</a>) -&gt; [{ok, pid()} | {error, atom()}]
+start(Name::atom(), Client::module(), PoolOpts::<a href="#type-pool_opts">pool_opts()</a>) -&gt; [{ok, pid()} | {error, atom()}]
 </code></pre>
 <br />
 

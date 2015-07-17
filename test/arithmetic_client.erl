@@ -1,5 +1,5 @@
 -module(arithmetic_client).
--include("../test/test.hrl").
+-include("test.hrl").
 
 -export([
     add/2,
@@ -33,8 +33,7 @@ multiply(A, B) ->
     shackle:call(?NAME, {multiply, A, B}).
 
 start() ->
-    shackle_pool:start(?NAME, [
-        {client, arithmetic_client},
+    shackle_pool:start(?NAME, ?MODULE, [
         {pool_size, 4},
         {pool_strategy, round_robin},
         {backlog_size, 512}
@@ -46,7 +45,6 @@ stop() ->
 %% shackle_server callbacks
 init() ->
     {ok, [
-        {ip, "127.0.0.1"},
         {port, ?PORT},
         {reconnect, true},
         {state, #state {}}

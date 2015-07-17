@@ -1,5 +1,5 @@
 -module(arithmetic_server).
--include("../test/test.hrl").
+-include("test.hrl").
 
 -export([
     start/0,
