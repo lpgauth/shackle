@@ -6,6 +6,7 @@
 -define(DEFAULT_POOL_SIZE, 16).
 -define(DEFAULT_POOL_STRATEGY, random).
 -define(DEFAULT_RECONNECT, true).
+-define(DEFAULT_RECONNECT_TIME, 1000).
 -define(DEFAULT_SEND_TIMEOUT, 50).
 -define(DEFAULT_TIMEOUT, 1000).
 -define(ETS_TABLE_BACKLOG, shackle_backlog).
@@ -15,11 +16,11 @@
 -define(LOOKUP(Key, List), ?LOOKUP(Key, List, undefined)).
 -define(LOOKUP(Key, List, Default), shackle_utils:lookup(Key, List, Default)).
 -define(MSG_CONNECT, connect).
--define(MSG_TERMINATE, terminate).
+-define(SERVER, shackle_server).
 -define(SUPERVISOR, shackle_sup).
 
 -ifdef(TEST).
--define(IF_DEF_TEST, fun (_F) -> ok end).
+-define(IF_DEF_TEST, fun (_) -> ok end).
 -else.
 -define(IF_DEF_TEST, fun (F) -> F() end).
 -endif.

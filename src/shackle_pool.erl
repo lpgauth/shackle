@@ -3,6 +3,7 @@
 
 %% public
 -export([
+    start/2,
     start/3,
     stop/1
 ]).
@@ -14,6 +15,11 @@
 ]).
 
 %% public
+-spec start(atom(), module()) -> [{ok, pid()} | {error, atom()}].
+
+start(Name, Client) ->
+    start(Name, Client, []).
+
 -spec start(atom(), module(), pool_opts()) -> [{ok, pid()} | {error, atom()}].
 
 start(Name, Client, PoolOpts) ->
@@ -29,33 +35,31 @@ start(Name, Client, PoolOpts) ->
     }),
 
     ChildNames = child_names(Client, PoolSize),
-    ChildSpecs = [child_spec(Name, ChildName, Client) || ChildName <- ChildNames],
+    ChildSpecs = [child_spec(ChildName, Name, Client) || ChildName <- ChildNames],
 
     [supervisor:start_child(?SUPERVISOR, ChildSpec) || ChildSpec <- ChildSpecs].
 
--spec stop(atom()) -> [ok | {error, atom()}].
+-spec stop(atom()) -> ok | {error, pool_not_started}.
 
 stop(Name) ->
-    #pool_opts {
-        client = Client,
-        pool_size = PoolSize,
-        pool_strategy = PoolStrategy
-    } = opts(Name),
+    case opts(Name) of
+        {ok, Opts} ->
+            #pool_opts {
+                client = Client,
+                pool_size = PoolSize,
+                pool_strategy = PoolStrategy
+            } = Opts,
 
-    ChildNames = child_names(Client, PoolSize),
-    Results = lists:map(fun (ChildName) ->
-    	case supervisor:terminate_child(?SUPERVISOR, ChildName) of
-    		ok ->
-                supervisor:delete_child(?SUPERVISOR, ChildName);
-    		{error, Reason} ->
-    			{error, Reason}
-    	end
-    end, ChildNames),
-    case lists:all(fun (Result) -> Result =:= ok end, Results) of
-        true -> cleanup(Name, PoolStrategy);
-        false -> ok
-    end,
-    Results.
+            ChildNames = child_names(Client, PoolSize),
+            lists:foreach(fun (ChildName) ->
+                supervisor:terminate_child(?SUPERVISOR, ChildName),
+                supervisor:delete_child(?SUPERVISOR, ChildName)
+            end, ChildNames),
+            cleanup(Name, PoolStrategy),
+            ok;
+        {error, Reason} ->
+            {error, Reason}
+    end.
 
 %% internal
 -spec init() -> ?ETS_TABLE_POOL.
@@ -67,35 +71,40 @@ init() ->
         {read_concurrency, true}
     ]).
 
--spec server(atom()) -> {ok, pid()} | {error, backlog_full}.
+-spec server(atom()) -> {ok, pid()} | {error, backlog_full | pool_not_started}.
 server(Name) ->
-    #pool_opts {
-        backlog_size = BacklogSize,
-        client = Client,
-        pool_size = PoolSize,
-        pool_strategy = PoolStrategy
-    } = opts(Name),
+    case opts(Name) of
+        {ok, Opts} ->
+            #pool_opts {
+                backlog_size = BacklogSize,
+                client = Client,
+                pool_size = PoolSize,
+                pool_strategy = PoolStrategy
+            } = Opts,
 
-    ServerId = case PoolStrategy of
-        random -> random(PoolSize);
-        round_robin -> round_robin(Name, PoolSize)
-    end,
-    Server = child_name(Client, ServerId),
-    case shackle_backlog:check(Server, BacklogSize) of
-        true -> {ok, Server};
-        false -> {error, backlog_full}
+            ServerId = case PoolStrategy of
+                random -> random(PoolSize);
+                round_robin -> round_robin(Name, PoolSize)
+            end,
+            Server = child_name(Client, ServerId),
+            case shackle_backlog:check(Server, BacklogSize) of
+                true -> {ok, Server};
+                false -> {error, backlog_full}
+            end;
+        {error, Reson} ->
+            {error, Reson}
     end.
 
 %% private
-child_name(Module, N) ->
-    list_to_atom(atom_to_list(Module) ++ integer_to_list(N)).
+child_name(Client, N) ->
+    list_to_atom(atom_to_list(Client) ++ integer_to_list(N)).
 
-child_names(Module, PoolSize) ->
-    [child_name(Module, N) || N <- lists:seq(1, PoolSize)].
+child_names(Client, PoolSize) ->
+    [child_name(Client, N) || N <- lists:seq(1, PoolSize)].
 
-child_spec(Name, ChildName, Module) ->
-    StartFunc = {shackle_server, start_link, [Name, ChildName, Module]},
-    {ChildName, StartFunc, permanent, 5000, worker, [Module]}.
+child_spec(ChildName, Name, Client) ->
+    StartFunc = {?SERVER, start_link, [ChildName, Name, Client]},
+    {ChildName, StartFunc, permanent, 5000, worker, [?SERVER]}.
 
 cleanup(Name, round_robin) ->
     ets:delete(?ETS_TABLE_POOL, Name),
@@ -104,7 +113,13 @@ cleanup(Name, _) ->
     ets:delete(?ETS_TABLE_POOL, Name).
 
 opts(Name) ->
-    ets:lookup_element(?ETS_TABLE_POOL, Name, 2).
+    try
+        Opts = ets:lookup_element(?ETS_TABLE_POOL, Name, 2),
+        {ok, Opts}
+    catch
+        error:badarg ->
+            {error, pool_not_started}
+    end.
 
 random(PoolSize) ->
     erlang:phash2({os:timestamp(), self()}, PoolSize) + 1.

@@ -44,7 +44,7 @@ pool_strategy() = random | round_robin
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#init-0">init/0</a></td><td></td></tr><tr><td valign="top"><a href="#server-1">server/1</a></td><td></td></tr><tr><td valign="top"><a href="#start-3">start/3</a></td><td></td></tr><tr><td valign="top"><a href="#stop-1">stop/1</a></td><td></td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#init-0">init/0</a></td><td></td></tr><tr><td valign="top"><a href="#server-1">server/1</a></td><td></td></tr><tr><td valign="top"><a href="#start-2">start/2</a></td><td></td></tr><tr><td valign="top"><a href="#start-3">start/3</a></td><td></td></tr><tr><td valign="top"><a href="#stop-1">stop/1</a></td><td></td></tr></table>
 
 
 <a name="functions"></a>
@@ -65,7 +65,16 @@ init() -&gt; shackle_pool
 ### server/1 ###
 
 <pre><code>
-server(Name::atom()) -&gt; {ok, pid()} | {error, backlog_full}
+server(Name::atom()) -&gt; {ok, pid()} | {error, backlog_full | pool_not_started}
+</code></pre>
+<br />
+
+<a name="start-2"></a>
+
+### start/2 ###
+
+<pre><code>
+start(Name::atom(), Client::module()) -&gt; [{ok, pid()} | {error, atom()}]
 </code></pre>
 <br />
 
@@ -83,7 +92,7 @@ start(Name::atom(), Client::module(), PoolOpts::<a href="#type-pool_opts">pool_o
 ### stop/1 ###
 
 <pre><code>
-stop(Name::atom()) -&gt; [ok | {error, atom()}]
+stop(Name::atom()) -&gt; ok | {error, pool_not_started}
 </code></pre>
 <br />
 

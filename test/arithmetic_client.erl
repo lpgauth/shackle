@@ -8,7 +8,7 @@
     stop/0
 ]).
 
--behavior(shackle_server).
+-behavior(shackle_client).
 -export([
     init/0,
     after_connect/2,
@@ -18,7 +18,6 @@
 ]).
 
 -define(MAX_REQUEST_ID, 256).
--define(NAME, arithmetic).
 
 -record(state, {
     buffer = <<>>,
@@ -27,20 +26,16 @@
 
 %% public
 add(A, B) ->
-    shackle:call(?NAME, {add, A, B}).
+    shackle:call(?POOL_NAME, {add, A, B}).
 
 multiply(A, B) ->
-    shackle:call(?NAME, {multiply, A, B}).
+    shackle:call(?POOL_NAME, {multiply, A, B}).
 
 start() ->
-    shackle_pool:start(?NAME, ?MODULE, [
-        {pool_size, 4},
-        {pool_strategy, round_robin},
-        {backlog_size, 512}
-    ]).
+    shackle_pool:start(?POOL_NAME, ?CLIENT).
 
 stop() ->
-    shackle_pool:stop(?NAME).
+    shackle_pool:stop(?POOL_NAME).
 
 %% shackle_server callbacks
 init() ->

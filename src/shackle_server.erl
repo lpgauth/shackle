@@ -14,64 +14,52 @@
     system_terminate/4
 ]).
 
-%% callbacks
--callback init() -> {ok, init_opts()}.
--callback after_connect(Socket :: inet:socket(), State :: term()) ->
-    {ok, Socket :: inet:socket(), State :: term()}.
-
--callback handle_cast(Request :: term(), State :: term()) ->
-    {ok, RequestId :: term(), Data :: binary(), State :: term()}.
-
--callback handle_data(Data :: binary(), State :: term()) ->
-    {ok, [{RequestId :: term(), Reply :: term()}], State :: term()}.
-
--callback terminate(State :: term()) -> ok.
-
 -record(state, {
-    connect_retry = 1000      :: non_neg_integer(),
-    child_name    = undefined :: atom(),
-    ip            = undefined :: inet:ip_address() | inet:hostname(),
-    module        = undefined :: module(),
-    name          = undefined :: atom(),
-    parent        = undefined :: pid(),
-    port          = undefined :: inet:port_number(),
-    reconnect     = true      :: boolean(),
-    socket        = undefined :: undefined | inet:socket(),
-    state         = undefined :: term(),
-    timer         = undefined :: undefined | timer:ref()
+    client         = undefined               :: module(),
+    client_state   = undefined               :: term(),
+    ip             = undefined               :: inet:ip_address() | inet:hostname(),
+    name           = undefined               :: atom(),
+    parent         = undefined               :: pid(),
+    pool_name      = undefined               :: atom(),
+    port           = undefined               :: inet:port_number(),
+    reconnect      = true                    :: boolean(),
+    reconnect_time = ?DEFAULT_RECONNECT_TIME :: non_neg_integer(),
+    socket         = undefined               :: undefined | inet:socket(),
+    timer          = undefined               :: undefined | timer:ref()
 }).
 
 %% public
 -spec start_link(atom(), atom(), module()) -> {ok, pid()}.
 
-start_link(Name, ChildName, Module) ->
-    proc_lib:start_link(?MODULE, init, [Name, ChildName, Module, self()]).
+start_link(Name, PoolName, Client) ->
+    proc_lib:start_link(?MODULE, init, [Name, PoolName, Client, self()]).
 
 -spec init(atom(), atom(), module(), pid()) -> no_return().
 
-init(Name, ChildName, Module, Parent) ->
+init(Name, PoolName, Client, Parent) ->
     process_flag(trap_exit, true),
     proc_lib:init_ack(Parent, {ok, self()}),
-    register(ChildName, self()),
+    register(Name, self()),
 
-    self() ! ?MSG_CONNECT,
     random:seed(os:timestamp()),
-    shackle_backlog:new(ChildName),
-    {ok, Opts} = Module:init(),
+    self() ! ?MSG_CONNECT,
+    shackle_backlog:new(Name),
+    {ok, Opts} = Client:init(),
 
     loop(#state {
-        child_name = ChildName,
+        client = Client,
+        client_state = ?LOOKUP(state, Opts),
         ip = ?LOOKUP(ip, Opts, ?DEFAULT_IP),
-        module = Module,
         name = Name,
         parent = Parent,
+        pool_name = PoolName,
         port = ?LOOKUP(port, Opts),
-        reconnect = ?LOOKUP(reconnect, Opts, ?DEFAULT_RECONNECT),
-        state = ?LOOKUP(state, Opts)
+        reconnect = ?LOOKUP(reconnect, Opts, ?DEFAULT_RECONNECT)
     }).
 
 %% sys callbacks
--spec system_code_change(#state {}, module(), undefined | term(), term()) -> {ok, #state {}}.
+-spec system_code_change(#state {}, module(), undefined | term(), term()) ->
+    {ok, #state {}}.
 
 system_code_change(State, _Module, _OldVsn, _Extra) ->
     {ok, State}.
@@ -87,17 +75,17 @@ system_terminate(Reason, _Parent, _Debug, _State) ->
     exit(Reason).
 
 %% private
-connect_retry(#state {reconnect = false} = State) ->
+reconnect_time(#state {reconnect = false} = State) ->
     {ok, State#state {
         socket = undefined
     }};
-connect_retry(#state {connect_retry = ConnectRetry} = State) ->
-    ConnectRetry2 = shackle_backoff:timeout(ConnectRetry),
+reconnect_time(#state {reconnect_time = ReconnectTime} = State) ->
+    ReconnectTime2 = shackle_backoff:timeout(ReconnectTime),
 
     {ok, State#state {
-        connect_retry = ConnectRetry2,
+        reconnect_time = ReconnectTime2,
         socket = undefined,
-        timer = erlang:send_after(ConnectRetry2, self(), ?MSG_CONNECT)
+        timer = erlang:send_after(ReconnectTime2, self(), ?MSG_CONNECT)
     }}.
 
 handle_msg(?MSG_CONNECT, #state {
@@ -117,35 +105,33 @@ handle_msg(?MSG_CONNECT, #state {
         {ok, Socket} ->
             {ok, State#state {
                 socket = Socket,
-                connect_retry = 0
+                reconnect_time = ?DEFAULT_RECONNECT_TIME
             }};
         {error, Reason} ->
             shackle_utils:warning_msg("tcp connect error: ~p", [Reason]),
-            connect_retry(State)
+            reconnect_time(State)
     end;
 handle_msg({call, Ref, From, _Msg}, #state {
-        socket = undefined,
-        child_name = ChildName,
-        name = Name
+        socket = undefined
     } = State) ->
 
-    reply(Name, ChildName, Ref, From, {error, no_socket}),
+    reply(Ref, From, {error, no_socket}, State),
     {ok, State};
 handle_msg({call, Ref, From, Request}, #state {
-        child_name = ChildName,
-        module = Module,
-        socket = Socket,
-        state = ClientState
+        client = Client,
+        client_state = ClientState,
+        name = Name,
+        socket = Socket
     } = State) ->
 
-    {ok, RequestId, Data, ClientState2} = Module:handle_cast(Request, ClientState),
+    {ok, RequestId, Data, ClientState2} = Client:handle_cast(Request, ClientState),
 
     case gen_tcp:send(Socket, Data) of
         ok ->
-            shackle_queue:in(ChildName, RequestId, {Ref, From}),
+            shackle_queue:in(Name, RequestId, {Ref, From}),
 
             {ok, State#state {
-                state = ClientState2
+                client_state = ClientState2
             }};
         {error, Reason} ->
             shackle_utils:warning_msg("tcp send error: ~p", [Reason]),
@@ -153,21 +139,20 @@ handle_msg({call, Ref, From, Request}, #state {
             tcp_close(State)
     end;
 handle_msg({tcp, _Port, Data}, #state {
-        child_name = ChildName,
-        module = Module,
-        name = Name,
-        state = ClientState
+        client = Client,
+        client_state = ClientState,
+        name = Name
     } = State) ->
 
-    {ok, Replys, ClientState2} = Module:handle_data(Data, ClientState),
+    {ok, Replies, ClientState2} = Client:handle_data(Data, ClientState),
 
     lists:foreach(fun ({RequestId, Reply}) ->
-        {Ref, From} = shackle_queue:out(ChildName, RequestId),
-        reply(Name, ChildName, Ref, From, Reply)
-    end, Replys),
+        {Ref, From} = shackle_queue:out(Name, RequestId),
+        reply(Ref, From, Reply, State)
+    end, Replies),
 
     {ok, State#state {
-        state = ClientState2
+        client_state = ClientState2
     }};
 handle_msg({tcp_closed, Socket}, #state {
         socket = Socket
@@ -194,15 +179,19 @@ loop(#state {parent = Parent} = State) ->
             loop(State2)
     end.
 
-reply(Name, ChildName, Ref, From, Msg) ->
-    shackle_backlog:decrement(ChildName),
-    From ! {Name, Ref, Msg}.
+reply(Ref, From, Msg, #state {
+        name = Name,
+        pool_name = PoolName
+    }) ->
 
-tcp_close(#state {child_name = ChildName, name = Name} = State) ->
+    shackle_backlog:decrement(Name),
+    From ! {PoolName, Ref, Msg}.
+
+tcp_close(#state {name = Name} = State) ->
     Msg = {error, tcp_closed},
     Items = shackle_queue:all(Name),
-    [reply(Name, ChildName, Ref, From, Msg) || {Ref, From} <- Items],
-    connect_retry(State).
+    [reply(Ref, From, Msg, State) || {Ref, From} <- Items],
+    reconnect_time(State).
 
 terminate(Reason, _State) ->
     exit(Reason).

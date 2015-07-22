@@ -4,8 +4,6 @@
 * [Function Index](#index)
 * [Function Details](#functions)
 
-__This module defines the `shackle_server` behaviour.__<br /> Required callback functions: `init/0`, `after_connect/2`, `handle_cast/2`, `handle_data/2`, `terminate/1`.
-
 <a name="index"></a>
 
 ## Function Index ##
@@ -23,7 +21,7 @@ __This module defines the `shackle_server` behaviour.__<br /> Required callback 
 ### init/4 ###
 
 <pre><code>
-init(Name::atom(), ChildName::atom(), Module::module(), Parent::pid()) -&gt; no_return()
+init(Name::atom(), PoolName::atom(), Client::module(), Parent::pid()) -&gt; no_return()
 </code></pre>
 <br />
 
@@ -32,7 +30,7 @@ init(Name::atom(), ChildName::atom(), Module::module(), Parent::pid()) -&gt; no_
 ### start_link/3 ###
 
 <pre><code>
-start_link(Name::atom(), ChildName::atom(), Module::module()) -&gt; {ok, pid()}
+start_link(Name::atom(), PoolName::atom(), Client::module()) -&gt; {ok, pid()}
 </code></pre>
 <br />
 
@@ -41,7 +39,7 @@ start_link(Name::atom(), ChildName::atom(), Module::module()) -&gt; {ok, pid()}
 ### system_code_change/4 ###
 
 <pre><code>
-system_code_change(State::#state{connect_retry = non_neg_integer(), child_name = atom(), ip = <a href="inet.md#type-ip_address">inet:ip_address()</a> | <a href="inet.md#type-hostname">inet:hostname()</a>, module = module(), name = atom(), parent = pid(), port = <a href="inet.md#type-port_number">inet:port_number()</a>, reconnect = boolean(), socket = undefined | <a href="inet.md#type-socket">inet:socket()</a>, state = term(), timer = undefined | <a href="timer.md#type-ref">timer:ref()</a>}, Module::module(), OldVsn::undefined | term(), Extra::term()) -&gt; {ok, #state{connect_retry = non_neg_integer(), child_name = atom(), ip = <a href="inet.md#type-ip_address">inet:ip_address()</a> | <a href="inet.md#type-hostname">inet:hostname()</a>, module = module(), name = atom(), parent = pid(), port = <a href="inet.md#type-port_number">inet:port_number()</a>, reconnect = boolean(), socket = undefined | <a href="inet.md#type-socket">inet:socket()</a>, state = term(), timer = undefined | <a href="timer.md#type-ref">timer:ref()</a>}}
+system_code_change(State::#state{client = module(), client_state = term(), ip = <a href="inet.md#type-ip_address">inet:ip_address()</a> | <a href="inet.md#type-hostname">inet:hostname()</a>, name = atom(), parent = pid(), pool_name = atom(), port = <a href="inet.md#type-port_number">inet:port_number()</a>, reconnect = boolean(), reconnect_time = non_neg_integer(), socket = undefined | <a href="inet.md#type-socket">inet:socket()</a>, timer = undefined | <a href="timer.md#type-ref">timer:ref()</a>}, Module::module(), OldVsn::undefined | term(), Extra::term()) -&gt; {ok, #state{client = module(), client_state = term(), ip = <a href="inet.md#type-ip_address">inet:ip_address()</a> | <a href="inet.md#type-hostname">inet:hostname()</a>, name = atom(), parent = pid(), pool_name = atom(), port = <a href="inet.md#type-port_number">inet:port_number()</a>, reconnect = boolean(), reconnect_time = non_neg_integer(), socket = undefined | <a href="inet.md#type-socket">inet:socket()</a>, timer = undefined | <a href="timer.md#type-ref">timer:ref()</a>}}
 </code></pre>
 <br />
 
@@ -50,7 +48,7 @@ system_code_change(State::#state{connect_retry = non_neg_integer(), child_name =
 ### system_continue/3 ###
 
 <pre><code>
-system_continue(Parent::pid(), Debug::[], State::#state{connect_retry = non_neg_integer(), child_name = atom(), ip = <a href="inet.md#type-ip_address">inet:ip_address()</a> | <a href="inet.md#type-hostname">inet:hostname()</a>, module = module(), name = atom(), parent = pid(), port = <a href="inet.md#type-port_number">inet:port_number()</a>, reconnect = boolean(), socket = undefined | <a href="inet.md#type-socket">inet:socket()</a>, state = term(), timer = undefined | <a href="timer.md#type-ref">timer:ref()</a>}) -&gt; ok
+system_continue(Parent::pid(), Debug::[], State::#state{client = module(), client_state = term(), ip = <a href="inet.md#type-ip_address">inet:ip_address()</a> | <a href="inet.md#type-hostname">inet:hostname()</a>, name = atom(), parent = pid(), pool_name = atom(), port = <a href="inet.md#type-port_number">inet:port_number()</a>, reconnect = boolean(), reconnect_time = non_neg_integer(), socket = undefined | <a href="inet.md#type-socket">inet:socket()</a>, timer = undefined | <a href="timer.md#type-ref">timer:ref()</a>}) -&gt; ok
 </code></pre>
 <br />
 
@@ -59,7 +57,7 @@ system_continue(Parent::pid(), Debug::[], State::#state{connect_retry = non_neg_
 ### system_terminate/4 ###
 
 <pre><code>
-system_terminate(Reason::term(), Parent::pid(), Debug::[], State::#state{connect_retry = non_neg_integer(), child_name = atom(), ip = <a href="inet.md#type-ip_address">inet:ip_address()</a> | <a href="inet.md#type-hostname">inet:hostname()</a>, module = module(), name = atom(), parent = pid(), port = <a href="inet.md#type-port_number">inet:port_number()</a>, reconnect = boolean(), socket = undefined | <a href="inet.md#type-socket">inet:socket()</a>, state = term(), timer = undefined | <a href="timer.md#type-ref">timer:ref()</a>}) -&gt; none()
+system_terminate(Reason::term(), Parent::pid(), Debug::[], State::#state{client = module(), client_state = term(), ip = <a href="inet.md#type-ip_address">inet:ip_address()</a> | <a href="inet.md#type-hostname">inet:hostname()</a>, name = atom(), parent = pid(), pool_name = atom(), port = <a href="inet.md#type-port_number">inet:port_number()</a>, reconnect = boolean(), reconnect_time = non_neg_integer(), socket = undefined | <a href="inet.md#type-socket">inet:socket()</a>, timer = undefined | <a href="timer.md#type-ref">timer:ref()</a>}) -&gt; none()
 </code></pre>
 <br />
 
