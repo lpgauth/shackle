@@ -39,17 +39,16 @@
 
 %% types
 -type client_opt() :: {ip, inet:ip_address() | inet:hostname()} |
-                    {port, inet:port_number()} |
-                    {reconnect, boolean()} |
-                    {reconnect_time, pos_integer()} |
-                    {state, term()}.
+                      {port, inet:port_number()} |
+                      {reconnect, boolean()} |
+                      {reconnect_time, pos_integer()} |
+                      {state, term()}.
 
 -type client_opts() :: [client_opt()].
 
 -type pool_strategy() :: random | round_robin.
 
 -type pool_opt() :: {backlog_size, pos_integer()} |
-                    {client, module()} |
                     {pool_size, pos_integer()} |
                     {pool_strategy, pool_strategy()}.
 
