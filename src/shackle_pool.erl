@@ -31,7 +31,7 @@ start(Name, Client, PoolOpts) ->
         {error, shackle_not_started} ->
             {error, shackle_not_started};
         {error, pool_not_started} ->
-            {ok, PoolOptsRec} = opts_rec(Client, PoolOpts),
+            PoolOptsRec = opts_rec(Client, PoolOpts),
             setup(Name, PoolOptsRec),
             start_children(Name, Client, PoolOptsRec),
             ok
@@ -84,13 +84,17 @@ server(Name) ->
             } = Opts,
 
             ServerId = case PoolStrategy of
-                random -> random(PoolSize);
-                round_robin -> round_robin(Name, PoolSize)
+                random ->
+                    random(PoolSize);
+                round_robin ->
+                    round_robin(Name, PoolSize)
             end,
             Server = child_name(Client, ServerId),
             case shackle_backlog:check(Server, BacklogSize) of
-                true -> {ok, Server};
-                false -> {error, backlog_full}
+                true ->
+                    {ok, Server};
+                false ->
+                    {error, backlog_full}
             end;
         {error, Reson} ->
             {error, Reson}
@@ -132,20 +136,20 @@ opts_rec(Client, PoolOpts) ->
     PoolSize = ?LOOKUP(pool_size, PoolOpts, ?DEFAULT_POOL_SIZE),
     PoolStrategy = ?LOOKUP(pool_strategy, PoolOpts, ?DEFAULT_POOL_STRATEGY),
 
-    {ok, #pool_opts {
+    #pool_opts {
         backlog_size = BacklogSize,
         client = Client,
         pool_size = PoolSize,
         pool_strategy = PoolStrategy
-    }}.
+    }.
 
 random(PoolSize) ->
     erlang:phash2({os:timestamp(), self()}, PoolSize) + 1.
 
 round_robin(Name, PoolSize) ->
     UpdateOps = [{2, 1, PoolSize, 1}],
-    [RR] = ets:update_counter(?ETS_TABLE_POOL, {Name, round_robin}, UpdateOps),
-    RR.
+    [ServerId] = ets:update_counter(?ETS_TABLE_POOL, {Name, round_robin}, UpdateOps),
+    ServerId.
 
 setup(Name, #pool_opts {pool_strategy = round_robin} = Opts) ->
     ets:insert(?ETS_TABLE_POOL, {Name, Opts}),
