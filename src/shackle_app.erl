@@ -19,7 +19,7 @@
 start() ->
     application:ensure_all_started(?APP).
 
--spec stop() -> ok.
+-spec stop() -> ok | {error, {not_started, ?APP}}.
 
 stop() ->
     application:stop(?APP).

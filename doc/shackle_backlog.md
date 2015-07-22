@@ -48,7 +48,7 @@ init() -&gt; shackle_backlog
 ### new/1 ###
 
 <pre><code>
-new(Key::atom()) -&gt; true
+new(Key::atom()) -&gt; ok
 </code></pre>
 <br />
 

@@ -35,10 +35,11 @@ init() ->
         {write_concurrency, true}
     ]).
 
--spec new(atom()) -> true.
+-spec new(atom()) -> ok.
 
 new(Key) ->
-    ets:insert(?ETS_TABLE_BACKLOG, {Key, 0}).
+    ets:insert(?ETS_TABLE_BACKLOG, {Key, 0}),
+    ok.
 
 %% private
 increment(Key, BacklogSize) ->

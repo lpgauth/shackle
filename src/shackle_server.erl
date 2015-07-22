@@ -43,7 +43,7 @@ init(Name, PoolName, Client, Parent) ->
 
     random:seed(os:timestamp()),
     self() ! ?MSG_CONNECT,
-    shackle_backlog:new(Name),
+    ok = shackle_backlog:new(Name),
     {ok, Opts} = Client:init(),
 
     loop(#state {

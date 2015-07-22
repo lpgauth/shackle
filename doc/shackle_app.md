@@ -41,7 +41,7 @@ start(StartType::<a href="application.md#type-start_type">application:start_type
 ### stop/0 ###
 
 <pre><code>
-stop() -&gt; ok
+stop() -&gt; ok | {error, {not_started, shackle}}
 </code></pre>
 <br />
 
