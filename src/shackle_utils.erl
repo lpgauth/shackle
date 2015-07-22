@@ -3,18 +3,19 @@
 
 %% public
 -export([
-    info_msg/2,
+    info_msg/3,
     lookup/3,
     timeout/2,
-    warning_msg/2
+    warning_msg/3
 ]).
 
 %% public
--spec info_msg(string(), [term()]) -> ok.
+-spec info_msg(atom(), string(), [term()]) -> ok.
 
-% TODO: pass pool name
-info_msg(Format, Data) ->
-    ?IF_DEF_TEST(fun () -> error_logger:info_msg(Format, Data) end).
+info_msg(Pool, Format, Data) ->
+    ?IF_DEF_TEST(fun () ->
+        error_logger:info_msg("[~p] " ++ Format, [Pool | Data])
+    end).
 
 -spec lookup(atom(), [{atom(), term()}], term()) -> term().
 
@@ -30,8 +31,9 @@ timeout(Timeout, Timestamp) ->
     Diff = timer:now_diff(os:timestamp(), Timestamp) div 1000,
     Timeout - Diff.
 
--spec warning_msg(string(), [term()]) -> ok.
+-spec warning_msg(atom(), string(), [term()]) -> ok.
 
-% TODO: pass pool name
-warning_msg(Format, Data) ->
-    ?IF_DEF_TEST(fun () -> error_logger:warning_msg(Format, Data) end).
+warning_msg(Pool, Format, Data) ->
+    ?IF_DEF_TEST(fun () ->
+        error_logger:warning_msg("[~p] " ++ Format, [Pool | Data])
+    end).

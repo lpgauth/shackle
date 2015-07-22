@@ -37,6 +37,7 @@
 -type init_opt() :: {ip, inet:ip_address() | inet:hostname()} |
                     {port, inet:port_number()} |
                     {reconnect, boolean()} |
+                    {reconnect_time, pos_integer()} |
                     {state, term()}.
 
 -type init_opts() :: [init_opt()].

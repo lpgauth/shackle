@@ -15,17 +15,17 @@
 ]).
 
 -record(state, {
-    client         = undefined               :: module(),
-    client_state   = undefined               :: term(),
-    ip             = undefined               :: inet:ip_address() | inet:hostname(),
-    name           = undefined               :: atom(),
-    parent         = undefined               :: pid(),
-    pool_name      = undefined               :: atom(),
-    port           = undefined               :: inet:port_number(),
-    reconnect      = true                    :: boolean(),
-    reconnect_time = ?DEFAULT_RECONNECT_TIME :: non_neg_integer(),
-    socket         = undefined               :: undefined | inet:socket(),
-    timer          = undefined               :: undefined | timer:ref()
+    client         = undefined :: module(),
+    client_state   = undefined :: term(),
+    ip             = undefined :: inet:ip_address() | inet:hostname(),
+    name           = undefined :: atom(),
+    parent         = undefined :: pid(),
+    pool_name      = undefined :: atom(),
+    port           = undefined :: inet:port_number(),
+    reconnect      = true      :: boolean(),
+    reconnect_time = undefined :: non_neg_integer(),
+    socket         = undefined :: undefined | inet:socket(),
+    timer          = undefined :: undefined | timer:ref()
 }).
 
 %% public
@@ -54,7 +54,8 @@ init(Name, PoolName, Client, Parent) ->
         parent = Parent,
         pool_name = PoolName,
         port = ?LOOKUP(port, Opts),
-        reconnect = ?LOOKUP(reconnect, Opts, ?DEFAULT_RECONNECT)
+        reconnect = ?LOOKUP(reconnect, Opts, ?DEFAULT_RECONNECT),
+        reconnect_time = ?LOOKUP(reconnect_time, Opts, ?DEFAULT_RECONNECT_TIME)
     }).
 
 %% sys callbacks
@@ -92,6 +93,7 @@ handle_msg(?MSG_CONNECT, #state {
         client = Client,
         client_state = ClientState,
         ip = Ip,
+        pool_name = PoolName,
         port = Port
     } = State) ->
 
@@ -115,14 +117,14 @@ handle_msg(?MSG_CONNECT, #state {
                         reconnect_time = ?DEFAULT_RECONNECT_TIME
                     }};
                 {error, Reason, ClientState2} ->
-                    shackle_utils:warning_msg("after connect error: ~p", [Reason]),
+                    shackle_utils:warning_msg(PoolName, "after connect error: ~p", [Reason]),
 
                     reconnect_time(State#state {
                         client_state = ClientState2
                     })
             end;
         {error, Reason} ->
-            shackle_utils:warning_msg("tcp connect error: ~p", [Reason]),
+            shackle_utils:warning_msg(PoolName, "tcp connect error: ~p", [Reason]),
             reconnect_time(State)
     end;
 handle_msg({call, Ref, From, _Msg}, #state {
@@ -134,6 +136,7 @@ handle_msg({call, Ref, From, _Msg}, #state {
 handle_msg({call, Ref, From, Request}, #state {
         client = Client,
         client_state = ClientState,
+        pool_name = PoolName,
         name = Name,
         socket = Socket
     } = State) ->
@@ -148,13 +151,14 @@ handle_msg({call, Ref, From, Request}, #state {
                 client_state = ClientState2
             }};
         {error, Reason} ->
-            shackle_utils:warning_msg("tcp send error: ~p", [Reason]),
+            shackle_utils:warning_msg(PoolName, "tcp send error: ~p", [Reason]),
             gen_tcp:close(Socket),
             tcp_close(State)
     end;
 handle_msg({tcp, _Port, Data}, #state {
         client = Client,
         client_state = ClientState,
+        pool_name = PoolName,
         name = Name
     } = State) ->
 
@@ -165,7 +169,7 @@ handle_msg({tcp, _Port, Data}, #state {
             {ok, {Ref, From}} ->
                 reply(Ref, From, Reply, State);
             {error, not_found} ->
-                shackle_utils:warning_msg("shackle_queue not found: ~p", [RequestId])
+                shackle_utils:info_msg(PoolName, "shackle_queue not found: ~p", [RequestId])
         end
     end, Replies),
 
@@ -173,16 +177,18 @@ handle_msg({tcp, _Port, Data}, #state {
         client_state = ClientState2
     }};
 handle_msg({tcp_closed, Socket}, #state {
-        socket = Socket
+        socket = Socket,
+        pool_name = PoolName
     } = State) ->
 
-    shackle_utils:warning_msg("tcp connection closed", []),
+    shackle_utils:warning_msg(PoolName, "tcp connection closed", []),
     tcp_close(State);
 handle_msg({tcp_error, Socket, Reason}, #state {
-        socket = Socket
+        socket = Socket,
+        pool_name = PoolName
     } = State) ->
 
-    shackle_utils:warning_msg("tcp connection error: ~p", [Reason]),
+    shackle_utils:warning_msg(PoolName, "tcp connection error: ~p", [Reason]),
     gen_tcp:close(Socket),
     tcp_close(State).
 
