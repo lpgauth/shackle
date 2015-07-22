@@ -44,5 +44,6 @@ out(ServerName, Stream) ->
         Item
     catch
         error:badarg ->
+            % TODO: handle this case
             {error, not_found}
     end.

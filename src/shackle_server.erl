@@ -207,5 +207,10 @@ tcp_close(#state {name = Name} = State) ->
     [reply(Ref, From, Msg, State) || {Ref, From} <- Items],
     reconnect_time(State).
 
-terminate(Reason, _State) ->
+terminate(Reason, #state {
+        client = Client,
+        client_state = ClientState
+    }) ->
+
+    ok = Client:terminate(ClientState),
     exit(Reason).
