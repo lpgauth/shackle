@@ -41,9 +41,8 @@ out(ServerName, Stream) ->
     try
         Item = ets:lookup_element(?ETS_TABLE_QUEUE, Key, 2),
         ets:delete(?ETS_TABLE_QUEUE, Key),
-        Item
+        {ok, Item}
     catch
         error:badarg ->
-            % TODO: handle this case
             {error, not_found}
     end.

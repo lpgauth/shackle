@@ -115,7 +115,7 @@ handle_msg(?MSG_CONNECT, #state {
                         reconnect_time = ?DEFAULT_RECONNECT_TIME
                     }};
                 {error, Reason, ClientState2} ->
-                    shackle_utils:warning_msg("after_connect error: ~p", [Reason]),
+                    shackle_utils:warning_msg("after connect error: ~p", [Reason]),
 
                     reconnect_time(State#state {
                         client_state = ClientState2
@@ -161,8 +161,12 @@ handle_msg({tcp, _Port, Data}, #state {
     {ok, Replies, ClientState2} = Client:handle_data(Data, ClientState),
 
     lists:foreach(fun ({RequestId, Reply}) ->
-        {Ref, From} = shackle_queue:out(Name, RequestId),
-        reply(Ref, From, Reply, State)
+        case shackle_queue:out(Name, RequestId) of
+            {ok, {Ref, From}} ->
+                reply(Ref, From, Reply, State);
+            {error, not_found} ->
+                shackle_utils:warning_msg("shackle_queue not found: ~p", [RequestId])
+        end
     end, Replies),
 
     {ok, State#state {
@@ -172,13 +176,13 @@ handle_msg({tcp_closed, Socket}, #state {
         socket = Socket
     } = State) ->
 
-    shackle_utils:warning_msg("tcp closed", []),
+    shackle_utils:warning_msg("tcp connection closed", []),
     tcp_close(State);
 handle_msg({tcp_error, Socket, Reason}, #state {
         socket = Socket
     } = State) ->
 
-    shackle_utils:warning_msg("tcp error: ~p", [Reason]),
+    shackle_utils:warning_msg("tcp connection error: ~p", [Reason]),
     gen_tcp:close(Socket),
     tcp_close(State).
 
