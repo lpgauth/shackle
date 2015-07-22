@@ -65,7 +65,7 @@ init() -&gt; shackle_pool
 ### server/1 ###
 
 <pre><code>
-server(Name::atom()) -&gt; {ok, pid()} | {error, backlog_full | pool_not_started}
+server(Name::atom()) -&gt; {ok, pid()} | {error, backlog_full | shackle_not_started | pool_not_started}
 </code></pre>
 <br />
 
@@ -74,7 +74,7 @@ server(Name::atom()) -&gt; {ok, pid()} | {error, backlog_full | pool_not_started
 ### start/2 ###
 
 <pre><code>
-start(Name::atom(), Client::module()) -&gt; [{ok, pid()} | {error, atom()}]
+start(Name::atom(), Client::module()) -&gt; ok | {error, shackle_not_started | pool_already_started}
 </code></pre>
 <br />
 
@@ -83,7 +83,7 @@ start(Name::atom(), Client::module()) -&gt; [{ok, pid()} | {error, atom()}]
 ### start/3 ###
 
 <pre><code>
-start(Name::atom(), Client::module(), PoolOpts::<a href="#type-pool_opts">pool_opts()</a>) -&gt; [{ok, pid()} | {error, atom()}]
+start(Name::atom(), Client::module(), PoolOpts::<a href="#type-pool_opts">pool_opts()</a>) -&gt; ok | {error, shackle_not_started | pool_already_started}
 </code></pre>
 <br />
 
@@ -92,7 +92,7 @@ start(Name::atom(), Client::module(), PoolOpts::<a href="#type-pool_opts">pool_o
 ### stop/1 ###
 
 <pre><code>
-stop(Name::atom()) -&gt; ok | {error, pool_not_started}
+stop(Name::atom()) -&gt; ok | {error, shackle_not_started | pool_not_started}
 </code></pre>
 <br />
 

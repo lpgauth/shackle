@@ -9,19 +9,19 @@
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#info_msg-2">info_msg/2</a></td><td></td></tr><tr><td valign="top"><a href="#lookup-3">lookup/3</a></td><td></td></tr><tr><td valign="top"><a href="#timeout-2">timeout/2</a></td><td></td></tr><tr><td valign="top"><a href="#warning_msg-2">warning_msg/2</a></td><td></td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#info_msg-3">info_msg/3</a></td><td></td></tr><tr><td valign="top"><a href="#lookup-3">lookup/3</a></td><td></td></tr><tr><td valign="top"><a href="#timeout-2">timeout/2</a></td><td></td></tr><tr><td valign="top"><a href="#warning_msg-3">warning_msg/3</a></td><td></td></tr></table>
 
 
 <a name="functions"></a>
 
 ## Function Details ##
 
-<a name="info_msg-2"></a>
+<a name="info_msg-3"></a>
 
-### info_msg/2 ###
+### info_msg/3 ###
 
 <pre><code>
-info_msg(Format::string(), Data::[term()]) -&gt; ok
+info_msg(Pool::atom(), Format::string(), Data::[term()]) -&gt; ok
 </code></pre>
 <br />
 
@@ -43,12 +43,12 @@ timeout(Timeout::pos_integer(), Timestamp::<a href="erlang.md#type-timestamp">er
 </code></pre>
 <br />
 
-<a name="warning_msg-2"></a>
+<a name="warning_msg-3"></a>
 
-### warning_msg/2 ###
+### warning_msg/3 ###
 
 <pre><code>
-warning_msg(Format::string(), Data::[term()]) -&gt; ok
+warning_msg(Pool::atom(), Format::string(), Data::[term()]) -&gt; ok
 </code></pre>
 <br />
 
