@@ -5,7 +5,8 @@
 -callback init() -> {ok, init_opts()}.
 
 -callback after_connect(Socket :: inet:socket(), State :: term()) ->
-    {ok, Socket :: inet:socket(), State :: term()}.
+    {ok, State :: term()} |
+    {error, Reason :: term(), State :: term()}.
 
 -callback handle_cast(Request :: term(), State :: term()) ->
     {ok, RequestId :: term(), Data :: binary(), State :: term()}.

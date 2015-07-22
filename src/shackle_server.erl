@@ -89,13 +89,15 @@ reconnect_time(#state {reconnect_time = ReconnectTime} = State) ->
     }}.
 
 handle_msg(?MSG_CONNECT, #state {
+        client = Client,
+        client_state = ClientState,
         ip = Ip,
         port = Port
     } = State) ->
 
     Opts = [
         binary,
-        {active, true},
+        {active, false},
         {packet, raw},
         {send_timeout, ?DEFAULT_SEND_TIMEOUT},
         {send_timeout_close, true}
@@ -103,10 +105,22 @@ handle_msg(?MSG_CONNECT, #state {
 
     case gen_tcp:connect(Ip, Port, Opts) of
         {ok, Socket} ->
-            {ok, State#state {
-                socket = Socket,
-                reconnect_time = ?DEFAULT_RECONNECT_TIME
-            }};
+            case Client:after_connect(Socket, ClientState) of
+                {ok, ClientState2} ->
+                    inet:setopts(Socket, [{active, true}]),
+
+                    {ok, State#state {
+                        client_state = ClientState2,
+                        socket = Socket,
+                        reconnect_time = ?DEFAULT_RECONNECT_TIME
+                    }};
+                {error, Reason, ClientState2} ->
+                    shackle_utils:warning_msg("after_connect error: ~p", [Reason]),
+
+                    reconnect_time(State#state {
+                        client_state = ClientState2
+                    })
+            end;
         {error, Reason} ->
             shackle_utils:warning_msg("tcp connect error: ~p", [Reason]),
             reconnect_time(State)

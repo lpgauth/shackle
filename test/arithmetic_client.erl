@@ -46,7 +46,17 @@ init() ->
     ]}.
 
 after_connect(Socket, State) ->
-    {ok, Socket, State}.
+    case gen_tcp:send(Socket, <<"INIT">>) of
+        ok ->
+            case gen_tcp:recv(Socket, 0) of
+                {ok, <<"OK">>} ->
+                    {ok, State};
+                {error, Reason} ->
+                    {error, Reason, State}
+            end;
+        {error, Reason} ->
+            {error, Reason, State}
+    end.
 
 handle_cast({Operation, A, B}, #state {
         request_counter = RequestCounter

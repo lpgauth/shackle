@@ -22,6 +22,7 @@ start(Name, Client) ->
 
 -spec start(atom(), module(), pool_opts()) -> [{ok, pid()} | {error, atom()}].
 
+% TODO: ok | {error, shackle_not_started | pool_already_started}
 start(Name, Client, PoolOpts) ->
     BacklogSize = ?LOOKUP(backlog_size, PoolOpts, ?DEFAULT_BACKLOG_SIZE),
     PoolSize = ?LOOKUP(pool_size, PoolOpts, ?DEFAULT_POOL_SIZE),
