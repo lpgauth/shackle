@@ -22,7 +22,7 @@ shackle_random_test_() ->
     {setup,
         fun () ->
             setup(),
-            shackle_pool:start(?POOL_NAME, ?CLIENT)
+            arithmetic_client:start()
         end,
         fun (_) -> cleanup() end,
     {inparallel,[
