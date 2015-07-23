@@ -5,6 +5,7 @@
 -export([
     check/2,
     decrement/1,
+    delete/1,
     init/0,
     new/1
 ]).
@@ -24,6 +25,12 @@ check(Key, BacklogSize) ->
 
 decrement(Key) ->
     ets:update_counter(?ETS_TABLE_BACKLOG, Key, {2, -1, 0, 0}).
+
+-spec delete(atom()) -> ok.
+
+delete(Key) ->
+    ets:remove(?ETS_TABLE_BACKLOG, Key),
+    ok.
 
 -spec init() -> ?ETS_TABLE_BACKLOG.
 

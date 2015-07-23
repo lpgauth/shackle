@@ -16,7 +16,7 @@
 
 
 <pre><code>
-pool_opt() = {backlog_size, pos_integer()} | {client, module()} | {pool_size, pos_integer()} | {pool_strategy, <a href="#type-pool_strategy">pool_strategy()</a>}
+pool_opt() = {backlog_size, pos_integer()} | {pool_size, pos_integer()} | {pool_strategy, <a href="#type-pool_strategy">pool_strategy()</a>}
 </code></pre>
 
 

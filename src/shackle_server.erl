@@ -211,16 +211,21 @@ reply(Ref, From, Msg, #state {
     shackle_backlog:decrement(Name),
     From ! {PoolName, Ref, Msg}.
 
-tcp_close(#state {name = Name} = State) ->
-    Msg = {error, tcp_closed},
+reply_all(Name, Msg, State) ->
     Items = shackle_queue:all(Name),
-    [reply(Ref, From, Msg, State) || {Ref, From} <- Items],
+    [reply(Ref, From, Msg, State) || {Ref, From} <- Items].
+
+tcp_close(#state {name = Name} = State) ->
+    reply_all(Name, {error, tcp_closed}, State),
     reconnect_time(State).
 
 terminate(Reason, #state {
         client = Client,
-        client_state = ClientState
-    }) ->
+        client_state = ClientState,
+        name = Name
+    } = State) ->
 
     ok = Client:terminate(ClientState),
+    ok = shackle_backlog:delete(Name),
+    reply_all(Name, {error, shutdown}, State),
     exit(Reason).
