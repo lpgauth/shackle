@@ -29,7 +29,7 @@ decrement(Key) ->
 -spec delete(atom()) -> ok.
 
 delete(Key) ->
-    ets:remove(?ETS_TABLE_BACKLOG, Key),
+    ets:delete(?ETS_TABLE_BACKLOG, Key),
     ok.
 
 -spec init() -> ?ETS_TABLE_BACKLOG.
