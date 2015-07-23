@@ -21,7 +21,7 @@ edoc:
 
 eunit:
 	@echo "Running rebar3 eunit..."
-	@$(REBAR) do eunit -v, cover --verbose
+	@$(REBAR) do eunit -cv, cover --verbose
 
 test: dialyzer eunit xref
 
