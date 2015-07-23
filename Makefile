@@ -5,7 +5,7 @@ all: compile
 
 clean:
 	@echo "Running rebar3 clean..."
-	@$(REBAR) clean
+	@$(REBAR) clean -a
 
 compile:
 	@echo "Running rebar3 compile..."
@@ -21,7 +21,7 @@ edoc:
 
 eunit:
 	@echo "Running rebar3 eunit..."
-	@$(REBAR) do eunit, cover --verbose
+	@$(REBAR) do eunit -v, cover --verbose
 
 test: dialyzer eunit xref
 
