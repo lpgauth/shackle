@@ -53,3 +53,8 @@
                     {pool_strategy, pool_strategy()}.
 
 -type pool_opts() :: [pool_opt()].
+
+-export_type([
+    client_opts/0,
+    pool_opts/0
+]).
