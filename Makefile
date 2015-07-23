@@ -9,7 +9,7 @@ clean:
 
 compile:
 	@echo "Running rebar3 compile..."
-	@$(REBAR) compile
+	@$(REBAR) as compile compile
 
 dialyzer:
 	@echo "Running rebar3 dialyze..."
@@ -17,7 +17,7 @@ dialyzer:
 
 edoc:
 	@echo "Running rebar3 edoc..."
-	@$(REBAR) as doc edoc
+	@$(REBAR) as edoc edoc
 
 eunit:
 	@echo "Running rebar3 eunit..."

@@ -1,10 +1,6 @@
 -module(shackle_tests).
 -include("test.hrl").
 
--compile(export_all).
-
--define(N, 1000).
-
 %% runners
 shackle_backlog_test_() ->
     {setup,
@@ -16,7 +12,7 @@ shackle_backlog_test_() ->
             ])
         end,
         fun (_) -> cleanup() end,
-    [?T(test_backlog_full)]}.
+    [fun backlog_full_subtest/0]}.
 
 shackle_random_test_() ->
     {setup,
@@ -26,8 +22,8 @@ shackle_random_test_() ->
         end,
         fun (_) -> cleanup() end,
     {inparallel,[
-        ?T(test_add),
-        ?T(test_multiply)
+        fun add_subtest/0,
+        fun multiply_subtest/0
     ]}}.
 
 shackle_reconnect_test_() ->
@@ -40,28 +36,27 @@ shackle_reconnect_test_() ->
             ])
         end,
         fun (_) -> cleanup() end,
-    [?T(test_reconnect)]}.
+    [fun reconnect_subtest/0]}.
 
-shackle_round_robin_test_() ->
+shackle_round_robin_test() ->
     {setup,
         fun () ->
             setup(),
             shackle_pool:start(?POOL_NAME, ?CLIENT, [
-                {pool_size, 2},
                 {pool_strategy, round_robin}
             ])
         end,
         fun (_) -> cleanup() end,
     {inparallel,[
-        ?T(test_add),
-        ?T(test_multiply)
+        fun add_subtest/0,
+        fun multiply_subtest/0
     ]}}.
 
 %% tests
-test_add() ->
+add_subtest() ->
     [assert_random_add() || _ <- lists:seq(1, ?N)].
 
-test_backlog_full() ->
+backlog_full_subtest() ->
     Pid = self(),
     [spawn(fun () ->
         X = arithmetic_client:add(1, 1),
@@ -73,10 +68,10 @@ test_backlog_full() ->
         (_) -> false
     end, receive_loop(20))).
 
-test_multiply() ->
+multiply_subtest() ->
     [assert_random_multiply() || _ <- lists:seq(1, ?N)].
 
-test_reconnect() ->
+reconnect_subtest() ->
     ?assertEqual({error, no_socket}, arithmetic_client:add(1, 1)),
     arithmetic_server:start(),
     timer:sleep(3000),
@@ -94,11 +89,9 @@ assert_random_multiply() ->
     ?assertEqual(A * B, arithmetic_client:multiply(A, B)).
 
 cleanup() ->
-    error_logger:tty(false),
     arithmetic_server:stop(),
     arithmetic_client:stop(),
-    shackle_app:stop(),
-    error_logger:tty(true).
+    shackle_app:stop().
 
 rand() ->
     random:uniform(255).
@@ -114,8 +107,4 @@ setup() ->
     random:seed(os:timestamp()),
     error_logger:tty(false),
     arithmetic_server:start(),
-    shackle_app:start(),
-    error_logger:tty(true).
-
-test(Test) ->
-    {atom_to_list(Test), ?MODULE, Test}.
+    shackle_app:start().
