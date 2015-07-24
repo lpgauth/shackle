@@ -2,8 +2,6 @@
 -include("shackle.hrl").
 
 %% callbacks
--callback options() -> {ok, Options :: client_options()}.
-
 -callback after_connect(Socket :: inet:socket(), State :: term()) ->
     {ok, State :: term()} |
     {error, Reason :: term(), State :: term()}.
@@ -13,5 +11,7 @@
 
 -callback handle_data(Data :: binary(), State :: term()) ->
     {ok, [{RequestId :: term(), Reply :: term()}], State :: term()}.
+
+-callback options() -> {ok, Options :: client_options()}.
 
 -callback terminate(State :: term()) -> ok.
