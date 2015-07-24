@@ -15,20 +15,20 @@
 ]).
 
 -record(state, {
-    client         = undefined :: module(),
-    client_state   = undefined :: term(),
-    connect_opts   = undefined :: [gen_tcp:connect_option()],
-    ip             = undefined :: inet:ip_address() | inet:hostname(),
-    name           = undefined :: atom(),
-    parent         = undefined :: pid(),
-    pool_name      = undefined :: atom(),
-    port           = undefined :: inet:port_number(),
-    reconnect      = true      :: boolean(),
-    reconnect_max  = undefined :: non_neg_integer(),
-    reconnect_min  = undefined :: non_neg_integer(),
-    reconnect_time = undefined :: non_neg_integer(),
-    socket         = undefined :: undefined | inet:socket(),
-    timer          = undefined :: undefined | timer:ref()
+    client           = undefined :: module(),
+    client_state     = undefined :: term(),
+    connect_options  = undefined :: [gen_tcp:connect_option()],
+    ip               = undefined :: inet:ip_address() | inet:hostname(),
+    name             = undefined :: atom(),
+    parent           = undefined :: pid(),
+    pool_name        = undefined :: atom(),
+    port             = undefined :: inet:port_number(),
+    reconnect        = true      :: boolean(),
+    reconnect_max    = undefined :: non_neg_integer(),
+    reconnect_min    = undefined :: non_neg_integer(),
+    reconnect_time   = undefined :: non_neg_integer(),
+    socket           = undefined :: undefined | inet:socket(),
+    timer            = undefined :: undefined | timer:ref()
 }).
 
 %% public
@@ -47,20 +47,20 @@ init(Name, PoolName, Client, Parent) ->
     random:seed(os:timestamp()),
     self() ! ?MSG_CONNECT,
     ok = shackle_backlog:new(Name),
-    {ok, Opts} = Client:opts(),
+    {ok, Options} = Client:options(),
 
-    ClientState = ?LOOKUP(state, Opts),
-    ConnectOpts = ?LOOKUP(connect_options, Opts, ?DEFAULT_CONNECT_OPTS),
-    Ip = ?LOOKUP(ip, Opts, ?DEFAULT_IP),
-    Port = ?LOOKUP(port, Opts),
-    Reconnect = ?LOOKUP(reconnect, Opts, ?DEFAULT_RECONNECT),
-    ReconnectMax = ?LOOKUP(reconnect_max, Opts, ?DEFAULT_RECONNECT_MAX),
-    ReconnectMin = ?LOOKUP(reconnect_min, Opts, ?DEFAULT_RECONNECT_MIN),
+    ClientState = ?LOOKUP(state, Options),
+    ConnectOptions = ?LOOKUP(connect_options, Options, ?DEFAULT_CONNECT_OPTS),
+    Ip = ?LOOKUP(ip, Options, ?DEFAULT_IP),
+    Port = ?LOOKUP(port, Options),
+    Reconnect = ?LOOKUP(reconnect, Options, ?DEFAULT_RECONNECT),
+    ReconnectMax = ?LOOKUP(reconnect_max, Options, ?DEFAULT_RECONNECT_MAX),
+    ReconnectMin = ?LOOKUP(reconnect_min, Options, ?DEFAULT_RECONNECT_MIN),
 
     loop(#state {
         client = Client,
         client_state = ClientState,
-        connect_opts = ConnectOpts,
+        connect_options = ConnectOptions,
         ip = Ip,
         name = Name,
         parent = Parent,
@@ -111,20 +111,20 @@ reconnect_time(#state {
 handle_msg(?MSG_CONNECT, #state {
         client = Client,
         client_state = ClientState,
-        connect_opts = ConnectOpts,
+        connect_options = ConnectOptions,
         ip = Ip,
         pool_name = PoolName,
         port = Port,
         reconnect_min = ReconnectMin
     } = State) ->
 
-    Opts = [
+    Options = [
         binary,
         {active, false},
         {packet, raw}
-    ] ++ ConnectOpts,
+    ] ++ ConnectOptions,
 
-    case gen_tcp:connect(Ip, Port, Opts) of
+    case gen_tcp:connect(Ip, Port, Options) of
         {ok, Socket} ->
             case Client:after_connect(Socket, ClientState) of
                 {ok, ClientState2} ->

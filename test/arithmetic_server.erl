@@ -46,8 +46,8 @@ accept(LSocket) ->
     end.
 
 listen() ->
-    Opts = [binary, {backlog, 4096}, {active, false}, {reuseaddr, true}],
-    gen_tcp:listen(?PORT, Opts).
+    Options = [binary, {backlog, 4096}, {active, false}, {reuseaddr, true}],
+    gen_tcp:listen(?PORT, Options).
 
 loop(Socket, Buffer) ->
     case gen_tcp:recv(Socket, 0) of

@@ -21,19 +21,19 @@
 start(Name, Client) ->
     start(Name, Client, []).
 
--spec start(atom(), module(), pool_opts()) -> ok |
+-spec start(atom(), module(), pool_options()) -> ok |
     {error, shackle_not_started | pool_already_started}.
 
-start(Name, Client, PoolOpts) ->
-    case opts(Name) of
-        {ok, _PoolOpts} ->
+start(Name, Client, PoolOptions) ->
+    case options(Name) of
+        {ok, _PoolOptions} ->
             {error, pool_already_started};
         {error, shackle_not_started} ->
             {error, shackle_not_started};
         {error, pool_not_started} ->
-            PoolOptsRec = opts_rec(Client, PoolOpts),
-            setup(Name, PoolOptsRec),
-            start_children(Name, Client, PoolOptsRec),
+            PoolOptionsRec = options_rec(Client, PoolOptions),
+            setup(Name, PoolOptionsRec),
+            start_children(Name, Client, PoolOptionsRec),
             ok
     end.
 
@@ -41,13 +41,13 @@ start(Name, Client, PoolOpts) ->
     {error, shackle_not_started | pool_not_started}.
 
 stop(Name) ->
-    case opts(Name) of
-        {ok, Opts} ->
-            #pool_opts {
+    case options(Name) of
+        {ok, Options} ->
+            #pool_options {
                 client = Client,
                 pool_size = PoolSize,
                 pool_strategy = PoolStrategy
-            } = Opts,
+            } = Options,
 
             ChildNames = child_names(Client, PoolSize),
             lists:foreach(fun (ChildName) ->
@@ -74,14 +74,14 @@ init() ->
     {error, backlog_full | shackle_not_started | pool_not_started}.
 
 server(Name) ->
-    case opts(Name) of
-        {ok, Opts} ->
-            #pool_opts {
+    case options(Name) of
+        {ok, Options} ->
+            #pool_options {
                 backlog_size = BacklogSize,
                 client = Client,
                 pool_size = PoolSize,
                 pool_strategy = PoolStrategy
-            } = Opts,
+            } = Options,
 
             ServerId = case PoolStrategy of
                 random ->
@@ -117,10 +117,10 @@ cleanup(Name, round_robin) ->
 cleanup(Name, _) ->
     ets:delete(?ETS_TABLE_POOL, Name).
 
-opts(Name) ->
+options(Name) ->
     try
-        Opts = ets:lookup_element(?ETS_TABLE_POOL, Name, 2),
-        {ok, Opts}
+        Options = ets:lookup_element(?ETS_TABLE_POOL, Name, 2),
+        {ok, Options}
     catch
         error:badarg ->
             case ets:info(?ETS_TABLE_POOL) of
@@ -131,12 +131,12 @@ opts(Name) ->
             end
     end.
 
-opts_rec(Client, PoolOpts) ->
-    BacklogSize = ?LOOKUP(backlog_size, PoolOpts, ?DEFAULT_BACKLOG_SIZE),
-    PoolSize = ?LOOKUP(pool_size, PoolOpts, ?DEFAULT_POOL_SIZE),
-    PoolStrategy = ?LOOKUP(pool_strategy, PoolOpts, ?DEFAULT_POOL_STRATEGY),
+options_rec(Client, PoolOptions) ->
+    BacklogSize = ?LOOKUP(backlog_size, PoolOptions, ?DEFAULT_BACKLOG_SIZE),
+    PoolSize = ?LOOKUP(pool_size, PoolOptions, ?DEFAULT_POOL_SIZE),
+    PoolStrategy = ?LOOKUP(pool_strategy, PoolOptions, ?DEFAULT_POOL_STRATEGY),
 
-    #pool_opts {
+    #pool_options {
         backlog_size = BacklogSize,
         client = Client,
         pool_size = PoolSize,
@@ -151,13 +151,13 @@ round_robin(Name, PoolSize) ->
     [ServerId] = ets:update_counter(?ETS_TABLE_POOL, {Name, round_robin}, UpdateOps),
     ServerId.
 
-setup(Name, #pool_opts {pool_strategy = round_robin} = Opts) ->
-    ets:insert(?ETS_TABLE_POOL, {Name, Opts}),
+setup(Name, #pool_options {pool_strategy = round_robin} = Options) ->
+    ets:insert(?ETS_TABLE_POOL, {Name, Options}),
     ets:insert(?ETS_TABLE_POOL, {{Name, round_robin}, 1});
-setup(Name, Opts) ->
-    ets:insert(?ETS_TABLE_POOL, {Name, Opts}).
+setup(Name, Options) ->
+    ets:insert(?ETS_TABLE_POOL, {Name, Options}).
 
-start_children(Name, Client, #pool_opts {pool_size = PoolSize}) ->
+start_children(Name, Client, #pool_options {pool_size = PoolSize}) ->
     ChildNames = child_names(Client, PoolSize),
     ChildSpecs = [child_spec(ChildName, Name, Client) || ChildName <- ChildNames],
     [supervisor:start_child(?SUPERVISOR, ChildSpec) || ChildSpec <- ChildSpecs].

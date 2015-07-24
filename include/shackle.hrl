@@ -33,7 +33,7 @@
 -define(ETS_TABLE_QUEUE, shackle_queue).
 
 %% records
--record(pool_opts, {
+-record(pool_options, {
     backlog_size,
     client,
     pool_size,
@@ -41,25 +41,25 @@
 }).
 
 %% types
--type client_opt() :: {connect_options, [gen_tcp:connect_option()]} |
-                      {ip, inet:ip_address() | inet:hostname()} |
-                      {port, inet:port_number()} |
-                      {reconnect, boolean()} |
-                      {reconnect_max, pos_integer()} |
-                      {reconnect_min, pos_integer()} |
-                      {state, term()}.
+-type client_option() :: {connect_options, [gen_tcp:connect_option()]} |
+                         {ip, inet:ip_address() | inet:hostname()} |
+                         {port, inet:port_number()} |
+                         {reconnect, boolean()} |
+                         {reconnect_max, pos_integer()} |
+                         {reconnect_min, pos_integer()} |
+                         {state, term()}.
 
--type client_opts() :: [client_opt()].
+-type client_options() :: [client_option()].
 
 -type pool_strategy() :: random | round_robin.
 
--type pool_opt() :: {backlog_size, pos_integer()} |
-                    {pool_size, pos_integer()} |
-                    {pool_strategy, pool_strategy()}.
+-type pool_option() :: {backlog_size, pos_integer()} |
+                       {pool_size, pos_integer()} |
+                       {pool_strategy, pool_strategy()}.
 
--type pool_opts() :: [pool_opt()].
+-type pool_options() :: [pool_option()].
 
 -export_type([
-    client_opts/0,
-    pool_opts/0
+    client_options/0,
+    pool_options/0
 ]).
