@@ -17,6 +17,7 @@
 -record(state, {
     client         = undefined :: module(),
     client_state   = undefined :: term(),
+    connect_opts   = undefined :: [gen_tcp:connect_option()],
     ip             = undefined :: inet:ip_address() | inet:hostname(),
     name           = undefined :: atom(),
     parent         = undefined :: pid(),
@@ -46,9 +47,10 @@ init(Name, PoolName, Client, Parent) ->
     random:seed(os:timestamp()),
     self() ! ?MSG_CONNECT,
     ok = shackle_backlog:new(Name),
-
     {ok, Opts} = Client:opts(),
+
     ClientState = ?LOOKUP(state, Opts),
+    ConnectOpts = ?LOOKUP(connect_options, Opts, ?DEFAULT_CONNECT_OPTS),
     Ip = ?LOOKUP(ip, Opts, ?DEFAULT_IP),
     Port = ?LOOKUP(port, Opts),
     Reconnect = ?LOOKUP(reconnect, Opts, ?DEFAULT_RECONNECT),
@@ -58,6 +60,7 @@ init(Name, PoolName, Client, Parent) ->
     loop(#state {
         client = Client,
         client_state = ClientState,
+        connect_opts = ConnectOpts,
         ip = Ip,
         name = Name,
         parent = Parent,
@@ -67,6 +70,7 @@ init(Name, PoolName, Client, Parent) ->
         reconnect_max = ReconnectMax,
         reconnect_min = ReconnectMin,
         reconnect_time = ReconnectMin
+
     }).
 
 %% sys callbacks
@@ -107,6 +111,7 @@ reconnect_time(#state {
 handle_msg(?MSG_CONNECT, #state {
         client = Client,
         client_state = ClientState,
+        connect_opts = ConnectOpts,
         ip = Ip,
         pool_name = PoolName,
         port = Port,
@@ -116,10 +121,8 @@ handle_msg(?MSG_CONNECT, #state {
     Opts = [
         binary,
         {active, false},
-        {packet, raw},
-        {send_timeout, ?DEFAULT_SEND_TIMEOUT},
-        {send_timeout_close, true}
-    ],
+        {packet, raw}
+    ] ++ ConnectOpts,
 
     case gen_tcp:connect(Ip, Port, Opts) of
         {ok, Socket} ->

@@ -21,7 +21,10 @@
 -define(DEFAULT_RECONNECT, true).
 -define(DEFAULT_RECONNECT_MAX, timer:minutes(2)).
 -define(DEFAULT_RECONNECT_MIN, timer:seconds(1)).
--define(DEFAULT_SEND_TIMEOUT, 50).
+-define(DEFAULT_CONNECT_OPTS, [
+    {send_timeout, 50},
+    {send_timeout_close, true}
+]).
 -define(DEFAULT_TIMEOUT, 1000).
 
 %% ETS tables
@@ -38,7 +41,8 @@
 }).
 
 %% types
--type client_opt() :: {ip, inet:ip_address() | inet:hostname()} |
+-type client_opt() :: {connect_options, [gen_tcp:connect_option()]} |
+                      {ip, inet:ip_address() | inet:hostname()} |
                       {port, inet:port_number()} |
                       {reconnect, boolean()} |
                       {reconnect_max, pos_integer()} |
