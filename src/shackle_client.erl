@@ -9,7 +9,7 @@
     {error, Reason :: term(), State :: term()}.
 
 -callback handle_cast(Request :: term(), State :: term()) ->
-    {ok, RequestId :: term(), Data :: binary(), State :: term()}.
+    {ok, RequestId :: term(), Data :: iodata(), State :: term()}.
 
 -callback handle_data(Data :: binary(), State :: term()) ->
     {ok, [{RequestId :: term(), Reply :: term()}], State :: term()}.
