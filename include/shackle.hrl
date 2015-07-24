@@ -19,7 +19,8 @@
 -define(DEFAULT_POOL_SIZE, 16).
 -define(DEFAULT_POOL_STRATEGY, random).
 -define(DEFAULT_RECONNECT, true).
--define(DEFAULT_RECONNECT_TIME, 1000).
+-define(DEFAULT_RECONNECT_MAX, timer:minutes(2)).
+-define(DEFAULT_RECONNECT_MIN, timer:seconds(1)).
 -define(DEFAULT_SEND_TIMEOUT, 50).
 -define(DEFAULT_TIMEOUT, 1000).
 
@@ -40,7 +41,8 @@
 -type client_opt() :: {ip, inet:ip_address() | inet:hostname()} |
                       {port, inet:port_number()} |
                       {reconnect, boolean()} |
-                      {reconnect_time, pos_integer()} |
+                      {reconnect_max, pos_integer()} |
+                      {reconnect_min, pos_integer()} |
                       {state, term()}.
 
 -type client_opts() :: [client_opt()].

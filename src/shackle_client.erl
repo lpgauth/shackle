@@ -2,7 +2,7 @@
 -include("shackle.hrl").
 
 %% callbacks
--callback init() -> {ok, Opts :: client_opts()}.
+-callback opts() -> {ok, Opts :: client_opts()}.
 
 -callback after_connect(Socket :: inet:socket(), State :: term()) ->
     {ok, State :: term()} |

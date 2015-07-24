@@ -23,6 +23,8 @@
     pool_name      = undefined :: atom(),
     port           = undefined :: inet:port_number(),
     reconnect      = true      :: boolean(),
+    reconnect_max  = undefined :: non_neg_integer(),
+    reconnect_min  = undefined :: non_neg_integer(),
     reconnect_time = undefined :: non_neg_integer(),
     socket         = undefined :: undefined | inet:socket(),
     timer          = undefined :: undefined | timer:ref()
@@ -44,18 +46,27 @@ init(Name, PoolName, Client, Parent) ->
     random:seed(os:timestamp()),
     self() ! ?MSG_CONNECT,
     ok = shackle_backlog:new(Name),
-    {ok, Opts} = Client:init(),
+
+    {ok, Opts} = Client:opts(),
+    ClientState = ?LOOKUP(state, Opts),
+    Ip = ?LOOKUP(ip, Opts, ?DEFAULT_IP),
+    Port = ?LOOKUP(port, Opts),
+    Reconnect = ?LOOKUP(reconnect, Opts, ?DEFAULT_RECONNECT),
+    ReconnectMax = ?LOOKUP(reconnect_max, Opts, ?DEFAULT_RECONNECT_MAX),
+    ReconnectMin = ?LOOKUP(reconnect_min, Opts, ?DEFAULT_RECONNECT_MIN),
 
     loop(#state {
         client = Client,
-        client_state = ?LOOKUP(state, Opts),
-        ip = ?LOOKUP(ip, Opts, ?DEFAULT_IP),
+        client_state = ClientState,
+        ip = Ip,
         name = Name,
         parent = Parent,
         pool_name = PoolName,
-        port = ?LOOKUP(port, Opts),
-        reconnect = ?LOOKUP(reconnect, Opts, ?DEFAULT_RECONNECT),
-        reconnect_time = ?LOOKUP(reconnect_time, Opts, ?DEFAULT_RECONNECT_TIME)
+        port = Port,
+        reconnect = Reconnect,
+        reconnect_max = ReconnectMax,
+        reconnect_min = ReconnectMin,
+        reconnect_time = ReconnectMin
     }).
 
 %% sys callbacks
@@ -80,13 +91,17 @@ reconnect_time(#state {reconnect = false} = State) ->
     {ok, State#state {
         socket = undefined
     }};
-reconnect_time(#state {reconnect_time = ReconnectTime} = State) ->
-    ReconnectTime2 = shackle_backoff:timeout(ReconnectTime),
+reconnect_time(#state {
+        reconnect_max = Max,
+        reconnect_time = Time
+    } = State) ->
+
+    Time2 = shackle_backoff:timeout(Time, Max),
 
     {ok, State#state {
-        reconnect_time = ReconnectTime2,
+        reconnect_time = Time2,
         socket = undefined,
-        timer = erlang:send_after(ReconnectTime2, self(), ?MSG_CONNECT)
+        timer = erlang:send_after(Time2, self(), ?MSG_CONNECT)
     }}.
 
 handle_msg(?MSG_CONNECT, #state {
@@ -94,7 +109,8 @@ handle_msg(?MSG_CONNECT, #state {
         client_state = ClientState,
         ip = Ip,
         pool_name = PoolName,
-        port = Port
+        port = Port,
+        reconnect_min = ReconnectMin
     } = State) ->
 
     Opts = [
@@ -114,7 +130,7 @@ handle_msg(?MSG_CONNECT, #state {
                     {ok, State#state {
                         client_state = ClientState2,
                         socket = Socket,
-                        reconnect_time = ?DEFAULT_RECONNECT_TIME
+                        reconnect_time = ReconnectMin
                     }};
                 {error, Reason, ClientState2} ->
                     shackle_utils:warning_msg(PoolName, "after connect error: ~p", [Reason]),

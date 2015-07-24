@@ -3,15 +3,15 @@
 
 %% public
 -export([
-    timeout/1
+    timeout/2
 ]).
 
 %% public
--spec timeout(pos_integer()) -> pos_integer().
+-spec timeout(pos_integer(), pos_integer()) -> pos_integer().
 
-timeout(N) when N >= ?DEFAULT_MAX_TIMEOUT ->
-    ?DEFAULT_MAX_TIMEOUT;
-timeout(N) ->
-    Width = N bsl 1,
-    N2 = N + random:uniform(Width + 1) - 1,
-    min(N2, ?DEFAULT_MAX_TIMEOUT).
+timeout(Time, Max) when Time >= Max ->
+    Time;
+timeout(Time, Max) ->
+    Width = Time bsl 1,
+    Time2 = Time + random:uniform(Width + 1) - 1,
+    min(Time2, Max).

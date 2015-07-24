@@ -10,7 +10,7 @@
 
 -behavior(shackle_client).
 -export([
-    init/0,
+    opts/0,
     after_connect/2,
     handle_cast/2,
     handle_data/2,
@@ -48,7 +48,7 @@ stop() ->
     shackle_pool:stop(?POOL_NAME).
 
 %% shackle_server callbacks
-init() ->
+opts() ->
     {ok, [
         {port, ?PORT},
         {reconnect, true},
