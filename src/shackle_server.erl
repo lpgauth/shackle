@@ -146,13 +146,18 @@ handle_msg(?MSG_CONNECT, #state {
             shackle_utils:warning_msg(PoolName, "tcp connect error: ~p", [Reason]),
             reconnect_time(State)
     end;
-handle_msg({call, Ref, From, _Msg}, #state {
-        socket = undefined
+handle_msg({call, Request}, #state {
+        socket = undefined,
+        name = Name
     } = State) ->
 
-    reply(Ref, From, {error, no_socket}, State),
+    reply(Name, {error, no_socket}, Request),
     {ok, State};
-handle_msg({call, Ref, From, Request}, #state {
+handle_msg({call, #request {
+        cast = Cast,
+        timestamp = Timestamp,
+        timings = Timings
+    } = Request}, #state {
         client = Client,
         client_state = ClientState,
         pool_name = PoolName,
@@ -160,11 +165,14 @@ handle_msg({call, Ref, From, Request}, #state {
         socket = Socket
     } = State) ->
 
-    {ok, RequestId, Data, ClientState2} = Client:handle_cast(Request, ClientState),
+    {ok, ExtRequestId, Data, ClientState2} = Client:handle_cast(Cast, ClientState),
+    Timing = shackle_utils:now_diff(Timestamp),
 
     case gen_tcp:send(Socket, Data) of
         ok ->
-            shackle_queue:in(Name, RequestId, {Ref, From}),
+            shackle_queue:in(Name, ExtRequestId, Request#request {
+                timings = [Timing | Timings]
+            }),
 
             {ok, State#state {
                 client_state = ClientState2
@@ -183,12 +191,20 @@ handle_msg({tcp, _Port, Data}, #state {
 
     {ok, Replies, ClientState2} = Client:handle_data(Data, ClientState),
 
-    lists:foreach(fun ({RequestId, Reply}) ->
-        case shackle_queue:out(Name, RequestId) of
-            {ok, {Ref, From}} ->
-                reply(Ref, From, Reply, State);
+    lists:foreach(fun ({ExtRequestId, Reply}) ->
+        case shackle_queue:out(Name, ExtRequestId) of
+            {ok, #request {
+                timestamp = Timestamp,
+                timings = Timings
+            } = Request} ->
+
+                Timing = shackle_utils:now_diff(Timestamp),
+
+                reply(Name, Reply, Request#request {
+                    timings = [Timing | Timings]
+                });
             {error, not_found} ->
-                shackle_utils:info_msg(PoolName, "shackle_queue not found: ~p", [RequestId])
+                shackle_utils:info_msg(PoolName, "shackle_queue not found: ~p", [ExtRequestId])
         end
     end, Replies),
 
@@ -222,20 +238,21 @@ loop(#state {parent = Parent} = State) ->
             loop(State2)
     end.
 
-reply(Ref, From, Msg, #state {
-        name = Name,
-        pool_name = PoolName
-    }) ->
+reply(Name, Reply, #request {
+        from = From
+    } = Request) ->
 
     shackle_backlog:decrement(Name),
-    From ! {PoolName, Ref, Msg}.
+    From ! Request#request {
+        reply = Reply
+    }.
 
-reply_all(Name, Msg, State) ->
-    Items = shackle_queue:all(Name),
-    [reply(Ref, From, Msg, State) || {Ref, From} <- Items].
+reply_all(Name, Reply) ->
+    Requests = shackle_queue:all(Name),
+    [reply(Name, Reply, Request) || Request <- Requests].
 
 tcp_close(#state {name = Name} = State) ->
-    reply_all(Name, {error, tcp_closed}, State),
+    reply_all(Name, {error, tcp_closed}),
     reconnect_time(State).
 
 terminate(Reason, #state {
@@ -243,10 +260,10 @@ terminate(Reason, #state {
         client_state = ClientState,
         name = Name,
         timer_ref = TimerRef
-    } = State) ->
+    }) ->
 
     erlang:cancel_timer(TimerRef),
     ok = Client:terminate(ClientState),
     ok = shackle_backlog:delete(Name),
-    reply_all(Name, {error, shutdown}, State),
+    reply_all(Name, {error, shutdown}),
     exit(Reason).

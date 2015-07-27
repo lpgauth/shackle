@@ -26,6 +26,24 @@
 -define(ETS_TABLE_POOL, shackle_pool).
 -define(ETS_TABLE_QUEUE, shackle_queue).
 
+%% records
+-record(pool_options, {
+    backlog_size  :: backlog_size(),
+    client        :: client(),
+    pool_size     :: pool_size(),
+    pool_strategy :: pool_strategy()
+}).
+
+-record(request, {
+    cast           :: term(),
+    from           :: pid(),
+    pool_name      :: pool_name(),
+    ref            :: reference(),
+    reply          :: term(),
+    timestamp      :: erlang:timestamp(),
+    timings   = [] :: [pos_integer()]
+}).
+
 %% types
 -type backlog_size() :: pos_integer().
 -type client() :: module().
@@ -38,6 +56,7 @@
                          {state, term()}.
 
 -type client_options() :: [client_option()].
+-type external_request_id() :: term().
 -type pool_name() :: atom().
 -type pool_option() :: {backlog_size, backlog_size()} |
                        {pool_size, pool_size()} |
@@ -46,8 +65,8 @@
 -type pool_options() :: [pool_option()].
 -type pool_size() :: pos_integer().
 -type pool_strategy() :: random | round_robin.
--type request() :: term().
--type request_id() :: term().
+-type request() :: #request {}.
+-type request_id() :: {pool_name(), client(), reference()}.
 -type server_name() :: atom().
 -type time() :: pos_integer().
 
@@ -55,11 +74,3 @@
     client_options/0,
     pool_options/0
 ]).
-
-%% records
--record(pool_options, {
-    backlog_size  :: backlog_size(),
-    client        :: client(),
-    pool_size     :: pool_size(),
-    pool_strategy :: pool_strategy()
-}).

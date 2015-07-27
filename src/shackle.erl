@@ -6,48 +6,64 @@
     call/2,
     call/3,
     cast/3,
-    receive_response/3
+    receive_response/2
 ]).
 
 %% public
--spec call(pool_name(), request()) -> {ok, term()} | {error, term()}.
+-spec call(pool_name(), term()) -> {ok, term()} | {error, term()}.
 
 call(PoolName, Request) ->
     call(PoolName, Request, ?DEFAULT_TIMEOUT).
 
--spec call(atom(), request(), timeout()) -> {ok, term()} | {error, term()}.
+-spec call(atom(), term(), timeout()) -> {ok, term()} | {error, term()}.
 
-call(PoolName, Request, Timeout) ->
-    case cast(PoolName, Request, self()) of
-        {ok, Ref} ->
-            receive_response(PoolName, Ref, Timeout);
+call(PoolName, Call, Timeout) ->
+    case cast(PoolName, Call, self()) of
+        {ok, RequestId} ->
+            receive_response(RequestId, Timeout);
         {error, Reason} ->
             {error, Reason}
     end.
 
--spec cast(pool_name(), request(), pid()) -> {ok, reference()} | {error, backlog_full}.
+-spec cast(pool_name(), term(), pid()) -> {ok, request_id()} | {error, backlog_full}.
 
-cast(PoolName, Request, Pid) ->
+cast(PoolName, Cast, Pid) ->
+    Timestamp = os:timestamp(),
     case shackle_pool:server(PoolName) of
-        {ok, Server} ->
+        {ok, Client, Server} ->
             Ref = make_ref(),
-            Server ! {call, Ref, Pid, Request},
-            {ok, Ref};
+            Request = #request {
+                cast = Cast,
+                from = Pid,
+                pool_name = PoolName,
+                ref = Ref,
+                timestamp = Timestamp
+            },
+            Server ! {call, Request},
+            {ok, {PoolName, Client, Ref}};
         {error, backlog_full} ->
             {error, backlog_full}
     end.
 
--spec receive_response(pool_name(), reference(), timeout()) ->
+-spec receive_response(request_id(), timeout()) ->
     {ok, reference()} | {error, term()}.
 
-receive_response(PoolName, Ref, Timeout) ->
+receive_response({PoolName, Client, Ref} = RequestId, Timeout) ->
     Timestamp = os:timestamp(),
     receive
-        {PoolName, Ref, Reply} ->
-            Reply;
-        {PoolName, _, _} ->
+        #request {
+            pool_name = PoolName,
+            ref = Ref,
+            timestamp = Timestamp2,
+            timings = Timings
+        } = Request ->
+
+            Timing = shackle_utils:now_diff(Timestamp2),
+            Client:process_timings(lists:reverse([Timing | Timings])),
+            Request#request.reply;
+        #request {pool_name = PoolName} ->
             Timeout2 = shackle_utils:timeout(Timeout, Timestamp),
-            receive_response(PoolName, Ref, Timeout2)
+            receive_response(RequestId, Timeout2)
     after Timeout ->
         {error, timeout}
     end.

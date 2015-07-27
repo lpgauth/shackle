@@ -5,6 +5,7 @@
 -export([
     info_msg/3,
     lookup/3,
+    now_diff/1,
     timeout/2,
     warning_msg/3
 ]).
@@ -22,6 +23,11 @@ lookup(Key, List, Default) ->
         false -> Default;
         {_, Value} -> Value
     end.
+
+-spec now_diff(erlang:timestamp()) -> non_neg_integer().
+
+now_diff(Timestamp) ->
+    timer:now_diff(os:timestamp(), Timestamp).
 
 -spec timeout(time(), erlang:timestamp()) -> integer().
 

@@ -14,6 +14,7 @@
     after_connect/2,
     handle_cast/2,
     handle_data/2,
+    process_timings/1,
     terminate/1
 ]).
 
@@ -48,13 +49,6 @@ stop() ->
     shackle_pool:stop(?POOL_NAME).
 
 %% shackle_server callbacks
-options() ->
-    {ok, [
-        {port, ?PORT},
-        {reconnect, true},
-        {state, #state {}}
-    ]}.
-
 after_connect(Socket, State) ->
     case gen_tcp:send(Socket, <<"INIT">>) of
         ok ->
@@ -89,6 +83,16 @@ handle_data(Data, #state {
     {ok, Replies, State#state {
         buffer = Buffer2
     }}.
+
+options() ->
+    {ok, [
+        {port, ?PORT},
+        {reconnect, true},
+        {state, #state {}}
+    ]}.
+
+process_timings(_Timings) ->
+    ok.
 
 terminate(_State) -> ok.
 

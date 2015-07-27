@@ -92,7 +92,7 @@ server(Name) ->
             Server = child_name(Client, ServerId),
             case shackle_backlog:check(Server, BacklogSize) of
                 true ->
-                    {ok, Server};
+                    {ok, Client, Server};
                 false ->
                     {error, backlog_full}
             end;

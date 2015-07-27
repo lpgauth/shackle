@@ -10,13 +10,13 @@
 ]).
 
 %% internal
--spec all(server_name()) -> [term()].
+-spec all(server_name()) -> [request()].
 
 all(ServerName) ->
     Match = {{ServerName, '_'}, '_'},
     Matches = ets:match_object(?ETS_TABLE_QUEUE, Match),
     ets:match_delete(?ETS_TABLE_QUEUE, Match),
-    [Item || {_, Item} <- Matches].
+    [Request || {_, Request} <- Matches].
 
 -spec init() -> ?ETS_TABLE_QUEUE.
 
@@ -28,20 +28,20 @@ init() ->
         {write_concurrency, true}
     ]).
 
--spec in(server_name(), request_id(), term()) -> ok.
+-spec in(server_name(), external_request_id(), request()) -> ok.
 
-in(ServerName, RequestId, Item) ->
-    ets:insert(?ETS_TABLE_QUEUE, {{ServerName, RequestId}, Item}),
+in(ServerName, RequestId, Request) ->
+    ets:insert(?ETS_TABLE_QUEUE, {{ServerName, RequestId}, Request}),
     ok.
 
--spec out(atom(), request_id()) -> {ok, term()} | {error, not_found}.
+-spec out(atom(), external_request_id()) -> {ok, request()} | {error, not_found}.
 
 out(ServerName, RequestId) ->
     Key = {ServerName, RequestId},
     try
-        Item = ets:lookup_element(?ETS_TABLE_QUEUE, Key, 2),
+        Request = ets:lookup_element(?ETS_TABLE_QUEUE, Key, 2),
         ets:delete(?ETS_TABLE_QUEUE, Key),
-        {ok, Item}
+        {ok, Request}
     catch
         error:badarg ->
             {error, not_found}
