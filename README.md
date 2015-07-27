@@ -15,9 +15,40 @@ Non-blocking Erlang client framework
 * Asynchronous mode
 * Backpressure via backlog (OOM protection)
 * Fast pool implementation (random or round_robin)
-* Instrumented
 * Performance optimized
 * Request pipelining
+
+## Examples
+### Implementing a client
+
+```erlang
+after_connect(Socket, State) ->
+    {ok, State};
+
+handle_cast(Cast, State) ->
+
+    ...
+
+    {ok, RequestId, Request, State}.
+
+handle_data(Data, State) ->
+
+    ...
+
+    {ok, Replies, State}.
+
+options() ->
+    {ok, [
+        {port, 123123},
+        {reconnect, true},
+        {state, #state {}}
+    ]}.
+
+process_timings(_Timings) ->
+    ok.
+
+terminate(_State) -> ok.
+```
 
 ## License
 

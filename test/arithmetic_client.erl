@@ -64,7 +64,7 @@ after_connect(Socket, State) ->
 
 handle_cast({Operation, A, B}, #state {
         request_counter = RequestCounter
-    }) ->
+    } = State) ->
 
     RequestId = request_id(RequestCounter),
     Request = request(RequestId, Operation, A, B),
