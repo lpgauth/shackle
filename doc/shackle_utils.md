@@ -1,15 +1,110 @@
 
 
 # Module shackle_utils #
+* [Data Types](#types)
 * [Function Index](#index)
 * [Function Details](#functions)
+
+<a name="types"></a>
+
+## Data Types ##
+
+
+
+
+### <a name="type-backlog_size">backlog_size()</a> ###
+
+
+<pre><code>
+backlog_size() = pos_integer()
+</code></pre>
+
+
+
+
+### <a name="type-client_option">client_option()</a> ###
+
+
+<pre><code>
+client_option() = {connect_options, [<a href="gen_tcp.md#type-connect_option">gen_tcp:connect_option()</a>]} | {ip, <a href="inet.md#type-ip_address">inet:ip_address()</a> | <a href="inet.md#type-hostname">inet:hostname()</a>} | {port, <a href="inet.md#type-port_number">inet:port_number()</a>} | {reconnect, boolean()} | {reconnect_time_max, <a href="#type-time">time()</a>} | {reconnect_time_min, <a href="#type-time">time()</a>} | {state, term()}
+</code></pre>
+
+
+
+
+### <a name="type-client_options">client_options()</a> ###
+
+
+<pre><code>
+client_options() = [<a href="#type-client_option">client_option()</a>]
+</code></pre>
+
+
+
+
+### <a name="type-pool_name">pool_name()</a> ###
+
+
+<pre><code>
+pool_name() = atom()
+</code></pre>
+
+
+
+
+### <a name="type-pool_option">pool_option()</a> ###
+
+
+<pre><code>
+pool_option() = {backlog_size, <a href="#type-backlog_size">backlog_size()</a>} | {pool_size, <a href="#type-pool_size">pool_size()</a>} | {pool_strategy, <a href="#type-pool_strategy">pool_strategy()</a>}
+</code></pre>
+
+
+
+
+### <a name="type-pool_options">pool_options()</a> ###
+
+
+<pre><code>
+pool_options() = [<a href="#type-pool_option">pool_option()</a>]
+</code></pre>
+
+
+
+
+### <a name="type-pool_size">pool_size()</a> ###
+
+
+<pre><code>
+pool_size() = pos_integer()
+</code></pre>
+
+
+
+
+### <a name="type-pool_strategy">pool_strategy()</a> ###
+
+
+<pre><code>
+pool_strategy() = random | round_robin
+</code></pre>
+
+
+
+
+### <a name="type-time">time()</a> ###
+
+
+<pre><code>
+time() = pos_integer()
+</code></pre>
 
 <a name="index"></a>
 
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#info_msg-3">info_msg/3</a></td><td></td></tr><tr><td valign="top"><a href="#lookup-3">lookup/3</a></td><td></td></tr><tr><td valign="top"><a href="#timeout-2">timeout/2</a></td><td></td></tr><tr><td valign="top"><a href="#warning_msg-3">warning_msg/3</a></td><td></td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#info_msg-3">info_msg/3</a></td><td></td></tr><tr><td valign="top"><a href="#lookup-3">lookup/3</a></td><td></td></tr><tr><td valign="top"><a href="#now_diff-1">now_diff/1</a></td><td></td></tr><tr><td valign="top"><a href="#timeout-2">timeout/2</a></td><td></td></tr><tr><td valign="top"><a href="#warning_msg-3">warning_msg/3</a></td><td></td></tr></table>
 
 
 <a name="functions"></a>
@@ -21,7 +116,7 @@
 ### info_msg/3 ###
 
 <pre><code>
-info_msg(Pool::atom(), Format::string(), Data::[term()]) -&gt; ok
+info_msg(Pool::<a href="#type-pool_name">pool_name()</a>, Format::string(), Data::[term()]) -&gt; ok
 </code></pre>
 <br />
 
@@ -34,12 +129,21 @@ lookup(Key::atom(), List::[{atom(), term()}], Default::term()) -&gt; term()
 </code></pre>
 <br />
 
+<a name="now_diff-1"></a>
+
+### now_diff/1 ###
+
+<pre><code>
+now_diff(Timestamp::<a href="erlang.md#type-timestamp">erlang:timestamp()</a>) -&gt; non_neg_integer()
+</code></pre>
+<br />
+
 <a name="timeout-2"></a>
 
 ### timeout/2 ###
 
 <pre><code>
-timeout(Timeout::pos_integer(), Timestamp::<a href="erlang.md#type-timestamp">erlang:timestamp()</a>) -&gt; integer()
+timeout(Timeout::<a href="#type-time">time()</a>, Timestamp::<a href="erlang.md#type-timestamp">erlang:timestamp()</a>) -&gt; integer()
 </code></pre>
 <br />
 
@@ -48,7 +152,7 @@ timeout(Timeout::pos_integer(), Timestamp::<a href="erlang.md#type-timestamp">er
 ### warning_msg/3 ###
 
 <pre><code>
-warning_msg(Pool::atom(), Format::string(), Data::[term()]) -&gt; ok
+warning_msg(Pool::<a href="#type-pool_name">pool_name()</a>, Format::string(), Data::[term()]) -&gt; ok
 </code></pre>
 <br />
 

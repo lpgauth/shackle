@@ -4,9 +4,20 @@ __Author:__ Louis-Philippe Gauthier.
 
 Non-blocking Erlang client framework
 
+[![Build Status](https://travis-ci.org/lpgauth/shackle.svg?branch=dev)](https://travis-ci.org/lpgauth/shackle)
+
 ### Requirements
 
 * Erlang 16.0 +
+
+### Features
+
+* Asynchronous mode
+* Backpressure via backlog (OOM protection)
+* Fast pool implementation (random or round_robin)
+* Instrumented
+* Performance optimized
+* Request pipelining
 
 ## License
 

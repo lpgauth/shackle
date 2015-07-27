@@ -1,8 +1,133 @@
 
 
 # Module shackle_queue #
+* [Data Types](#types)
 * [Function Index](#index)
 * [Function Details](#functions)
+
+<a name="types"></a>
+
+## Data Types ##
+
+
+
+
+### <a name="type-backlog_size">backlog_size()</a> ###
+
+
+<pre><code>
+backlog_size() = pos_integer()
+</code></pre>
+
+
+
+
+### <a name="type-client_option">client_option()</a> ###
+
+
+<pre><code>
+client_option() = {connect_options, [<a href="gen_tcp.md#type-connect_option">gen_tcp:connect_option()</a>]} | {ip, <a href="inet.md#type-ip_address">inet:ip_address()</a> | <a href="inet.md#type-hostname">inet:hostname()</a>} | {port, <a href="inet.md#type-port_number">inet:port_number()</a>} | {reconnect, boolean()} | {reconnect_time_max, <a href="#type-time">time()</a>} | {reconnect_time_min, <a href="#type-time">time()</a>} | {state, term()}
+</code></pre>
+
+
+
+
+### <a name="type-client_options">client_options()</a> ###
+
+
+<pre><code>
+client_options() = [<a href="#type-client_option">client_option()</a>]
+</code></pre>
+
+
+
+
+### <a name="type-external_request_id">external_request_id()</a> ###
+
+
+<pre><code>
+external_request_id() = term()
+</code></pre>
+
+
+
+
+### <a name="type-pool_name">pool_name()</a> ###
+
+
+<pre><code>
+pool_name() = atom()
+</code></pre>
+
+
+
+
+### <a name="type-pool_option">pool_option()</a> ###
+
+
+<pre><code>
+pool_option() = {backlog_size, <a href="#type-backlog_size">backlog_size()</a>} | {pool_size, <a href="#type-pool_size">pool_size()</a>} | {pool_strategy, <a href="#type-pool_strategy">pool_strategy()</a>}
+</code></pre>
+
+
+
+
+### <a name="type-pool_options">pool_options()</a> ###
+
+
+<pre><code>
+pool_options() = [<a href="#type-pool_option">pool_option()</a>]
+</code></pre>
+
+
+
+
+### <a name="type-pool_size">pool_size()</a> ###
+
+
+<pre><code>
+pool_size() = pos_integer()
+</code></pre>
+
+
+
+
+### <a name="type-pool_strategy">pool_strategy()</a> ###
+
+
+<pre><code>
+pool_strategy() = random | round_robin
+</code></pre>
+
+
+
+
+### <a name="type-request">request()</a> ###
+
+
+<pre><code>
+request() = #request{cast = undefined | term(), from = undefined | pid(), pool_name = undefined | <a href="#type-pool_name">pool_name()</a>, ref = undefined | reference(), reply = undefined | term(), timestamp = undefined | <a href="erlang.md#type-timestamp">erlang:timestamp()</a>, timings = [pos_integer()]}
+</code></pre>
+
+
+
+
+### <a name="type-server_name">server_name()</a> ###
+
+
+<pre><code>
+server_name() = atom()
+</code></pre>
+
+
+
+
+### <a name="type-time">time()</a> ###
+
+
+<pre><code>
+time() = pos_integer()
+</code></pre>
 
 <a name="index"></a>
 
@@ -21,7 +146,7 @@
 ### all/1 ###
 
 <pre><code>
-all(ServerName::atom()) -&gt; [term()]
+all(ServerName::<a href="#type-server_name">server_name()</a>) -&gt; [<a href="#type-request">request()</a>]
 </code></pre>
 <br />
 
@@ -30,7 +155,7 @@ all(ServerName::atom()) -&gt; [term()]
 ### in/3 ###
 
 <pre><code>
-in(ServerName::atom(), Stream::non_neg_integer(), Item::term()) -&gt; ok
+in(ServerName::<a href="#type-server_name">server_name()</a>, RequestId::<a href="#type-external_request_id">external_request_id()</a>, Request::<a href="#type-request">request()</a>) -&gt; ok
 </code></pre>
 <br />
 
@@ -48,7 +173,7 @@ init() -&gt; shackle_queue
 ### out/2 ###
 
 <pre><code>
-out(ServerName::atom(), Stream::non_neg_integer()) -&gt; {ok, term()} | {error, not_found}
+out(ServerName::atom(), RequestId::<a href="#type-external_request_id">external_request_id()</a>) -&gt; {ok, <a href="#type-request">request()</a>} | {error, not_found}
 </code></pre>
 <br />
 

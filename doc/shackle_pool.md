@@ -12,21 +12,81 @@
 
 
 
-### <a name="type-pool_opt">pool_opt()</a> ###
+### <a name="type-backlog_size">backlog_size()</a> ###
 
 
 <pre><code>
-pool_opt() = {backlog_size, pos_integer()} | {pool_size, pos_integer()} | {pool_strategy, <a href="#type-pool_strategy">pool_strategy()</a>}
+backlog_size() = pos_integer()
 </code></pre>
 
 
 
 
-### <a name="type-pool_opts">pool_opts()</a> ###
+### <a name="type-client">client()</a> ###
 
 
 <pre><code>
-pool_opts() = [<a href="#type-pool_opt">pool_opt()</a>]
+client() = module()
+</code></pre>
+
+
+
+
+### <a name="type-client_option">client_option()</a> ###
+
+
+<pre><code>
+client_option() = {connect_options, [<a href="gen_tcp.md#type-connect_option">gen_tcp:connect_option()</a>]} | {ip, <a href="inet.md#type-ip_address">inet:ip_address()</a> | <a href="inet.md#type-hostname">inet:hostname()</a>} | {port, <a href="inet.md#type-port_number">inet:port_number()</a>} | {reconnect, boolean()} | {reconnect_time_max, <a href="#type-time">time()</a>} | {reconnect_time_min, <a href="#type-time">time()</a>} | {state, term()}
+</code></pre>
+
+
+
+
+### <a name="type-client_options">client_options()</a> ###
+
+
+<pre><code>
+client_options() = [<a href="#type-client_option">client_option()</a>]
+</code></pre>
+
+
+
+
+### <a name="type-pool_name">pool_name()</a> ###
+
+
+<pre><code>
+pool_name() = atom()
+</code></pre>
+
+
+
+
+### <a name="type-pool_option">pool_option()</a> ###
+
+
+<pre><code>
+pool_option() = {backlog_size, <a href="#type-backlog_size">backlog_size()</a>} | {pool_size, <a href="#type-pool_size">pool_size()</a>} | {pool_strategy, <a href="#type-pool_strategy">pool_strategy()</a>}
+</code></pre>
+
+
+
+
+### <a name="type-pool_options">pool_options()</a> ###
+
+
+<pre><code>
+pool_options() = [<a href="#type-pool_option">pool_option()</a>]
+</code></pre>
+
+
+
+
+### <a name="type-pool_size">pool_size()</a> ###
+
+
+<pre><code>
+pool_size() = pos_integer()
 </code></pre>
 
 
@@ -37,6 +97,16 @@ pool_opts() = [<a href="#type-pool_opt">pool_opt()</a>]
 
 <pre><code>
 pool_strategy() = random | round_robin
+</code></pre>
+
+
+
+
+### <a name="type-time">time()</a> ###
+
+
+<pre><code>
+time() = pos_integer()
 </code></pre>
 
 <a name="index"></a>
@@ -65,7 +135,7 @@ init() -&gt; shackle_pool
 ### server/1 ###
 
 <pre><code>
-server(Name::atom()) -&gt; {ok, pid()} | {error, backlog_full | shackle_not_started | pool_not_started}
+server(Name::<a href="#type-pool_name">pool_name()</a>) -&gt; {ok, pid()} | {error, backlog_full | shackle_not_started | pool_not_started}
 </code></pre>
 <br />
 
@@ -74,7 +144,7 @@ server(Name::atom()) -&gt; {ok, pid()} | {error, backlog_full | shackle_not_star
 ### start/2 ###
 
 <pre><code>
-start(Name::atom(), Client::module()) -&gt; ok | {error, shackle_not_started | pool_already_started}
+start(Name::<a href="#type-pool_name">pool_name()</a>, Client::<a href="#type-client">client()</a>) -&gt; ok | {error, shackle_not_started | pool_already_started}
 </code></pre>
 <br />
 
@@ -83,7 +153,7 @@ start(Name::atom(), Client::module()) -&gt; ok | {error, shackle_not_started | p
 ### start/3 ###
 
 <pre><code>
-start(Name::atom(), Client::module(), PoolOpts::<a href="#type-pool_opts">pool_opts()</a>) -&gt; ok | {error, shackle_not_started | pool_already_started}
+start(Name::<a href="#type-pool_name">pool_name()</a>, Client::<a href="#type-client">client()</a>, PoolOptions::<a href="#type-pool_options">pool_options()</a>) -&gt; ok | {error, shackle_not_started | pool_already_started}
 </code></pre>
 <br />
 
@@ -92,7 +162,7 @@ start(Name::atom(), Client::module(), PoolOpts::<a href="#type-pool_opts">pool_o
 ### stop/1 ###
 
 <pre><code>
-stop(Name::atom()) -&gt; ok | {error, shackle_not_started | pool_not_started}
+stop(Name::<a href="#type-pool_name">pool_name()</a>) -&gt; ok | {error, shackle_not_started | pool_not_started}
 </code></pre>
 <br />
 

@@ -1,8 +1,123 @@
 
 
 # Module shackle_server #
+* [Data Types](#types)
 * [Function Index](#index)
 * [Function Details](#functions)
+
+<a name="types"></a>
+
+## Data Types ##
+
+
+
+
+### <a name="type-backlog_size">backlog_size()</a> ###
+
+
+<pre><code>
+backlog_size() = pos_integer()
+</code></pre>
+
+
+
+
+### <a name="type-client">client()</a> ###
+
+
+<pre><code>
+client() = module()
+</code></pre>
+
+
+
+
+### <a name="type-client_option">client_option()</a> ###
+
+
+<pre><code>
+client_option() = {connect_options, [<a href="gen_tcp.md#type-connect_option">gen_tcp:connect_option()</a>]} | {ip, <a href="inet.md#type-ip_address">inet:ip_address()</a> | <a href="inet.md#type-hostname">inet:hostname()</a>} | {port, <a href="inet.md#type-port_number">inet:port_number()</a>} | {reconnect, boolean()} | {reconnect_time_max, <a href="#type-time">time()</a>} | {reconnect_time_min, <a href="#type-time">time()</a>} | {state, term()}
+</code></pre>
+
+
+
+
+### <a name="type-client_options">client_options()</a> ###
+
+
+<pre><code>
+client_options() = [<a href="#type-client_option">client_option()</a>]
+</code></pre>
+
+
+
+
+### <a name="type-pool_name">pool_name()</a> ###
+
+
+<pre><code>
+pool_name() = atom()
+</code></pre>
+
+
+
+
+### <a name="type-pool_option">pool_option()</a> ###
+
+
+<pre><code>
+pool_option() = {backlog_size, <a href="#type-backlog_size">backlog_size()</a>} | {pool_size, <a href="#type-pool_size">pool_size()</a>} | {pool_strategy, <a href="#type-pool_strategy">pool_strategy()</a>}
+</code></pre>
+
+
+
+
+### <a name="type-pool_options">pool_options()</a> ###
+
+
+<pre><code>
+pool_options() = [<a href="#type-pool_option">pool_option()</a>]
+</code></pre>
+
+
+
+
+### <a name="type-pool_size">pool_size()</a> ###
+
+
+<pre><code>
+pool_size() = pos_integer()
+</code></pre>
+
+
+
+
+### <a name="type-pool_strategy">pool_strategy()</a> ###
+
+
+<pre><code>
+pool_strategy() = random | round_robin
+</code></pre>
+
+
+
+
+### <a name="type-server_name">server_name()</a> ###
+
+
+<pre><code>
+server_name() = atom()
+</code></pre>
+
+
+
+
+### <a name="type-time">time()</a> ###
+
+
+<pre><code>
+time() = pos_integer()
+</code></pre>
 
 <a name="index"></a>
 
@@ -21,7 +136,7 @@
 ### init/4 ###
 
 <pre><code>
-init(Name::atom(), PoolName::atom(), Client::module(), Parent::pid()) -&gt; no_return()
+init(Name::<a href="#type-server_name">server_name()</a>, PoolName::<a href="#type-pool_name">pool_name()</a>, Client::<a href="#type-client">client()</a>, Parent::pid()) -&gt; no_return()
 </code></pre>
 <br />
 
@@ -30,7 +145,7 @@ init(Name::atom(), PoolName::atom(), Client::module(), Parent::pid()) -&gt; no_r
 ### start_link/3 ###
 
 <pre><code>
-start_link(Name::atom(), PoolName::atom(), Client::module()) -&gt; {ok, pid()}
+start_link(Name::<a href="#type-server_name">server_name()</a>, PoolName::<a href="#type-pool_name">pool_name()</a>, Client::<a href="#type-client">client()</a>) -&gt; {ok, pid()}
 </code></pre>
 <br />
 
@@ -39,7 +154,7 @@ start_link(Name::atom(), PoolName::atom(), Client::module()) -&gt; {ok, pid()}
 ### system_code_change/4 ###
 
 <pre><code>
-system_code_change(State::#state{client = module(), client_state = term(), ip = <a href="inet.md#type-ip_address">inet:ip_address()</a> | <a href="inet.md#type-hostname">inet:hostname()</a>, name = atom(), parent = pid(), pool_name = atom(), port = <a href="inet.md#type-port_number">inet:port_number()</a>, reconnect = boolean(), reconnect_time = non_neg_integer(), socket = undefined | <a href="inet.md#type-socket">inet:socket()</a>, timer = undefined | <a href="timer.md#type-ref">timer:ref()</a>}, Module::module(), OldVsn::undefined | term(), Extra::term()) -&gt; {ok, #state{client = module(), client_state = term(), ip = <a href="inet.md#type-ip_address">inet:ip_address()</a> | <a href="inet.md#type-hostname">inet:hostname()</a>, name = atom(), parent = pid(), pool_name = atom(), port = <a href="inet.md#type-port_number">inet:port_number()</a>, reconnect = boolean(), reconnect_time = non_neg_integer(), socket = undefined | <a href="inet.md#type-socket">inet:socket()</a>, timer = undefined | <a href="timer.md#type-ref">timer:ref()</a>}}
+system_code_change(State::#state{client = undefined | <a href="#type-client">client()</a>, client_state = undefined | term(), connect_options = undefined | [<a href="gen_tcp.md#type-connect_option">gen_tcp:connect_option()</a>], ip = undefined | <a href="inet.md#type-ip_address">inet:ip_address()</a> | <a href="inet.md#type-hostname">inet:hostname()</a>, name = undefined | <a href="#type-server_name">server_name()</a>, parent = undefined | pid(), pool_name = undefined | <a href="#type-pool_name">pool_name()</a>, port = undefined | <a href="inet.md#type-port_number">inet:port_number()</a>, reconnect = undefined | boolean(), reconnect_time_max = undefined | <a href="#type-time">time()</a>, reconnect_time_min = undefined | <a href="#type-time">time()</a>, reconnect_time = undefined | <a href="#type-time">time()</a>, socket = undefined | <a href="inet.md#type-socket">inet:socket()</a>, timer_ref = undefined | <a href="timer.md#type-ref">timer:ref()</a>}, Module::module(), OldVsn::undefined | term(), Extra::term()) -&gt; {ok, #state{client = undefined | <a href="#type-client">client()</a>, client_state = undefined | term(), connect_options = undefined | [<a href="gen_tcp.md#type-connect_option">gen_tcp:connect_option()</a>], ip = undefined | <a href="inet.md#type-ip_address">inet:ip_address()</a> | <a href="inet.md#type-hostname">inet:hostname()</a>, name = undefined | <a href="#type-server_name">server_name()</a>, parent = undefined | pid(), pool_name = undefined | <a href="#type-pool_name">pool_name()</a>, port = undefined | <a href="inet.md#type-port_number">inet:port_number()</a>, reconnect = undefined | boolean(), reconnect_time_max = undefined | <a href="#type-time">time()</a>, reconnect_time_min = undefined | <a href="#type-time">time()</a>, reconnect_time = undefined | <a href="#type-time">time()</a>, socket = undefined | <a href="inet.md#type-socket">inet:socket()</a>, timer_ref = undefined | <a href="timer.md#type-ref">timer:ref()</a>}}
 </code></pre>
 <br />
 
@@ -48,7 +163,7 @@ system_code_change(State::#state{client = module(), client_state = term(), ip = 
 ### system_continue/3 ###
 
 <pre><code>
-system_continue(Parent::pid(), Debug::[], State::#state{client = module(), client_state = term(), ip = <a href="inet.md#type-ip_address">inet:ip_address()</a> | <a href="inet.md#type-hostname">inet:hostname()</a>, name = atom(), parent = pid(), pool_name = atom(), port = <a href="inet.md#type-port_number">inet:port_number()</a>, reconnect = boolean(), reconnect_time = non_neg_integer(), socket = undefined | <a href="inet.md#type-socket">inet:socket()</a>, timer = undefined | <a href="timer.md#type-ref">timer:ref()</a>}) -&gt; ok
+system_continue(Parent::pid(), Debug::[], State::#state{client = undefined | <a href="#type-client">client()</a>, client_state = undefined | term(), connect_options = undefined | [<a href="gen_tcp.md#type-connect_option">gen_tcp:connect_option()</a>], ip = undefined | <a href="inet.md#type-ip_address">inet:ip_address()</a> | <a href="inet.md#type-hostname">inet:hostname()</a>, name = undefined | <a href="#type-server_name">server_name()</a>, parent = undefined | pid(), pool_name = undefined | <a href="#type-pool_name">pool_name()</a>, port = undefined | <a href="inet.md#type-port_number">inet:port_number()</a>, reconnect = undefined | boolean(), reconnect_time_max = undefined | <a href="#type-time">time()</a>, reconnect_time_min = undefined | <a href="#type-time">time()</a>, reconnect_time = undefined | <a href="#type-time">time()</a>, socket = undefined | <a href="inet.md#type-socket">inet:socket()</a>, timer_ref = undefined | <a href="timer.md#type-ref">timer:ref()</a>}) -&gt; ok
 </code></pre>
 <br />
 
@@ -57,7 +172,7 @@ system_continue(Parent::pid(), Debug::[], State::#state{client = module(), clien
 ### system_terminate/4 ###
 
 <pre><code>
-system_terminate(Reason::term(), Parent::pid(), Debug::[], State::#state{client = module(), client_state = term(), ip = <a href="inet.md#type-ip_address">inet:ip_address()</a> | <a href="inet.md#type-hostname">inet:hostname()</a>, name = atom(), parent = pid(), pool_name = atom(), port = <a href="inet.md#type-port_number">inet:port_number()</a>, reconnect = boolean(), reconnect_time = non_neg_integer(), socket = undefined | <a href="inet.md#type-socket">inet:socket()</a>, timer = undefined | <a href="timer.md#type-ref">timer:ref()</a>}) -&gt; none()
+system_terminate(Reason::term(), Parent::pid(), Debug::[], State::#state{client = undefined | <a href="#type-client">client()</a>, client_state = undefined | term(), connect_options = undefined | [<a href="gen_tcp.md#type-connect_option">gen_tcp:connect_option()</a>], ip = undefined | <a href="inet.md#type-ip_address">inet:ip_address()</a> | <a href="inet.md#type-hostname">inet:hostname()</a>, name = undefined | <a href="#type-server_name">server_name()</a>, parent = undefined | pid(), pool_name = undefined | <a href="#type-pool_name">pool_name()</a>, port = undefined | <a href="inet.md#type-port_number">inet:port_number()</a>, reconnect = undefined | boolean(), reconnect_time_max = undefined | <a href="#type-time">time()</a>, reconnect_time_min = undefined | <a href="#type-time">time()</a>, reconnect_time = undefined | <a href="#type-time">time()</a>, socket = undefined | <a href="inet.md#type-socket">inet:socket()</a>, timer_ref = undefined | <a href="timer.md#type-ref">timer:ref()</a>}) -&gt; none()
 </code></pre>
 <br />
 
