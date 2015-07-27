@@ -7,11 +7,11 @@
 ]).
 
 %% public
--spec timeout(pos_integer(), pos_integer()) -> pos_integer().
+-spec timeout(integer(), integer()) -> integer().
 
-timeout(Time, Max) when Time >= Max ->
+timeout(Time, MaxTime) when Time >= MaxTime ->
     Time;
-timeout(Time, Max) ->
+timeout(Time, MaxTime) ->
     Width = Time bsl 1,
     Time2 = Time + random:uniform(Width + 1) - 1,
-    min(Time2, Max).
+    min(Time2, MaxTime).

@@ -10,44 +10,44 @@
 ]).
 
 %% public
--spec call(atom(), term()) -> {ok, term()} | {error, term()}.
+-spec call(pool_name(), request()) -> {ok, term()} | {error, term()}.
 
-call(Name, Msg) ->
-    call(Name, Msg, ?DEFAULT_TIMEOUT).
+call(PoolName, Request) ->
+    call(PoolName, Request, ?DEFAULT_TIMEOUT).
 
--spec call(atom(), term(), pos_integer()) -> {ok, term()} | {error, term()}.
+-spec call(atom(), request(), timeout()) -> {ok, term()} | {error, term()}.
 
-call(Name, Msg, Timeout) ->
-    case cast(Name, Msg, self()) of
+call(PoolName, Request, Timeout) ->
+    case cast(PoolName, Request, self()) of
         {ok, Ref} ->
-            receive_response(Name, Ref, Timeout);
+            receive_response(PoolName, Ref, Timeout);
         {error, Reason} ->
             {error, Reason}
     end.
 
--spec cast(atom(), term(), pid()) -> {ok, reference()} | {error, backlog_full}.
+-spec cast(pool_name(), request(), pid()) -> {ok, reference()} | {error, backlog_full}.
 
-cast(Name, Msg, Pid) ->
-    case shackle_pool:server(Name) of
+cast(PoolName, Request, Pid) ->
+    case shackle_pool:server(PoolName) of
         {ok, Server} ->
             Ref = make_ref(),
-            Server ! {call, Ref, Pid, Msg},
+            Server ! {call, Ref, Pid, Request},
             {ok, Ref};
         {error, backlog_full} ->
             {error, backlog_full}
     end.
 
--spec receive_response(module(), reference(), pos_integer()) ->
+-spec receive_response(pool_name(), reference(), timeout()) ->
     {ok, reference()} | {error, term()}.
 
-receive_response(Name, Ref, Timeout) ->
+receive_response(PoolName, Ref, Timeout) ->
     Timestamp = os:timestamp(),
     receive
-        {Name, Ref, Reply} ->
+        {PoolName, Ref, Reply} ->
             Reply;
-        {Name, _, _} ->
+        {PoolName, _, _} ->
             Timeout2 = shackle_utils:timeout(Timeout, Timestamp),
-            receive_response(Name, Ref, Timeout2)
+            receive_response(PoolName, Ref, Timeout2)
     after Timeout ->
         {error, timeout}
     end.

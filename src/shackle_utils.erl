@@ -10,12 +10,10 @@
 ]).
 
 %% public
--spec info_msg(atom(), string(), [term()]) -> ok.
+-spec info_msg(pool_name(), string(), [term()]) -> ok.
 
 info_msg(Pool, Format, Data) ->
-    ?IF_DEF_TEST(fun () ->
-        error_logger:info_msg("[~p] " ++ Format, [Pool | Data])
-    end).
+    error_logger:info_msg("[~p] " ++ Format, [Pool | Data]).
 
 -spec lookup(atom(), [{atom(), term()}], term()) -> term().
 
@@ -25,15 +23,13 @@ lookup(Key, List, Default) ->
         {_, Value} -> Value
     end.
 
--spec timeout(pos_integer(), erlang:timestamp()) -> integer().
+-spec timeout(time(), erlang:timestamp()) -> integer().
 
 timeout(Timeout, Timestamp) ->
     Diff = timer:now_diff(os:timestamp(), Timestamp) div 1000,
     Timeout - Diff.
 
--spec warning_msg(atom(), string(), [term()]) -> ok.
+-spec warning_msg(pool_name(), string(), [term()]) -> ok.
 
 warning_msg(Pool, Format, Data) ->
-    ?IF_DEF_TEST(fun () ->
-        error_logger:warning_msg("[~p] " ++ Format, [Pool | Data])
-    end).
+    error_logger:warning_msg("[~p] " ++ Format, [Pool | Data]).

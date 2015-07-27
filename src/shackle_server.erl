@@ -15,29 +15,29 @@
 ]).
 
 -record(state, {
-    client           = undefined :: module(),
-    client_state     = undefined :: term(),
-    connect_options  = undefined :: [gen_tcp:connect_option()],
-    ip               = undefined :: inet:ip_address() | inet:hostname(),
-    name             = undefined :: atom(),
-    parent           = undefined :: pid(),
-    pool_name        = undefined :: atom(),
-    port             = undefined :: inet:port_number(),
-    reconnect        = true      :: boolean(),
-    reconnect_max    = undefined :: non_neg_integer(),
-    reconnect_min    = undefined :: non_neg_integer(),
-    reconnect_time   = undefined :: non_neg_integer(),
-    socket           = undefined :: undefined | inet:socket(),
-    timer            = undefined :: undefined | timer:ref()
+    client             :: client(),
+    client_state       :: term(),
+    connect_options    :: [gen_tcp:connect_option()],
+    ip                 :: inet:ip_address() | inet:hostname(),
+    name               :: server_name(),
+    parent             :: pid(),
+    pool_name          :: pool_name(),
+    port               :: inet:port_number(),
+    reconnect          :: boolean(),
+    reconnect_time_max :: time(),
+    reconnect_time_min :: time(),
+    reconnect_time     :: time(),
+    socket             :: undefined | inet:socket(),
+    timer_ref          :: undefined | timer:ref()
 }).
 
 %% public
--spec start_link(atom(), atom(), module()) -> {ok, pid()}.
+-spec start_link(server_name(), pool_name(), client()) -> {ok, pid()}.
 
 start_link(Name, PoolName, Client) ->
     proc_lib:start_link(?MODULE, init, [Name, PoolName, Client, self()]).
 
--spec init(atom(), atom(), module(), pid()) -> no_return().
+-spec init(server_name(), pool_name(), client(), pid()) -> no_return().
 
 init(Name, PoolName, Client, Parent) ->
     process_flag(trap_exit, true),
@@ -54,8 +54,8 @@ init(Name, PoolName, Client, Parent) ->
     Ip = ?LOOKUP(ip, Options, ?DEFAULT_IP),
     Port = ?LOOKUP(port, Options),
     Reconnect = ?LOOKUP(reconnect, Options, ?DEFAULT_RECONNECT),
-    ReconnectMax = ?LOOKUP(reconnect_max, Options, ?DEFAULT_RECONNECT_MAX),
-    ReconnectMin = ?LOOKUP(reconnect_min, Options, ?DEFAULT_RECONNECT_MIN),
+    ReconnectTimeMax = ?LOOKUP(reconnect_time_max, Options, ?DEFAULT_RECONNECT_MAX),
+    ReconnectTimeMin = ?LOOKUP(reconnect_time_min, Options, ?DEFAULT_RECONNECT_MIN),
 
     loop(#state {
         client = Client,
@@ -67,10 +67,9 @@ init(Name, PoolName, Client, Parent) ->
         pool_name = PoolName,
         port = Port,
         reconnect = Reconnect,
-        reconnect_max = ReconnectMax,
-        reconnect_min = ReconnectMin,
-        reconnect_time = ReconnectMin
-
+        reconnect_time = ReconnectTimeMin,
+        reconnect_time_max = ReconnectTimeMax,
+        reconnect_time_min = ReconnectTimeMin
     }).
 
 %% sys callbacks
@@ -96,16 +95,17 @@ reconnect_time(#state {reconnect = false} = State) ->
         socket = undefined
     }};
 reconnect_time(#state {
-        reconnect_max = Max,
+        reconnect_time_max = TimeMax,
         reconnect_time = Time
     } = State) ->
 
-    Time2 = shackle_backoff:timeout(Time, Max),
+    Time2 = shackle_backoff:timeout(Time, TimeMax),
+    TimerRef = erlang:send_after(Time2, self(), ?MSG_CONNECT),
 
     {ok, State#state {
         reconnect_time = Time2,
         socket = undefined,
-        timer = erlang:send_after(Time2, self(), ?MSG_CONNECT)
+        timer_ref = TimerRef
     }}.
 
 handle_msg(?MSG_CONNECT, #state {
@@ -115,7 +115,7 @@ handle_msg(?MSG_CONNECT, #state {
         ip = Ip,
         pool_name = PoolName,
         port = Port,
-        reconnect_min = ReconnectMin
+        reconnect_time_min = TimeMin
     } = State) ->
 
     Options = [
@@ -133,7 +133,7 @@ handle_msg(?MSG_CONNECT, #state {
                     {ok, State#state {
                         client_state = ClientState2,
                         socket = Socket,
-                        reconnect_time = ReconnectMin
+                        reconnect_time = TimeMin
                     }};
                 {error, Reason, ClientState2} ->
                     shackle_utils:warning_msg(PoolName, "after connect error: ~p", [Reason]),
@@ -241,9 +241,11 @@ tcp_close(#state {name = Name} = State) ->
 terminate(Reason, #state {
         client = Client,
         client_state = ClientState,
-        name = Name
+        name = Name,
+        timer_ref = TimerRef
     } = State) ->
 
+    erlang:cancel_timer(TimerRef),
     ok = Client:terminate(ClientState),
     ok = shackle_backlog:delete(Name),
     reply_all(Name, {error, shutdown}, State),

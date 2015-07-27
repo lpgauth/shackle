@@ -11,25 +11,25 @@
 ]).
 
 %% internal
--spec check(atom(), pos_integer()) -> boolean().
+-spec check(server_name(), backlog_size()) -> boolean().
 
-check(Key, BacklogSize) ->
-    case increment(Key, BacklogSize) of
+check(ServerName, BacklogSize) ->
+    case increment(ServerName, BacklogSize) of
         [BacklogSize, BacklogSize] ->
             false;
         [_, Value] when Value =< BacklogSize ->
             true
     end.
 
--spec decrement(atom()) -> non_neg_integer().
+-spec decrement(server_name()) -> non_neg_integer().
 
-decrement(Key) ->
-    ets:update_counter(?ETS_TABLE_BACKLOG, Key, {2, -1, 0, 0}).
+decrement(ServerName) ->
+    ets:update_counter(?ETS_TABLE_BACKLOG, ServerName, {2, -1, 0, 0}).
 
--spec delete(atom()) -> ok.
+-spec delete(server_name()) -> ok.
 
-delete(Key) ->
-    ets:delete(?ETS_TABLE_BACKLOG, Key),
+delete(ServerName) ->
+    ets:delete(?ETS_TABLE_BACKLOG, ServerName),
     ok.
 
 -spec init() -> ?ETS_TABLE_BACKLOG.
@@ -42,13 +42,13 @@ init() ->
         {write_concurrency, true}
     ]).
 
--spec new(atom()) -> ok.
+-spec new(server_name()) -> ok.
 
-new(Key) ->
-    ets:insert(?ETS_TABLE_BACKLOG, {Key, 0}),
+new(ServerName) ->
+    ets:insert(?ETS_TABLE_BACKLOG, {ServerName, 0}),
     ok.
 
 %% private
-increment(Key, BacklogSize) ->
+increment(ServerName, BacklogSize) ->
     UpdateOps = [{2, 0}, {2, 1, BacklogSize, BacklogSize}],
-    ets:update_counter(?ETS_TABLE_BACKLOG, Key, UpdateOps).
+    ets:update_counter(?ETS_TABLE_BACKLOG, ServerName, UpdateOps).

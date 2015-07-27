@@ -10,7 +10,7 @@
 ]).
 
 %% internal
--spec all(atom()) -> [term()].
+-spec all(server_name()) -> [term()].
 
 all(ServerName) ->
     Match = {{ServerName, '_'}, '_'},
@@ -28,16 +28,16 @@ init() ->
         {write_concurrency, true}
     ]).
 
--spec in(atom(), non_neg_integer(), term()) -> ok.
+-spec in(server_name(), request_id(), term()) -> ok.
 
-in(ServerName, Stream, Item) ->
-    ets:insert(?ETS_TABLE_QUEUE, {{ServerName, Stream}, Item}),
+in(ServerName, RequestId, Item) ->
+    ets:insert(?ETS_TABLE_QUEUE, {{ServerName, RequestId}, Item}),
     ok.
 
--spec out(atom(), non_neg_integer()) -> {ok, term()} | {error, not_found}.
+-spec out(atom(), request_id()) -> {ok, term()} | {error, not_found}.
 
-out(ServerName, Stream) ->
-    Key = {ServerName, Stream},
+out(ServerName, RequestId) ->
+    Key = {ServerName, RequestId},
     try
         Item = ets:lookup_element(?ETS_TABLE_QUEUE, Key, 2),
         ets:delete(?ETS_TABLE_QUEUE, Key),

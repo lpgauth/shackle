@@ -15,13 +15,13 @@
 ]).
 
 %% public
--spec start(atom(), module()) -> ok |
+-spec start(pool_name(), client()) -> ok |
     {error, shackle_not_started | pool_already_started}.
 
 start(Name, Client) ->
     start(Name, Client, []).
 
--spec start(atom(), module(), pool_options()) -> ok |
+-spec start(pool_name(), client(), pool_options()) -> ok |
     {error, shackle_not_started | pool_already_started}.
 
 start(Name, Client, PoolOptions) ->
@@ -37,7 +37,7 @@ start(Name, Client, PoolOptions) ->
             ok
     end.
 
--spec stop(atom()) -> ok |
+-spec stop(pool_name()) -> ok |
     {error, shackle_not_started | pool_not_started}.
 
 stop(Name) ->
@@ -70,7 +70,7 @@ init() ->
         {read_concurrency, true}
     ]).
 
--spec server(atom()) -> {ok, pid()} |
+-spec server(pool_name()) -> {ok, pid()} |
     {error, backlog_full | shackle_not_started | pool_not_started}.
 
 server(Name) ->
