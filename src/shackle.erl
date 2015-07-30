@@ -12,8 +12,8 @@
 %% public
 -spec call(pool_name(), term()) -> {ok, term()} | {error, term()}.
 
-call(PoolName, Request) ->
-    call(PoolName, Request, ?DEFAULT_TIMEOUT).
+call(PoolName, Call) ->
+    call(PoolName, Call, ?SHACKLE_DEFAULT_TIMEOUT).
 
 -spec call(atom(), term(), timeout()) -> {ok, term()} | {error, term()}.
 
@@ -52,14 +52,15 @@ receive_response({PoolName, Client, Ref} = RequestId, Timeout) ->
     Timestamp = os:timestamp(),
     receive
         #request {
+            cast = Cast,
             pool_name = PoolName,
             ref = Ref,
             timestamp = Timestamp2,
             timings = Timings
         } = Request ->
 
-            Timing = shackle_utils:now_diff(Timestamp2),
-            Client:process_timings(lists:reverse([Timing | Timings])),
+            Timings2 = shackle_utils:timings(Timestamp2, Timings),
+            Client:process_timings(Cast, lists:reverse(Timings2)),
             Request#request.reply;
         #request {pool_name = PoolName} ->
             Timeout2 = shackle_utils:timeout(Timeout, Timestamp),

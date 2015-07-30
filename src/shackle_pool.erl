@@ -132,9 +132,9 @@ options(Name) ->
     end.
 
 options_rec(Client, PoolOptions) ->
-    BacklogSize = ?LOOKUP(backlog_size, PoolOptions, ?DEFAULT_BACKLOG_SIZE),
-    PoolSize = ?LOOKUP(pool_size, PoolOptions, ?DEFAULT_POOL_SIZE),
-    PoolStrategy = ?LOOKUP(pool_strategy, PoolOptions, ?DEFAULT_POOL_STRATEGY),
+    BacklogSize = ?LOOKUP(backlog_size, PoolOptions, ?SHACKLE_DEFAULT_BACKLOG_SIZE),
+    PoolSize = ?LOOKUP(pool_size, PoolOptions, ?SHACKLE_DEFAULT_POOL_SIZE),
+    PoolStrategy = ?LOOKUP(pool_strategy, PoolOptions, ?SHACKLE_DEFAULT_POOL_STRATEGY),
 
     #pool_options {
         backlog_size = BacklogSize,

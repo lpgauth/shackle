@@ -7,6 +7,7 @@
     lookup/3,
     now_diff/1,
     timeout/2,
+    timings/2,
     warning_msg/3
 ]).
 
@@ -34,6 +35,13 @@ now_diff(Timestamp) ->
 timeout(Timeout, Timestamp) ->
     Diff = timer:now_diff(os:timestamp(), Timestamp) div 1000,
     Timeout - Diff.
+
+-spec timings(erlang:timestamp(), [non_neg_integer()]) -> [non_neg_integer()].
+
+timings(Timestamp, []) ->
+    [now_diff(Timestamp)];
+timings(Timestamp, [H | _] = Timings) ->
+    [(now_diff(Timestamp) - H) | Timings].
 
 -spec warning_msg(pool_name(), string(), [term()]) -> ok.
 

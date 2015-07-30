@@ -14,7 +14,7 @@
     after_connect/2,
     handle_cast/2,
     handle_data/2,
-    process_timings/1,
+    process_timings/2,
     terminate/1
 ]).
 
@@ -69,7 +69,7 @@ handle_cast({Operation, A, B}, #state {
     RequestId = request_id(RequestCounter),
     Request = request(RequestId, Operation, A, B),
 
-    {ok, RequestId, Request, #state {
+    {ok, RequestId, Request, State#state {
         request_counter = RequestCounter + 1
     }}.
 
@@ -91,7 +91,7 @@ options() ->
         {state, #state {}}
     ]}.
 
-process_timings(_Timings) ->
+process_timings(_Cast, _Timings) ->
     ok.
 
 terminate(_State) -> ok.

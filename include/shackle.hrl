@@ -7,19 +7,19 @@
 -define(SUPERVISOR, shackle_sup).
 
 %% defaults
--define(DEFAULT_BACKLOG_SIZE, 1024).
--define(DEFAULT_CONNECT_OPTS, [
+-define(SHACKLE_DEFAULT_BACKLOG_SIZE, 1024).
+-define(SHACKLE_DEFAULT_CONNECT_OPTS, [
     {send_timeout, 50},
     {send_timeout_close, true}
 ]).
--define(DEFAULT_IP, "127.0.0.1").
--define(DEFAULT_MAX_TIMEOUT, 120000).
--define(DEFAULT_POOL_SIZE, 16).
--define(DEFAULT_POOL_STRATEGY, random).
--define(DEFAULT_RECONNECT, true).
--define(DEFAULT_RECONNECT_MAX, timer:minutes(2)).
--define(DEFAULT_RECONNECT_MIN, timer:seconds(1)).
--define(DEFAULT_TIMEOUT, 1000).
+-define(SHACKLE_DEFAULT_IP, "127.0.0.1").
+-define(SHACKLE_DEFAULT_MAX_TIMEOUT, 120000).
+-define(SHACKLE_DEFAULT_POOL_SIZE, 16).
+-define(SHACKLE_DEFAULT_POOL_STRATEGY, random).
+-define(SHACKLE_DEFAULT_RECONNECT, true).
+-define(SHACKLE_DEFAULT_RECONNECT_MAX, timer:minutes(2)).
+-define(SHACKLE_DEFAULT_RECONNECT_MIN, timer:seconds(1)).
+-define(SHACKLE_DEFAULT_TIMEOUT, 1000).
 
 %% ETS tables
 -define(ETS_TABLE_BACKLOG, shackle_backlog).

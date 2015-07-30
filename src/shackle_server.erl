@@ -50,12 +50,12 @@ init(Name, PoolName, Client, Parent) ->
     {ok, Options} = Client:options(),
 
     ClientState = ?LOOKUP(state, Options),
-    ConnectOptions = ?LOOKUP(connect_options, Options, ?DEFAULT_CONNECT_OPTS),
-    Ip = ?LOOKUP(ip, Options, ?DEFAULT_IP),
+    ConnectOptions = ?LOOKUP(connect_options, Options, ?SHACKLE_DEFAULT_CONNECT_OPTS),
+    Ip = ?LOOKUP(ip, Options, ?SHACKLE_DEFAULT_IP),
     Port = ?LOOKUP(port, Options),
-    Reconnect = ?LOOKUP(reconnect, Options, ?DEFAULT_RECONNECT),
-    ReconnectTimeMax = ?LOOKUP(reconnect_time_max, Options, ?DEFAULT_RECONNECT_MAX),
-    ReconnectTimeMin = ?LOOKUP(reconnect_time_min, Options, ?DEFAULT_RECONNECT_MIN),
+    Reconnect = ?LOOKUP(reconnect, Options, ?SHACKLE_DEFAULT_RECONNECT),
+    ReconnectTimeMax = ?LOOKUP(reconnect_time_max, Options, ?SHACKLE_DEFAULT_RECONNECT_MAX),
+    ReconnectTimeMin = ?LOOKUP(reconnect_time_min, Options, ?SHACKLE_DEFAULT_RECONNECT_MIN),
 
     loop(#state {
         client = Client,
@@ -166,12 +166,11 @@ handle_msg({call, #request {
     } = State) ->
 
     {ok, ExtRequestId, Data, ClientState2} = Client:handle_cast(Cast, ClientState),
-    Timing = shackle_utils:now_diff(Timestamp),
 
     case gen_tcp:send(Socket, Data) of
         ok ->
             shackle_queue:in(Name, ExtRequestId, Request#request {
-                timings = [Timing | Timings]
+                timings = shackle_utils:timings(Timestamp, Timings)
             }),
 
             {ok, State#state {
@@ -198,10 +197,8 @@ handle_msg({tcp, _Port, Data}, #state {
                 timings = Timings
             } = Request} ->
 
-                Timing = shackle_utils:now_diff(Timestamp),
-
                 reply(Name, Reply, Request#request {
-                    timings = [Timing | Timings]
+                    timings = shackle_utils:timings(Timestamp, Timings)
                 });
             {error, not_found} ->
                 shackle_utils:info_msg(PoolName, "shackle_queue not found: ~p", [ExtRequestId])
