@@ -102,11 +102,11 @@ pool_strategy() = random | round_robin
 
 
 
-### <a name="type-request_id">request_id()</a> ###
+### <a name="type-shackle_req_id">shackle_req_id()</a> ###
 
 
 <pre><code>
-request_id() = {<a href="#type-pool_name">pool_name()</a>, <a href="#type-client">client()</a>, reference()}
+shackle_req_id() = {<a href="#type-pool_name">pool_name()</a>, <a href="#type-client">client()</a>, reference()}
 </code></pre>
 
 
@@ -136,7 +136,7 @@ time() = pos_integer()
 ### call/2 ###
 
 <pre><code>
-call(PoolName::<a href="#type-pool_name">pool_name()</a>, Request::term()) -&gt; {ok, term()} | {error, term()}
+call(PoolName::<a href="#type-pool_name">pool_name()</a>, Call::term()) -&gt; {ok, term()} | {error, term()}
 </code></pre>
 <br />
 
@@ -154,7 +154,7 @@ call(PoolName::atom(), Call::term(), Timeout::timeout()) -&gt; {ok, term()} | {e
 ### cast/3 ###
 
 <pre><code>
-cast(PoolName::<a href="#type-pool_name">pool_name()</a>, Cast::term(), Pid::pid()) -&gt; {ok, <a href="#type-request_id">request_id()</a>} | {error, backlog_full}
+cast(PoolName::<a href="#type-pool_name">pool_name()</a>, Cast::term(), Pid::pid()) -&gt; {ok, <a href="#type-shackle_req_id">shackle_req_id()</a>} | {error, backlog_full}
 </code></pre>
 <br />
 
@@ -163,7 +163,7 @@ cast(PoolName::<a href="#type-pool_name">pool_name()</a>, Cast::term(), Pid::pid
 ### receive_response/2 ###
 
 <pre><code>
-receive_response(RequestId::<a href="#type-request_id">request_id()</a>, Timeout::timeout()) -&gt; {ok, reference()} | {error, term()}
+receive_response(RequestId::<a href="#type-shackle_req_id">shackle_req_id()</a>, Timeout::timeout()) -&gt; {ok, reference()} | {error, term()}
 </code></pre>
 <br />
 

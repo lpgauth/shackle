@@ -104,7 +104,7 @@ time() = pos_integer()
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#info_msg-3">info_msg/3</a></td><td></td></tr><tr><td valign="top"><a href="#lookup-3">lookup/3</a></td><td></td></tr><tr><td valign="top"><a href="#now_diff-1">now_diff/1</a></td><td></td></tr><tr><td valign="top"><a href="#timeout-2">timeout/2</a></td><td></td></tr><tr><td valign="top"><a href="#warning_msg-3">warning_msg/3</a></td><td></td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#info_msg-3">info_msg/3</a></td><td></td></tr><tr><td valign="top"><a href="#lookup-3">lookup/3</a></td><td></td></tr><tr><td valign="top"><a href="#now_diff-1">now_diff/1</a></td><td></td></tr><tr><td valign="top"><a href="#timeout-2">timeout/2</a></td><td></td></tr><tr><td valign="top"><a href="#timings-2">timings/2</a></td><td></td></tr><tr><td valign="top"><a href="#warning_msg-3">warning_msg/3</a></td><td></td></tr></table>
 
 
 <a name="functions"></a>
@@ -144,6 +144,15 @@ now_diff(Timestamp::<a href="erlang.md#type-timestamp">erlang:timestamp()</a>) -
 
 <pre><code>
 timeout(Timeout::<a href="#type-time">time()</a>, Timestamp::<a href="erlang.md#type-timestamp">erlang:timestamp()</a>) -&gt; integer()
+</code></pre>
+<br />
+
+<a name="timings-2"></a>
+
+### timings/2 ###
+
+<pre><code>
+timings(Timestamp::<a href="erlang.md#type-timestamp">erlang:timestamp()</a>, Timings::[non_neg_integer()]) -&gt; [non_neg_integer()]
 </code></pre>
 <br />
 
