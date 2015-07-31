@@ -18,8 +18,8 @@ Non-blocking Erlang client framework
 * Performance optimized
 * Request pipelining
 
-## Examples
-### Implementing a client
+### Examples
+#### Implementing a Shackle client
 
 ```erlang
 after_connect(Socket, State) ->
@@ -44,7 +44,7 @@ options() ->
         {state, #state {}}
     ]}.
 
-process_timings(_Timings) ->
+process_timings(_Cast, _Timings) ->
     ok.
 
 terminate(_State) -> ok.
