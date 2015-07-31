@@ -1,5 +1,5 @@
 -module(shackle_backoff).
--include("shackle.hrl").
+-include("shackle_internal.hrl").
 
 %% public
 -export([

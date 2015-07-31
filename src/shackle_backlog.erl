@@ -1,5 +1,6 @@
 -module(shackle_backlog).
--include("shackle.hrl").
+-include("shackle_internal.hrl").
+
 
 %% internal
 -export([

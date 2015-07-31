@@ -1,5 +1,5 @@
 -module(shackle_client).
--include("shackle.hrl").
+-include("shackle_internal.hrl").
 
 %% callbacks
 -callback after_connect(Socket :: inet:socket(), State :: term()) ->

@@ -1,5 +1,5 @@
 -module(shackle_pool).
--include("shackle.hrl").
+-include("shackle_internal.hrl").
 
 %% public
 -export([
@@ -13,6 +13,14 @@
     init/0,
     server/1
 ]).
+
+%% records
+-record(pool_options, {
+    backlog_size  :: backlog_size(),
+    client        :: client(),
+    pool_size     :: pool_size(),
+    pool_strategy :: pool_strategy()
+}).
 
 %% public
 -spec start(pool_name(), client()) -> ok |
@@ -132,9 +140,9 @@ options(Name) ->
     end.
 
 options_rec(Client, PoolOptions) ->
-    BacklogSize = ?LOOKUP(backlog_size, PoolOptions, ?SHACKLE_DEFAULT_BACKLOG_SIZE),
-    PoolSize = ?LOOKUP(pool_size, PoolOptions, ?SHACKLE_DEFAULT_POOL_SIZE),
-    PoolStrategy = ?LOOKUP(pool_strategy, PoolOptions, ?SHACKLE_DEFAULT_POOL_STRATEGY),
+    BacklogSize = ?LOOKUP(backlog_size, PoolOptions, ?DEFAULT_BACKLOG_SIZE),
+    PoolSize = ?LOOKUP(pool_size, PoolOptions, ?DEFAULT_POOL_SIZE),
+    PoolStrategy = ?LOOKUP(pool_strategy, PoolOptions, ?DEFAULT_POOL_STRATEGY),
 
     #pool_options {
         backlog_size = BacklogSize,

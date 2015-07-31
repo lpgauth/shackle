@@ -1,5 +1,5 @@
 -module(shackle_queue).
--include("shackle.hrl").
+-include("shackle_internal.hrl").
 
 %% internal
 -export([
@@ -10,7 +10,7 @@
 ]).
 
 %% internal
--spec all(server_name()) -> [request()].
+-spec all(server_name()) -> [shackle_req()].
 
 all(ServerName) ->
     Match = {{ServerName, '_'}, '_'},
@@ -28,13 +28,13 @@ init() ->
         {write_concurrency, true}
     ]).
 
--spec in(server_name(), external_request_id(), request()) -> ok.
+-spec in(server_name(), external_request_id(), shackle_req()) -> ok.
 
 in(ServerName, RequestId, Request) ->
     ets:insert(?ETS_TABLE_QUEUE, {{ServerName, RequestId}, Request}),
     ok.
 
--spec out(atom(), external_request_id()) -> {ok, request()} | {error, not_found}.
+-spec out(atom(), external_request_id()) -> {ok, shackle_req()} | {error, not_found}.
 
 out(ServerName, RequestId) ->
     Key = {ServerName, RequestId},

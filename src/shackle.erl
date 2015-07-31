@@ -1,5 +1,5 @@
 -module(shackle).
--include("shackle.hrl").
+-include("shackle_internal.hrl").
 
 %% public
 -export([
@@ -13,7 +13,7 @@
 -spec call(pool_name(), term()) -> {ok, term()} | {error, term()}.
 
 call(PoolName, Call) ->
-    call(PoolName, Call, ?SHACKLE_DEFAULT_TIMEOUT).
+    call(PoolName, Call, ?DEFAULT_TIMEOUT).
 
 -spec call(atom(), term(), timeout()) -> {ok, term()} | {error, term()}.
 
@@ -25,14 +25,14 @@ call(PoolName, Call, Timeout) ->
             {error, Reason}
     end.
 
--spec cast(pool_name(), term(), pid()) -> {ok, request_id()} | {error, backlog_full}.
+-spec cast(pool_name(), term(), pid()) -> {ok, shackle_req_id()} | {error, backlog_full}.
 
 cast(PoolName, Cast, Pid) ->
     Timestamp = os:timestamp(),
     case shackle_pool:server(PoolName) of
         {ok, Client, Server} ->
             Ref = make_ref(),
-            Request = #request {
+            Request = #shackle_req {
                 cast = Cast,
                 from = Pid,
                 pool_name = PoolName,
@@ -45,13 +45,13 @@ cast(PoolName, Cast, Pid) ->
             {error, backlog_full}
     end.
 
--spec receive_response(request_id(), timeout()) ->
+-spec receive_response(shackle_req_id(), timeout()) ->
     {ok, reference()} | {error, term()}.
 
 receive_response({PoolName, Client, Ref} = RequestId, Timeout) ->
     Timestamp = os:timestamp(),
     receive
-        #request {
+        #shackle_req {
             cast = Cast,
             pool_name = PoolName,
             ref = Ref,
@@ -61,8 +61,8 @@ receive_response({PoolName, Client, Ref} = RequestId, Timeout) ->
 
             Timings2 = shackle_utils:timings(Timestamp2, Timings),
             Client:process_timings(Cast, lists:reverse(Timings2)),
-            Request#request.reply;
-        #request {pool_name = PoolName} ->
+            Request#shackle_req.reply;
+        #shackle_req {pool_name = PoolName} ->
             Timeout2 = shackle_utils:timeout(Timeout, Timestamp),
             receive_response(RequestId, Timeout2)
     after Timeout ->

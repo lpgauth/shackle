@@ -1,40 +1,5 @@
-%% macros
--define(APP, shackle).
--define(LOOKUP(Key, List), ?LOOKUP(Key, List, undefined)).
--define(LOOKUP(Key, List, Default), shackle_utils:lookup(Key, List, Default)).
--define(MSG_CONNECT, connect).
--define(SERVER, shackle_server).
--define(SUPERVISOR, shackle_sup).
-
-%% defaults
--define(SHACKLE_DEFAULT_BACKLOG_SIZE, 1024).
--define(SHACKLE_DEFAULT_CONNECT_OPTS, [
-    {send_timeout, 50},
-    {send_timeout_close, true}
-]).
--define(SHACKLE_DEFAULT_IP, "127.0.0.1").
--define(SHACKLE_DEFAULT_MAX_TIMEOUT, 120000).
--define(SHACKLE_DEFAULT_POOL_SIZE, 16).
--define(SHACKLE_DEFAULT_POOL_STRATEGY, random).
--define(SHACKLE_DEFAULT_RECONNECT, true).
--define(SHACKLE_DEFAULT_RECONNECT_MAX, timer:minutes(2)).
--define(SHACKLE_DEFAULT_RECONNECT_MIN, timer:seconds(1)).
--define(SHACKLE_DEFAULT_TIMEOUT, 1000).
-
-%% ETS tables
--define(ETS_TABLE_BACKLOG, shackle_backlog).
--define(ETS_TABLE_POOL, shackle_pool).
--define(ETS_TABLE_QUEUE, shackle_queue).
-
 %% records
--record(pool_options, {
-    backlog_size  :: backlog_size(),
-    client        :: client(),
-    pool_size     :: pool_size(),
-    pool_strategy :: pool_strategy()
-}).
-
--record(request, {
+-record(shackle_req, {
     cast           :: term(),
     from           :: pid(),
     pool_name      :: pool_name(),
@@ -65,9 +30,9 @@
 -type pool_options() :: [pool_option()].
 -type pool_size() :: pos_integer().
 -type pool_strategy() :: random | round_robin.
--type request() :: #request {}.
--type request_id() :: {pool_name(), client(), reference()}.
 -type server_name() :: atom().
+-type shackle_req() :: #shackle_req {}.
+-type shackle_req_id() :: {pool_name(), client(), reference()}.
 -type time() :: pos_integer().
 
 -export_type([

@@ -1,5 +1,5 @@
 -module(shackle_app).
--include("shackle.hrl").
+-include("shackle_internal.hrl").
 
 %% public
 -export([

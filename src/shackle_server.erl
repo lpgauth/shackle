@@ -1,5 +1,5 @@
 -module(shackle_server).
--include("shackle.hrl").
+-include("shackle_internal.hrl").
 
 %% internal
 -export([
@@ -50,12 +50,12 @@ init(Name, PoolName, Client, Parent) ->
     {ok, Options} = Client:options(),
 
     ClientState = ?LOOKUP(state, Options),
-    ConnectOptions = ?LOOKUP(connect_options, Options, ?SHACKLE_DEFAULT_CONNECT_OPTS),
-    Ip = ?LOOKUP(ip, Options, ?SHACKLE_DEFAULT_IP),
+    ConnectOptions = ?LOOKUP(connect_options, Options, ?DEFAULT_CONNECT_OPTS),
+    Ip = ?LOOKUP(ip, Options, ?DEFAULT_IP),
     Port = ?LOOKUP(port, Options),
-    Reconnect = ?LOOKUP(reconnect, Options, ?SHACKLE_DEFAULT_RECONNECT),
-    ReconnectTimeMax = ?LOOKUP(reconnect_time_max, Options, ?SHACKLE_DEFAULT_RECONNECT_MAX),
-    ReconnectTimeMin = ?LOOKUP(reconnect_time_min, Options, ?SHACKLE_DEFAULT_RECONNECT_MIN),
+    Reconnect = ?LOOKUP(reconnect, Options, ?DEFAULT_RECONNECT),
+    ReconnectTimeMax = ?LOOKUP(reconnect_time_max, Options, ?DEFAULT_RECONNECT_MAX),
+    ReconnectTimeMin = ?LOOKUP(reconnect_time_min, Options, ?DEFAULT_RECONNECT_MIN),
 
     loop(#state {
         client = Client,
@@ -153,7 +153,7 @@ handle_msg({call, Request}, #state {
 
     reply(Name, {error, no_socket}, Request),
     {ok, State};
-handle_msg({call, #request {
+handle_msg({call, #shackle_req {
         cast = Cast,
         timestamp = Timestamp,
         timings = Timings
@@ -169,7 +169,7 @@ handle_msg({call, #request {
 
     case gen_tcp:send(Socket, Data) of
         ok ->
-            shackle_queue:in(Name, ExtRequestId, Request#request {
+            shackle_queue:in(Name, ExtRequestId, Request#shackle_req {
                 timings = shackle_utils:timings(Timestamp, Timings)
             }),
 
@@ -192,12 +192,12 @@ handle_msg({tcp, _Port, Data}, #state {
 
     lists:foreach(fun ({ExtRequestId, Reply}) ->
         case shackle_queue:out(Name, ExtRequestId) of
-            {ok, #request {
+            {ok, #shackle_req {
                 timestamp = Timestamp,
                 timings = Timings
             } = Request} ->
 
-                reply(Name, Reply, Request#request {
+                reply(Name, Reply, Request#shackle_req {
                     timings = shackle_utils:timings(Timestamp, Timings)
                 });
             {error, not_found} ->
@@ -235,12 +235,12 @@ loop(#state {parent = Parent} = State) ->
             loop(State2)
     end.
 
-reply(Name, Reply, #request {
+reply(Name, Reply, #shackle_req {
         from = From
     } = Request) ->
 
     shackle_backlog:decrement(Name),
-    From ! Request#request {
+    From ! Request#shackle_req {
         reply = Reply
     }.
 
