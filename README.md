@@ -4,7 +4,7 @@ __Author:__ Louis-Philippe Gauthier.
 
 Non-blocking Erlang client framework
 
-[![Build Status](https://travis-ci.org/lpgauth/shackle.svg?branch=dev)](https://travis-ci.org/lpgauth/shackle)
+[![Build Status](https://travis-ci.org/lpgauth/shackle.svg?branch=master)](https://travis-ci.org/lpgauth/shackle)
 
 ### Requirements
 
