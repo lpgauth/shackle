@@ -50,9 +50,16 @@ process_timings(_Cast, _Timings) ->
 terminate(_State) -> ok.
 ```
 
+## Tests
+
+```makefile
+make dialyzer
+make eunit
+make xref
+```
 ## TODO
 
-* documentation
+* improve documentation
 
 ## License
 
