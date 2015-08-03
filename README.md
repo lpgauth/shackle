@@ -37,7 +37,7 @@ handle_request(Request, State) ->
 
     {ok, RequestId, Data, State}.
 
-handle_timings(Request, Timings) ->
+handle_timing(Request, Timing) ->
     ok.
 
 options() ->

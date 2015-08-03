@@ -14,7 +14,7 @@
     after_connect/2,
     handle_data/2,
     handle_request/2,
-    handle_timings/2,
+    handle_timing/2,
     terminate/1
 ]).
 
@@ -84,7 +84,7 @@ handle_request({Operation, A, B}, #state {
         request_counter = RequestCounter + 1
     }}.
 
-handle_timings(_Cast, _Timings) ->
+handle_timing(_Request, _Timing) ->
     ok.
 
 options() ->

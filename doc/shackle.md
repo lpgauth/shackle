@@ -26,7 +26,7 @@ backlog_size() = pos_integer()
 
 
 <pre><code>
-cast() = #cast{client = undefined | <a href="#type-client">client()</a>, pid = undefined | pid(), pool_name = undefined | <a href="#type-pool_name">pool_name()</a>, ref = undefined | reference(), reply = undefined | term(), request = undefined | term(), timestamp = undefined | <a href="erlang.md#type-timestamp">erlang:timestamp()</a>, timings = [pos_integer()]}
+cast() = #cast{client = undefined | <a href="#type-client">client()</a>, pid = undefined | pid(), pool_name = undefined | <a href="#type-pool_name">pool_name()</a>, ref = undefined | reference(), reply = undefined | term(), request = undefined | term(), timestamp = undefined | <a href="erlang.md#type-timestamp">erlang:timestamp()</a>, timing = [pos_integer()]}
 </code></pre>
 
 
@@ -134,7 +134,7 @@ time() = pos_integer()
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#call-2">call/2</a></td><td></td></tr><tr><td valign="top"><a href="#call-3">call/3</a></td><td></td></tr><tr><td valign="top"><a href="#cast-3">cast/3</a></td><td></td></tr><tr><td valign="top"><a href="#handle_timings-1">handle_timings/1</a></td><td></td></tr><tr><td valign="top"><a href="#receive_response-1">receive_response/1</a></td><td></td></tr><tr><td valign="top"><a href="#receive_response-2">receive_response/2</a></td><td></td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#call-2">call/2</a></td><td></td></tr><tr><td valign="top"><a href="#call-3">call/3</a></td><td></td></tr><tr><td valign="top"><a href="#cast-3">cast/3</a></td><td></td></tr><tr><td valign="top"><a href="#handle_timing-1">handle_timing/1</a></td><td></td></tr><tr><td valign="top"><a href="#receive_response-1">receive_response/1</a></td><td></td></tr><tr><td valign="top"><a href="#receive_response-2">receive_response/2</a></td><td></td></tr></table>
 
 
 <a name="functions"></a>
@@ -168,12 +168,12 @@ cast(PoolName::<a href="#type-pool_name">pool_name()</a>, Request::term(), Pid::
 </code></pre>
 <br />
 
-<a name="handle_timings-1"></a>
+<a name="handle_timing-1"></a>
 
-### handle_timings/1 ###
+### handle_timing/1 ###
 
 <pre><code>
-handle_timings(Cast::<a href="#type-cast">cast()</a>) -&gt; ok
+handle_timing(Cast::<a href="#type-cast">cast()</a>) -&gt; ok
 </code></pre>
 <br />
 

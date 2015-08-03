@@ -6,7 +6,7 @@
     call/2,
     call/3,
     cast/3,
-    handle_timings/1,
+    handle_timing/1,
     receive_response/1,
     receive_response/2
 ]).
@@ -47,18 +47,18 @@ cast(PoolName, Request, Pid) ->
             {error, backlog_full}
     end.
 
--spec handle_timings(cast()) -> ok.
+-spec handle_timing(cast()) -> ok.
 
-handle_timings(#cast {
+handle_timing(#cast {
         client = Client,
         request = Request,
         timestamp = Timestamp,
-        timings = Timings
+        timing = Timing
     }) ->
 
-    Timings2 = shackle_utils:timings(Timestamp, Timings),
-    Timings3 = lists:reverse(Timings2),
-    Client:handle_timings(Request, Timings3).
+    Timing2 = shackle_utils:timing(Timestamp, Timing),
+    Timing3 = lists:reverse(Timing2),
+    Client:handle_timing(Request, Timing3).
 
 -spec receive_response(request_id()) ->
     {ok, reference()} | {error, term()}.
@@ -77,7 +77,7 @@ receive_response({PoolName, Ref} = RequestId, Timeout) ->
             ref = Ref
         } = Cast ->
 
-            handle_timings(Cast),
+            handle_timing(Cast),
             Cast#cast.reply;
         #cast {pool_name = PoolName} ->
             Timeout2 = shackle_utils:timeout(Timeout, Timestamp),

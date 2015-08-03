@@ -156,7 +156,7 @@ handle_msg(#cast {} = Cast, #state {
 handle_msg(#cast {
         request = Request,
         timestamp = Timestamp,
-        timings = Timings
+        timing = Timing
     } = Cast, #state {
         client = Client,
         client_state = ClientState,
@@ -170,7 +170,7 @@ handle_msg(#cast {
     case gen_tcp:send(Socket, Data) of
         ok ->
             shackle_queue:in(Name, ExtRequestId, Cast#cast {
-                timings = shackle_utils:timings(Timestamp, Timings)
+                timing = shackle_utils:timing(Timestamp, Timing)
             }),
 
             {ok, State#state {
@@ -194,11 +194,11 @@ handle_msg({tcp, _Port, Data}, #state {
         case shackle_queue:out(Name, ExtRequestId) of
             {ok, #cast {
                 timestamp = Timestamp,
-                timings = Timings
+                timing = Timing
             } = Cast} ->
 
                 reply(Name, Reply, Cast#cast {
-                    timings = shackle_utils:timings(Timestamp, Timings)
+                    timing = shackle_utils:timing(Timestamp, Timing)
                 });
             {error, not_found} ->
                 shackle_utils:info_msg(PoolName, "shackle_queue not found: ~p", [ExtRequestId])

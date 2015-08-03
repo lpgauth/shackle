@@ -12,7 +12,7 @@
 -callback handle_request(Request :: term(), State :: term()) ->
     {ok, RequestId :: external_request_id(), Data :: iodata(), State :: term()}.
 
--callback handle_timings(Request :: term(), [non_neg_integer()]) -> ok.
+-callback handle_timing(Request :: term(), Timing :: [non_neg_integer()]) -> ok.
 
 -callback options() -> {ok, Options :: client_options()}.
 

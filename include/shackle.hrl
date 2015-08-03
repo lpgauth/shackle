@@ -7,7 +7,7 @@
     reply          :: term(),
     request        :: term(),
     timestamp      :: erlang:timestamp(),
-    timings   = [] :: [pos_integer()]
+    timing    = [] :: [pos_integer()]
 }).
 
 %% types
