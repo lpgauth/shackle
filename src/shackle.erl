@@ -52,15 +52,11 @@ receive_response({PoolName, Client, Ref} = RequestId, Timeout) ->
     Timestamp = os:timestamp(),
     receive
         #shackle_req {
-            cast = Cast,
             pool_name = PoolName,
-            ref = Ref,
-            timestamp = Timestamp2,
-            timings = Timings
+            ref = Ref
         } = Request ->
 
-            Timings2 = shackle_utils:timings(Timestamp2, Timings),
-            Client:process_timings(Cast, lists:reverse(Timings2)),
+            process_timings(Client, Request),
             Request#shackle_req.reply;
         #shackle_req {pool_name = PoolName} ->
             Timeout2 = shackle_utils:timeout(Timeout, Timestamp),
@@ -68,3 +64,14 @@ receive_response({PoolName, Client, Ref} = RequestId, Timeout) ->
     after Timeout ->
         {error, timeout}
     end.
+
+%% private
+process_timings(Client, #shackle_req {
+        cast = Cast,
+        timestamp = Timestamp,
+        timings = Timings
+    }) ->
+
+    Timings2 = shackle_utils:timings(Timestamp, Timings),
+    Timings3 = lists:reverse(Timings2),
+    Client:process_timings(Cast, Timings3).
