@@ -1,6 +1,7 @@
 %% records
 -record(shackle_req, {
     cast           :: term(),
+    client         :: client(),
     from           :: pid(),
     pool_name      :: pool_name(),
     ref            :: reference(),
@@ -32,7 +33,7 @@
 -type pool_strategy() :: random | round_robin.
 -type server_name() :: atom().
 -type shackle_req() :: #shackle_req {}.
--type shackle_req_id() :: {pool_name(), client(), reference()}.
+-type shackle_req_id() :: {pool_name(), reference()}.
 -type time() :: pos_integer().
 
 -export_type([
