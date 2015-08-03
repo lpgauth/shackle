@@ -3,7 +3,7 @@
 # Module shackle_client #
 * [Data Types](#types)
 
-__This module defines the `shackle_client` behaviour.__<br /> Required callback functions: `after_connect/2`, `handle_cast/2`, `handle_data/2`, `options/0`, `process_timings/2`, `terminate/1`.
+__This module defines the `shackle_client` behaviour.__<br /> Required callback functions: `after_connect/2`, `handle_data/2`, `handle_request/2`, `handle_timings/2`, `options/0`, `terminate/1`.
 
 <a name="types"></a>
 

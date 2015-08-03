@@ -22,6 +22,16 @@ backlog_size() = pos_integer()
 
 
 
+### <a name="type-cast">cast()</a> ###
+
+
+<pre><code>
+cast() = #cast{client = undefined | <a href="#type-client">client()</a>, pid = undefined | pid(), pool_name = undefined | <a href="#type-pool_name">pool_name()</a>, ref = undefined | reference(), reply = undefined | term(), request = undefined | term(), timestamp = undefined | <a href="erlang.md#type-timestamp">erlang:timestamp()</a>, timings = [pos_integer()]}
+</code></pre>
+
+
+
+
 ### <a name="type-client">client()</a> ###
 
 
@@ -102,11 +112,11 @@ pool_strategy() = random | round_robin
 
 
 
-### <a name="type-shackle_req_id">shackle_req_id()</a> ###
+### <a name="type-request_id">request_id()</a> ###
 
 
 <pre><code>
-shackle_req_id() = {<a href="#type-pool_name">pool_name()</a>, <a href="#type-client">client()</a>, reference()}
+request_id() = {<a href="#type-pool_name">pool_name()</a>, reference()}
 </code></pre>
 
 
@@ -124,7 +134,7 @@ time() = pos_integer()
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#call-2">call/2</a></td><td></td></tr><tr><td valign="top"><a href="#call-3">call/3</a></td><td></td></tr><tr><td valign="top"><a href="#cast-3">cast/3</a></td><td></td></tr><tr><td valign="top"><a href="#receive_response-2">receive_response/2</a></td><td></td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#call-2">call/2</a></td><td></td></tr><tr><td valign="top"><a href="#call-3">call/3</a></td><td></td></tr><tr><td valign="top"><a href="#cast-3">cast/3</a></td><td></td></tr><tr><td valign="top"><a href="#handle_timings-1">handle_timings/1</a></td><td></td></tr><tr><td valign="top"><a href="#receive_response-1">receive_response/1</a></td><td></td></tr><tr><td valign="top"><a href="#receive_response-2">receive_response/2</a></td><td></td></tr></table>
 
 
 <a name="functions"></a>
@@ -136,7 +146,7 @@ time() = pos_integer()
 ### call/2 ###
 
 <pre><code>
-call(PoolName::<a href="#type-pool_name">pool_name()</a>, Call::term()) -&gt; {ok, term()} | {error, term()}
+call(PoolName::<a href="#type-pool_name">pool_name()</a>, Request::term()) -&gt; {ok, term()} | {error, term()}
 </code></pre>
 <br />
 
@@ -145,7 +155,7 @@ call(PoolName::<a href="#type-pool_name">pool_name()</a>, Call::term()) -&gt; {o
 ### call/3 ###
 
 <pre><code>
-call(PoolName::atom(), Call::term(), Timeout::timeout()) -&gt; {ok, term()} | {error, term()}
+call(PoolName::atom(), Request::term(), Timeout::timeout()) -&gt; {ok, term()} | {error, term()}
 </code></pre>
 <br />
 
@@ -154,7 +164,25 @@ call(PoolName::atom(), Call::term(), Timeout::timeout()) -&gt; {ok, term()} | {e
 ### cast/3 ###
 
 <pre><code>
-cast(PoolName::<a href="#type-pool_name">pool_name()</a>, Cast::term(), Pid::pid()) -&gt; {ok, <a href="#type-shackle_req_id">shackle_req_id()</a>} | {error, backlog_full}
+cast(PoolName::<a href="#type-pool_name">pool_name()</a>, Request::term(), Pid::pid()) -&gt; {ok, <a href="#type-request_id">request_id()</a>} | {error, backlog_full}
+</code></pre>
+<br />
+
+<a name="handle_timings-1"></a>
+
+### handle_timings/1 ###
+
+<pre><code>
+handle_timings(Cast::<a href="#type-cast">cast()</a>) -&gt; ok
+</code></pre>
+<br />
+
+<a name="receive_response-1"></a>
+
+### receive_response/1 ###
+
+<pre><code>
+receive_response(RequestId::<a href="#type-request_id">request_id()</a>) -&gt; {ok, reference()} | {error, term()}
 </code></pre>
 <br />
 
@@ -163,7 +191,7 @@ cast(PoolName::<a href="#type-pool_name">pool_name()</a>, Cast::term(), Pid::pid
 ### receive_response/2 ###
 
 <pre><code>
-receive_response(RequestId::<a href="#type-shackle_req_id">shackle_req_id()</a>, Timeout::timeout()) -&gt; {ok, reference()} | {error, term()}
+receive_response(RequestId::<a href="#type-request_id">request_id()</a>, Timeout::timeout()) -&gt; {ok, reference()} | {error, term()}
 </code></pre>
 <br />
 

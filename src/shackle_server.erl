@@ -146,18 +146,18 @@ handle_msg(?MSG_CONNECT, #state {
             shackle_utils:warning_msg(PoolName, "tcp connect error: ~p", [Reason]),
             reconnect_time(State)
     end;
-handle_msg({call, Request}, #state {
+handle_msg(#cast {} = Cast, #state {
         socket = undefined,
         name = Name
     } = State) ->
 
-    reply(Name, {error, no_socket}, Request),
+    reply(Name, {error, no_socket}, Cast),
     {ok, State};
-handle_msg({call, #shackle_req {
-        cast = Cast,
+handle_msg(#cast {
+        request = Request,
         timestamp = Timestamp,
         timings = Timings
-    } = Request}, #state {
+    } = Cast, #state {
         client = Client,
         client_state = ClientState,
         pool_name = PoolName,
@@ -165,11 +165,11 @@ handle_msg({call, #shackle_req {
         socket = Socket
     } = State) ->
 
-    {ok, ExtRequestId, Data, ClientState2} = Client:handle_cast(Cast, ClientState),
+    {ok, ExtRequestId, Data, ClientState2} = Client:handle_request(Request, ClientState),
 
     case gen_tcp:send(Socket, Data) of
         ok ->
-            shackle_queue:in(Name, ExtRequestId, Request#shackle_req {
+            shackle_queue:in(Name, ExtRequestId, Cast#cast {
                 timings = shackle_utils:timings(Timestamp, Timings)
             }),
 
@@ -192,12 +192,12 @@ handle_msg({tcp, _Port, Data}, #state {
 
     lists:foreach(fun ({ExtRequestId, Reply}) ->
         case shackle_queue:out(Name, ExtRequestId) of
-            {ok, #shackle_req {
+            {ok, #cast {
                 timestamp = Timestamp,
                 timings = Timings
-            } = Request} ->
+            } = Cast} ->
 
-                reply(Name, Reply, Request#shackle_req {
+                reply(Name, Reply, Cast#cast {
                     timings = shackle_utils:timings(Timestamp, Timings)
                 });
             {error, not_found} ->
@@ -235,12 +235,9 @@ loop(#state {parent = Parent} = State) ->
             loop(State2)
     end.
 
-reply(Name, Reply, #shackle_req {
-        from = From
-    } = Request) ->
-
+reply(Name, Reply, Cast) ->
     shackle_backlog:decrement(Name),
-    From ! Request#shackle_req {
+    Cast#cast.pid ! Cast#cast {
         reply = Reply
     }.
 

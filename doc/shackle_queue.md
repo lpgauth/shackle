@@ -22,6 +22,26 @@ backlog_size() = pos_integer()
 
 
 
+### <a name="type-cast">cast()</a> ###
+
+
+<pre><code>
+cast() = #cast{client = undefined | <a href="#type-client">client()</a>, pid = undefined | pid(), pool_name = undefined | <a href="#type-pool_name">pool_name()</a>, ref = undefined | reference(), reply = undefined | term(), request = undefined | term(), timestamp = undefined | <a href="erlang.md#type-timestamp">erlang:timestamp()</a>, timings = [pos_integer()]}
+</code></pre>
+
+
+
+
+### <a name="type-client">client()</a> ###
+
+
+<pre><code>
+client() = module()
+</code></pre>
+
+
+
+
 ### <a name="type-client_option">client_option()</a> ###
 
 
@@ -112,16 +132,6 @@ server_name() = atom()
 
 
 
-### <a name="type-shackle_req">shackle_req()</a> ###
-
-
-<pre><code>
-shackle_req() = #shackle_req{cast = undefined | term(), from = undefined | pid(), pool_name = undefined | <a href="#type-pool_name">pool_name()</a>, ref = undefined | reference(), reply = undefined | term(), timestamp = undefined | <a href="erlang.md#type-timestamp">erlang:timestamp()</a>, timings = [pos_integer()]}
-</code></pre>
-
-
-
-
 ### <a name="type-time">time()</a> ###
 
 
@@ -146,7 +156,7 @@ time() = pos_integer()
 ### all/1 ###
 
 <pre><code>
-all(ServerName::<a href="#type-server_name">server_name()</a>) -&gt; [<a href="#type-shackle_req">shackle_req()</a>]
+all(ServerName::<a href="#type-server_name">server_name()</a>) -&gt; [<a href="#type-cast">cast()</a>]
 </code></pre>
 <br />
 
@@ -155,7 +165,7 @@ all(ServerName::<a href="#type-server_name">server_name()</a>) -&gt; [<a href="#
 ### in/3 ###
 
 <pre><code>
-in(ServerName::<a href="#type-server_name">server_name()</a>, RequestId::<a href="#type-external_request_id">external_request_id()</a>, Request::<a href="#type-shackle_req">shackle_req()</a>) -&gt; ok
+in(ServerName::<a href="#type-server_name">server_name()</a>, RequestId::<a href="#type-external_request_id">external_request_id()</a>, Request::<a href="#type-cast">cast()</a>) -&gt; ok
 </code></pre>
 <br />
 
@@ -173,7 +183,7 @@ init() -&gt; shackle_queue
 ### out/2 ###
 
 <pre><code>
-out(ServerName::atom(), RequestId::<a href="#type-external_request_id">external_request_id()</a>) -&gt; {ok, <a href="#type-shackle_req">shackle_req()</a>} | {error, not_found}
+out(ServerName::atom(), RequestId::<a href="#type-external_request_id">external_request_id()</a>) -&gt; {ok, <a href="#type-cast">cast()</a>} | {error, not_found}
 </code></pre>
 <br />
 

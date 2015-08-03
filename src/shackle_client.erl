@@ -6,14 +6,14 @@
     {ok, State :: term()} |
     {error, Reason :: term(), State :: term()}.
 
--callback handle_cast(Cast :: term(), State :: term()) ->
-    {ok, RequestId :: external_request_id(), Data :: iodata(), State :: term()}.
-
 -callback handle_data(Data :: binary(), State :: term()) ->
     {ok, [{RequestId :: external_request_id(), Reply :: term()}], State :: term()}.
 
--callback options() -> {ok, Options :: client_options()}.
+-callback handle_request(Request :: term(), State :: term()) ->
+    {ok, RequestId :: external_request_id(), Data :: iodata(), State :: term()}.
 
--callback process_timings(Cast :: term(), [non_neg_integer()]) -> ok.
+-callback handle_timings(Request :: term(), [non_neg_integer()]) -> ok.
+
+-callback options() -> {ok, Options :: client_options()}.
 
 -callback terminate(State :: term()) -> ok.

@@ -25,17 +25,20 @@ Non-blocking Erlang client framework
 after_connect(Socket, State) ->
     {ok, State};
 
-handle_cast(Cast, State) ->
-
-    ...
-
-    {ok, RequestId, Request, State}.
-
 handle_data(Data, State) ->
 
     ...
 
     {ok, Replies, State}.
+
+handle_request(Request, State) ->
+
+    ...
+
+    {ok, RequestId, Data, State}.
+
+handle_timings(Request, Timings) ->
+    ok.
 
 options() ->
     {ok, [
@@ -44,10 +47,7 @@ options() ->
         {state, #state {}}
     ]}.
 
-process_timings(_Cast, _Timings) ->
-    ok.
-
-terminate(_State) -> ok.
+terminate(State) -> ok.
 ```
 
 ## Tests

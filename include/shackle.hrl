@@ -1,17 +1,18 @@
 %% records
--record(shackle_req, {
-    cast           :: term(),
+-record(cast, {
     client         :: client(),
-    from           :: pid(),
+    pid            :: pid(),
     pool_name      :: pool_name(),
     ref            :: reference(),
     reply          :: term(),
+    request        :: term(),
     timestamp      :: erlang:timestamp(),
     timings   = [] :: [pos_integer()]
 }).
 
 %% types
 -type backlog_size() :: pos_integer().
+-type cast() :: #cast {}.
 -type client() :: module().
 -type client_option() :: {connect_options, [gen_tcp:connect_option()]} |
                          {ip, inet:ip_address() | inet:hostname()} |
@@ -32,8 +33,7 @@
 -type pool_size() :: pos_integer().
 -type pool_strategy() :: random | round_robin.
 -type server_name() :: atom().
--type shackle_req() :: #shackle_req {}.
--type shackle_req_id() :: {pool_name(), reference()}.
+-type request_id() :: {pool_name(), reference()}.
 -type time() :: pos_integer().
 
 -export_type([

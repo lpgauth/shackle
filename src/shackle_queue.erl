@@ -10,7 +10,7 @@
 ]).
 
 %% internal
--spec all(server_name()) -> [shackle_req()].
+-spec all(server_name()) -> [cast()].
 
 all(ServerName) ->
     Match = {{ServerName, '_'}, '_'},
@@ -28,13 +28,13 @@ init() ->
         {write_concurrency, true}
     ]).
 
--spec in(server_name(), external_request_id(), shackle_req()) -> ok.
+-spec in(server_name(), external_request_id(), cast()) -> ok.
 
 in(ServerName, RequestId, Request) ->
     ets:insert(?ETS_TABLE_QUEUE, {{ServerName, RequestId}, Request}),
     ok.
 
--spec out(atom(), external_request_id()) -> {ok, shackle_req()} | {error, not_found}.
+-spec out(atom(), external_request_id()) -> {ok, cast()} | {error, not_found}.
 
 out(ServerName, RequestId) ->
     Key = {ServerName, RequestId},

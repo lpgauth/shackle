@@ -12,9 +12,9 @@
 -export([
     options/0,
     after_connect/2,
-    handle_cast/2,
     handle_data/2,
-    process_timings/2,
+    handle_request/2,
+    handle_timings/2,
     terminate/1
 ]).
 
@@ -62,17 +62,6 @@ after_connect(Socket, State) ->
             {error, Reason, State}
     end.
 
-handle_cast({Operation, A, B}, #state {
-        request_counter = RequestCounter
-    } = State) ->
-
-    RequestId = request_id(RequestCounter),
-    Request = request(RequestId, Operation, A, B),
-
-    {ok, RequestId, Request, State#state {
-        request_counter = RequestCounter + 1
-    }}.
-
 handle_data(Data, #state {
         buffer = Buffer
     } = State) ->
@@ -84,15 +73,26 @@ handle_data(Data, #state {
         buffer = Buffer2
     }}.
 
+handle_request({Operation, A, B}, #state {
+        request_counter = RequestCounter
+    } = State) ->
+
+    RequestId = request_id(RequestCounter),
+    Data = request(RequestId, Operation, A, B),
+
+    {ok, RequestId, Data, State#state {
+        request_counter = RequestCounter + 1
+    }}.
+
+handle_timings(_Cast, _Timings) ->
+    ok.
+
 options() ->
     {ok, [
         {port, ?PORT},
         {reconnect, true},
         {state, #state {}}
     ]}.
-
-process_timings(_Cast, _Timings) ->
-    ok.
 
 terminate(_State) -> ok.
 
