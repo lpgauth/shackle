@@ -12,9 +12,9 @@ Non-blocking Erlang client framework
 
 ### Features
 
-* Asynchronous mode
+* Asynchronous mode (cast)
 * Backpressure via backlog (OOM protection)
-* Fast pool implementation (random or round_robin)
+* Fast pool implementation (random | round_robin)
 * Performance optimized
 * Request pipelining
 
@@ -209,8 +209,23 @@ make xref
 
 ## Clients
 
-[anchor - Memcached client](https://github.com/lpgauth/anchor)
-[marina - Cassandra CQL3 client](https://github.com/lpgauth/marina)
+<table width="100%">
+  <theader>
+    <th>Name</th>
+    <th>Description</th>
+    <th>Link</th>
+  </theader>
+  <tr>
+    <td>anchor</td>
+    <td>Memcached client</td>
+    <td>[link](https://github.com/lpgauth/anchor)</td>
+  </tr>
+  <tr>
+    <td>marina</td>
+    <td>Cassandra CQL3 client</td>
+    <td>[link](https://github.com/lpgauth/marina)</td>
+  </tr>
+</table>
 
 ## License
 
