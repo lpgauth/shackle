@@ -15,7 +15,6 @@
     {send_timeout_close, true}
 ]).
 -define(DEFAULT_IP, "127.0.0.1").
--define(DEFAULT_MAX_TIMEOUT, 120000).
 -define(DEFAULT_POOL_SIZE, 16).
 -define(DEFAULT_POOL_STRATEGY, random).
 -define(DEFAULT_RECONNECT, true).
