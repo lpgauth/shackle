@@ -12,7 +12,6 @@ Non-blocking Erlang client framework
 
 ### Features
 
-* Asynchronous mode (cast)
 * Backpressure via backlog (OOM protection)
 * Fast pool implementation (random | round_robin)
 * Performance optimized
@@ -121,43 +120,43 @@ terminate(_State) -> ok.
     <td>connect_options</td>
     <td>[gen_tcp:connect_option()]</td>
     <td>[{send_timeout, 50}, {send_timeout_close, true}]</td>
-    <td></td>
+    <td>options passed to gen_tcp:connect/2</td>
   </tr>
   <tr>
     <td>ip</td>
     <td>inet:ip_address() | inet:hostname()</td>
     <td>"127.0.0.1"</td>
-    <td></td>
+    <td>server ip</td>
   </tr>
   <tr>
     <td>port</td>
     <td>inet:port_number()</td>
     <td>undefined</td>
-    <td></td>
+    <td>server port</td>
   </tr>
   <tr>
     <td>reconnect</td>
     <td>boolean()</td>
     <td>true</td>
-    <td></td>
+    <td>reconnect closed connections</td>
   </tr>
   <tr>
     <td>reconnect_time_max</td>
     <td>pos_integer()</td>
     <td>timer:minutes(2)</td>
-    <td></td>
+    <td>maximum reconnect time</td>
   </tr>
   <tr>
     <td>reconnect_time_min</td>
     <td>pos_integer()</td>
     <td>timer:seconds(1)</td>
-    <td></td>
+    <td>minimum reconnect time</td>
   </tr>
   <tr>
     <td>state</td>
     <td>term()</td>
     <td>undefined</td>
-    <td></td>
+    <td>client state</td>
   </tr>
 </table>
 
@@ -180,19 +179,19 @@ ok = shackle_pool:start(my_pool, my_client).
     <td>backlog_size</td>
     <td>pos_integer()</td>
     <td>1024</td>
-    <td></td>
+    <td>maximum number of concurrent requests per connection</td>
   </tr>
   <tr>
     <td>pool_size</td>
     <td>pos_integer()</td>
     <td>16</td>
-    <td></td>
+    <td>number of connections</td>
   </tr>
   <tr>
     <td>pool_strategy</td>
     <td>random | round_robin</td>
     <td>random</td>
-    <td></td>
+    <td>connection selection strategy</td>
   </tr>
 </table>
 
