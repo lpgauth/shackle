@@ -39,7 +39,10 @@ Non-blocking Erlang client framework
 }).
 
 %% after the connection is established (callback)
-
+-callback after_connect(Socket :: inet:socket(), State :: term()) ->
+    {ok, State :: term()} |
+    {error, Reason :: term(), State :: term()}.
+    
 after_connect(Socket, State) ->
     case gen_tcp:send(Socket, <<"INIT">>) of
         ok ->
@@ -54,7 +57,9 @@ after_connect(Socket, State) ->
     end.
 
 %% handle data received on the connection (handler)
-
+-spec handle_data(Data :: binary(), State :: term()) ->
+    {ok, [{RequestId :: external_request_id(), Reply :: term()}], State :: term()}.
+    
 handle_data(Data, #state {
         buffer = Buffer
     } = State) ->
@@ -67,7 +72,9 @@ handle_data(Data, #state {
     }}.
 
 %% handle request serialization (handler)
-
+-spec handle_request(Request :: term(), State :: term()) ->
+    {ok, RequestId :: external_request_id(), Data :: iodata(), State :: term()}.
+    
 handle_request({Operation, A, B}, #state {
         request_counter = RequestCounter
     } = State) ->
@@ -80,11 +87,13 @@ handle_request({Operation, A, B}, #state {
     }}.
 
 %% handle timing information in microseconds (handler)
+-spec handle_timing(Request :: term(), Timing :: [non_neg_integer()]) -> ok.
 
 handle_timing(_Request, [_Pool, _Request, _Response]) ->
     ok.
 
-%% client options (config)
+%% client config
+-spec options() -> {ok, Options :: client_options()}.
 
 options() ->
     {ok, [
@@ -94,6 +103,7 @@ options() ->
     ]}.
 
 %% when the client is terminating (callback)
+-spec terminate(State :: term()) -> ok.
 
 terminate(_State) -> ok.
 ```
