@@ -213,17 +213,14 @@ make xref
   <theader>
     <th>Name</th>
     <th>Description</th>
-    <th>Link</th>
   </theader>
   <tr>
-    <td>anchor</td>
+    <td><a href="https://github.com/lpgauth/anchor">anchor</a></td>
     <td>Memcached client</td>
-    <td><a href="https://github.com/lpgauth/anchor">link</a></td>
   </tr>
   <tr>
-    <td>marina</td>
+    <td><a href="https://github.com/lpgauth/marina">marina</a></td>
     <td>Cassandra CQL3 client</td>
-    <td><a href="https://github.com/lpgauth/marina">link</a></td>
   </tr>
 </table>
 
