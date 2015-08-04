@@ -5,6 +5,7 @@
 -export([
     call/2,
     call/3,
+    cast/2,
     cast/3,
     handle_timing/1,
     receive_response/1,
@@ -20,12 +21,17 @@ call(PoolName, Request) ->
 -spec call(atom(), term(), timeout()) -> {ok, term()} | {error, term()}.
 
 call(PoolName, Request, Timeout) ->
-    case cast(PoolName, Request, self()) of
+    case cast(PoolName, Request) of
         {ok, RequestId} ->
             receive_response(RequestId, Timeout);
         {error, Reason} ->
             {error, Reason}
     end.
+
+-spec cast(pool_name(), term()) -> {ok, request_id()} | {error, backlog_full}.
+
+cast(PoolName, Request) ->
+    cast(PoolName, Request, self()).
 
 -spec cast(pool_name(), term(), pid()) -> {ok, request_id()} | {error, backlog_full}.
 
