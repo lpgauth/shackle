@@ -153,7 +153,9 @@ terminate(_State) -> ok.
 
 #### Starting client pool
 
+```erlang
 ok = shackle_pool:start(my_pool, my_client).
+```
 
 #### Pool Options
 
@@ -204,9 +206,11 @@ make dialyzer
 make eunit
 make xref
 ```
-## TODO
 
-* improve documentation
+## Clients
+
+[anchor - Memcached client](https://github.com/lpgauth/anchor)
+[marina - Cassandra CQL3 client](https://github.com/lpgauth/marina)
 
 ## License
 
