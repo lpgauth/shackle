@@ -13,7 +13,7 @@ Non-blocking Erlang client framework
 ### Features
 
 * Backpressure via backlog (OOM protection)
-* Fast pool implementation (random | round_robin)
+* Fast pool implementation (random, round_robin)
 * Performance optimized
 * Request pipelining
 
@@ -41,7 +41,7 @@ Non-blocking Erlang client framework
 -callback after_connect(Socket :: inet:socket(), State :: term()) ->
     {ok, State :: term()} |
     {error, Reason :: term(), State :: term()}.
-    
+
 after_connect(Socket, State) ->
     case gen_tcp:send(Socket, <<"INIT">>) of
         ok ->
@@ -58,7 +58,7 @@ after_connect(Socket, State) ->
 %% handles data received on the connection
 -spec handle_data(Data :: binary(), State :: term()) ->
     {ok, [{RequestId :: external_request_id(), Reply :: term()}], State :: term()}.
-    
+
 handle_data(Data, #state {
         buffer = Buffer
     } = State) ->
@@ -73,7 +73,7 @@ handle_data(Data, #state {
 %% handles request serialization
 -spec handle_request(Request :: term(), State :: term()) ->
     {ok, RequestId :: external_request_id(), Data :: iodata(), State :: term()}.
-    
+
 handle_request({Operation, A, B}, #state {
         request_counter = RequestCounter
     } = State) ->
@@ -85,7 +85,7 @@ handle_request({Operation, A, B}, #state {
         request_counter = RequestCounter + 1
     }}.
 
-%% handles timing information in microseconds
+%% handles timing information (in microseconds)
 -spec handle_timing(Request :: term(), Timing :: [non_neg_integer()]) -> ok.
 
 handle_timing(_Request, [_Pool, _Request, _Response]) ->
@@ -101,7 +101,7 @@ options() ->
         {state, #state {}}
     ]}.
 
-%% called when the client is terminating (callback)
+%% called when the client is terminating
 -spec terminate(State :: term()) -> ok.
 
 terminate(_State) -> ok.
