@@ -37,7 +37,7 @@ Non-blocking Erlang client framework
     request_counter = 0
 }).
 
-%% after the connection is established (callback)
+%% called after the connection is established
 -callback after_connect(Socket :: inet:socket(), State :: term()) ->
     {ok, State :: term()} |
     {error, Reason :: term(), State :: term()}.
@@ -55,7 +55,7 @@ after_connect(Socket, State) ->
             {error, Reason, State}
     end.
 
-%% handle data received on the connection (handler)
+%% handles data received on the connection
 -spec handle_data(Data :: binary(), State :: term()) ->
     {ok, [{RequestId :: external_request_id(), Reply :: term()}], State :: term()}.
     
@@ -70,7 +70,7 @@ handle_data(Data, #state {
         buffer = Buffer2
     }}.
 
-%% handle request serialization (handler)
+%% handles request serialization
 -spec handle_request(Request :: term(), State :: term()) ->
     {ok, RequestId :: external_request_id(), Data :: iodata(), State :: term()}.
     
@@ -85,7 +85,7 @@ handle_request({Operation, A, B}, #state {
         request_counter = RequestCounter + 1
     }}.
 
-%% handle timing information in microseconds (handler)
+%% handles timing information in microseconds
 -spec handle_timing(Request :: term(), Timing :: [non_neg_integer()]) -> ok.
 
 handle_timing(_Request, [_Pool, _Request, _Response]) ->
@@ -101,7 +101,7 @@ options() ->
         {state, #state {}}
     ]}.
 
-%% when the client is terminating (callback)
+%% called when the client is terminating (callback)
 -spec terminate(State :: term()) -> ok.
 
 terminate(_State) -> ok.
