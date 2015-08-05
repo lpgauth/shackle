@@ -90,6 +90,11 @@ system_terminate(Reason, _Parent, _Debug, _State) ->
     exit(Reason).
 
 %% private
+cancel_timer(undefined) ->
+    ok;
+cancel_timer(TimerRef) ->
+    erlang:cancel_timer(TimerRef).
+
 reconnect_time(#state {reconnect = false} = State) ->
     {ok, State#state {
         socket = undefined
@@ -256,7 +261,7 @@ terminate(Reason, #state {
         timer_ref = TimerRef
     }) ->
 
-    erlang:cancel_timer(TimerRef),
+    cancel_timer(TimerRef),
     ok = Client:terminate(ClientState),
     ok = shackle_backlog:delete(Name),
     reply_all(Name, {error, shutdown}),
