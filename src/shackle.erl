@@ -39,16 +39,15 @@ cast(PoolName, Request, Pid) ->
     Timestamp = os:timestamp(),
     case shackle_pool:server(PoolName) of
         {ok, Client, Server} ->
-            Ref = make_ref(),
+            RequestId = {PoolName, make_ref()},
             Server ! #cast {
                 client = Client,
                 pid = Pid,
-                pool_name = PoolName,
-                ref = Ref,
                 request = Request,
+                request_id = RequestId,
                 timestamp = Timestamp
             },
-            {ok, {PoolName, Ref}};
+            {ok, RequestId};
         {error, backlog_full} ->
             {error, backlog_full}
     end.
@@ -75,17 +74,13 @@ receive_response(RequestId) ->
 -spec receive_response(request_id(), timeout()) ->
     {ok, term()} | {error, term()}.
 
-receive_response({PoolName, Ref} = RequestId, Timeout) ->
+receive_response({PoolName, _} = RequestId, Timeout) ->
     Timestamp = os:timestamp(),
     receive
-        #cast {
-            pool_name = PoolName,
-            ref = Ref
-        } = Cast ->
-
+        #cast {request_id = RequestId} = Cast ->
             handle_timing(Cast),
             Cast#cast.reply;
-        #cast {pool_name = PoolName} ->
+        #cast {request_id = {PoolName, _}} ->
             Timeout2 = shackle_utils:timeout(Timeout, Timestamp),
             receive_response(RequestId, Timeout2)
     after Timeout ->

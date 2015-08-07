@@ -2,10 +2,9 @@
 -record(cast, {
     client         :: client(),
     pid            :: pid(),
-    pool_name      :: pool_name(),
-    ref            :: reference(),
     reply          :: term(),
     request        :: term(),
+    request_id     :: request_id(),
     timestamp      :: erlang:timestamp(),
     timing    = [] :: [pos_integer()]
 }).
