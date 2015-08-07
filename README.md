@@ -199,13 +199,13 @@ ok = shackle_pool:start(my_pool, my_client).
 
 ```erlang
 1> shackle:call(my_pool, {get, <<"test">>}).
-{ok,<<"bar">>}
+{ok, <<"bar">>}
 
 2> {ok, ReqId} = shackle:cast(my_pool, {get, <<"foo">>}).
-{ok,{anchor,anchor_client,#Ref<0.0.0.2407>}}
+{ok, {anchor, anchor_client, #Ref<0.0.0.2407>}}
 
 3> shackle:receive_response(ReqId).
-{ok,<<"bar">>}
+{ok, <<"bar">>}
 ```
 
 ## Tests
