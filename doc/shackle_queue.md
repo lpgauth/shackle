@@ -26,7 +26,7 @@ backlog_size() = pos_integer()
 
 
 <pre><code>
-cast() = #cast{client = undefined | <a href="#type-client">client()</a>, pid = undefined | pid(), pool_name = undefined | <a href="#type-pool_name">pool_name()</a>, ref = undefined | reference(), reply = undefined | term(), request = undefined | term(), timestamp = undefined | <a href="erlang.md#type-timestamp">erlang:timestamp()</a>, timing = [pos_integer()]}
+cast() = #cast{client = undefined | <a href="#type-client">client()</a>, pid = undefined | pid(), reply = undefined | term(), request = undefined | term(), request_id = undefined | <a href="#type-request_id">request_id()</a>, timestamp = undefined | <a href="erlang.md#type-timestamp">erlang:timestamp()</a>, timing = [pos_integer()]}
 </code></pre>
 
 
@@ -117,6 +117,16 @@ pool_size() = pos_integer()
 
 <pre><code>
 pool_strategy() = random | round_robin
+</code></pre>
+
+
+
+
+### <a name="type-request_id">request_id()</a> ###
+
+
+<pre><code>
+request_id() = {<a href="#type-pool_name">pool_name()</a>, reference()}
 </code></pre>
 
 
