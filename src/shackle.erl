@@ -67,13 +67,13 @@ handle_timing(#cast {
     Client:handle_timing(Request, Timing3).
 
 -spec receive_response(request_id()) ->
-    {ok, reference()} | {error, term()}.
+    {ok, term()} | {error, term()}.
 
 receive_response(RequestId) ->
     receive_response(RequestId, ?DEFAULT_TIMEOUT).
 
 -spec receive_response(request_id(), timeout()) ->
-    {ok, reference()} | {error, term()}.
+    {ok, term()} | {error, term()}.
 
 receive_response({PoolName, Ref} = RequestId, Timeout) ->
     Timestamp = os:timestamp(),

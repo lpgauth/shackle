@@ -134,7 +134,7 @@ time() = pos_integer()
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#call-2">call/2</a></td><td></td></tr><tr><td valign="top"><a href="#call-3">call/3</a></td><td></td></tr><tr><td valign="top"><a href="#cast-3">cast/3</a></td><td></td></tr><tr><td valign="top"><a href="#handle_timing-1">handle_timing/1</a></td><td></td></tr><tr><td valign="top"><a href="#receive_response-1">receive_response/1</a></td><td></td></tr><tr><td valign="top"><a href="#receive_response-2">receive_response/2</a></td><td></td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#call-2">call/2</a></td><td></td></tr><tr><td valign="top"><a href="#call-3">call/3</a></td><td></td></tr><tr><td valign="top"><a href="#cast-2">cast/2</a></td><td></td></tr><tr><td valign="top"><a href="#cast-3">cast/3</a></td><td></td></tr><tr><td valign="top"><a href="#handle_timing-1">handle_timing/1</a></td><td></td></tr><tr><td valign="top"><a href="#receive_response-1">receive_response/1</a></td><td></td></tr><tr><td valign="top"><a href="#receive_response-2">receive_response/2</a></td><td></td></tr></table>
 
 
 <a name="functions"></a>
@@ -156,6 +156,15 @@ call(PoolName::<a href="#type-pool_name">pool_name()</a>, Request::term()) -&gt;
 
 <pre><code>
 call(PoolName::atom(), Request::term(), Timeout::timeout()) -&gt; {ok, term()} | {error, term()}
+</code></pre>
+<br />
+
+<a name="cast-2"></a>
+
+### cast/2 ###
+
+<pre><code>
+cast(PoolName::<a href="#type-pool_name">pool_name()</a>, Request::term()) -&gt; {ok, <a href="#type-request_id">request_id()</a>} | {error, backlog_full}
 </code></pre>
 <br />
 
@@ -182,7 +191,7 @@ handle_timing(Cast::<a href="#type-cast">cast()</a>) -&gt; ok
 ### receive_response/1 ###
 
 <pre><code>
-receive_response(RequestId::<a href="#type-request_id">request_id()</a>) -&gt; {ok, reference()} | {error, term()}
+receive_response(RequestId::<a href="#type-request_id">request_id()</a>) -&gt; {ok, term()} | {error, term()}
 </code></pre>
 <br />
 
@@ -191,7 +200,7 @@ receive_response(RequestId::<a href="#type-request_id">request_id()</a>) -&gt; {
 ### receive_response/2 ###
 
 <pre><code>
-receive_response(RequestId::<a href="#type-request_id">request_id()</a>, Timeout::timeout()) -&gt; {ok, reference()} | {error, term()}
+receive_response(RequestId::<a href="#type-request_id">request_id()</a>, Timeout::timeout()) -&gt; {ok, term()} | {error, term()}
 </code></pre>
 <br />
 
