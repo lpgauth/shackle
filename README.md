@@ -163,7 +163,7 @@ terminate(_State) -> ok.
 #### Starting client pool
 
 ```erlang
-ok = shackle_pool:start(my_pool, my_client).
+shackle_pool:start(pool_name, client, [{pool_size, 32}]).
 ```
 
 #### Pool Options
@@ -198,10 +198,10 @@ ok = shackle_pool:start(my_pool, my_client).
 #### Calling/Casting client
 
 ```erlang
-1> shackle:call(my_pool, {get, <<"test">>}).
+1> shackle:call(pool_name, {get, <<"test">>}).
 {ok, <<"bar">>}
 
-2> {ok, ReqId} = shackle:cast(my_pool, {get, <<"foo">>}).
+2> {ok, ReqId} = shackle:cast(pool_name, {get, <<"foo">>}).
 {ok, {anchor, anchor_client, #Ref<0.0.0.2407>}}
 
 3> shackle:receive_response(ReqId).
