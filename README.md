@@ -24,11 +24,11 @@ Non-blocking Erlang client framework
 ```erlang
 -behavior(shackle_client).
 -export([
-    options/0,
     after_connect/2,
     handle_data/2,
     handle_request/2,
     handle_timing/2,
+    options/0,
     terminate/1
 ]).
 
