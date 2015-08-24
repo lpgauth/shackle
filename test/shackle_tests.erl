@@ -21,7 +21,7 @@ shackle_random_test_() ->
             arithmetic_client:start()
         end,
         fun (_) -> cleanup() end,
-    {inparallel,[
+    {inparallel, [
         fun add_subtest/0,
         fun multiply_subtest/0
     ]}}.
@@ -47,7 +47,7 @@ shackle_round_robin_test() ->
             ])
         end,
         fun (_) -> cleanup() end,
-    {inparallel,[
+    {inparallel, [
         fun add_subtest/0,
         fun multiply_subtest/0
     ]}}.

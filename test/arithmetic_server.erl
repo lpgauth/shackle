@@ -7,8 +7,6 @@
 ]).
 
 %% public
--spec start() -> ok | {error, already_started}.
-
 start() ->
     case whereis(arithmetic_server) of
         undefined ->
@@ -19,8 +17,6 @@ start() ->
         _Pid ->
             {error, already_started}
     end.
-
--spec stop() -> ok | {error, not_started}.
 
 stop() ->
     case whereis(arithmetic_server) of
@@ -62,9 +58,13 @@ loop(Socket, Buffer) ->
 
 parse_requests(<<"INIT", Rest/binary>>, Acc) ->
     parse_requests(Rest, [<<"OK">> | Acc]);
-parse_requests(<<ReqId:8/integer, 1, A:8/integer, B:8/integer, Rest/binary>>, Acc) ->
+parse_requests(<<ReqId:8/integer, 1, A:8/integer, B:8/integer,
+    Rest/binary>>, Acc) ->
+
     parse_requests(Rest, [<<ReqId:8/integer, (A + B):16/integer>> | Acc]);
-parse_requests(<<ReqId:8/integer, 2, A:8/integer, B:8/integer, Rest/binary>>, Acc) ->
+parse_requests(<<ReqId:8/integer, 2, A:8/integer, B:8/integer,
+    Rest/binary>>, Acc) ->
+
     parse_requests(Rest, [<<ReqId:8/integer, (A * B):16/integer>> | Acc]);
 parse_requests(Buffer, Acc) ->
     {Acc, Buffer}.
