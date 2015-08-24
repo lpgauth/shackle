@@ -212,9 +212,12 @@ shackle_pool:start(pool_name, client, [{pool_size, 32}]).
 
 ```makefile
 make dialyzer
+make elvis
 make eunit
 make xref
 ```
+
+\* *Elvis requires Erlang 17.0 +*
 
 ## Clients
 
