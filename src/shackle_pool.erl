@@ -156,7 +156,8 @@ random(PoolSize) ->
 
 round_robin(Name, PoolSize) ->
     UpdateOps = [{2, 1, PoolSize, 1}],
-    [ServerId] = ets:update_counter(?ETS_TABLE_POOL, {Name, round_robin}, UpdateOps),
+    Key = {Name, round_robin},
+    [ServerId] = ets:update_counter(?ETS_TABLE_POOL, Key, UpdateOps),
     ServerId.
 
 setup(Name, #pool_options {pool_strategy = round_robin} = Options) ->
@@ -167,5 +168,6 @@ setup(Name, Options) ->
 
 start_children(Name, Client, #pool_options {pool_size = PoolSize}) ->
     ChildNames = child_names(Client, PoolSize),
-    ChildSpecs = [child_spec(ChildName, Name, Client) || ChildName <- ChildNames],
+    ChildSpecs = [child_spec(ChildName, Name, Client) ||
+        ChildName <- ChildNames],
     [supervisor:start_child(?SUPERVISOR, ChildSpec) || ChildSpec <- ChildSpecs].

@@ -31,6 +31,8 @@
     timer_ref          :: undefined | timer:ref()
 }).
 
+-type state() :: #state {}.
+
 %% public
 -spec start_link(server_name(), pool_name(), client()) -> {ok, pid()}.
 
@@ -54,8 +56,10 @@ init(Name, PoolName, Client, Parent) ->
     Ip = ?LOOKUP(ip, Options, ?DEFAULT_IP),
     Port = ?LOOKUP(port, Options),
     Reconnect = ?LOOKUP(reconnect, Options, ?DEFAULT_RECONNECT),
-    ReconnectTimeMax = ?LOOKUP(reconnect_time_max, Options, ?DEFAULT_RECONNECT_MAX),
-    ReconnectTimeMin = ?LOOKUP(reconnect_time_min, Options, ?DEFAULT_RECONNECT_MIN),
+    ReconnectTimeMax = ?LOOKUP(reconnect_time_max, Options,
+        ?DEFAULT_RECONNECT_MAX),
+    ReconnectTimeMin = ?LOOKUP(reconnect_time_min, Options,
+        ?DEFAULT_RECONNECT_MIN),
 
     loop(#state {
         client = Client,
@@ -73,18 +77,18 @@ init(Name, PoolName, Client, Parent) ->
     }).
 
 %% sys callbacks
--spec system_code_change(#state {}, module(), undefined | term(), term()) ->
-    {ok, #state {}}.
+-spec system_code_change(state(), module(), undefined | term(), term()) ->
+    {ok, state()}.
 
 system_code_change(State, _Module, _OldVsn, _Extra) ->
     {ok, State}.
 
--spec system_continue(pid(), [], #state {}) -> ok.
+-spec system_continue(pid(), [], state()) -> ok.
 
 system_continue(_Parent, _Debug, State) ->
     loop(State).
 
--spec system_terminate(term(), pid(), [], #state {}) -> none().
+-spec system_terminate(term(), pid(), [], state()) -> none().
 
 system_terminate(Reason, _Parent, _Debug, _State) ->
     exit(Reason).
@@ -141,14 +145,16 @@ handle_msg(?MSG_CONNECT, #state {
                         reconnect_time = TimeMin
                     }};
                 {error, Reason, ClientState2} ->
-                    shackle_utils:warning_msg(PoolName, "after connect error: ~p", [Reason]),
+                    shackle_utils:warning_msg(PoolName,
+                        "after connect error: ~p", [Reason]),
 
                     reconnect_time(State#state {
                         client_state = ClientState2
                     })
             end;
         {error, Reason} ->
-            shackle_utils:warning_msg(PoolName, "tcp connect error: ~p", [Reason]),
+            shackle_utils:warning_msg(PoolName,
+                "tcp connect error: ~p", [Reason]),
             reconnect_time(State)
     end;
 handle_msg(#cast {} = Cast, #state {
@@ -170,7 +176,8 @@ handle_msg(#cast {
         socket = Socket
     } = State) ->
 
-    {ok, ExtRequestId, Data, ClientState2} = Client:handle_request(Request, ClientState),
+    {ok, ExtRequestId, Data, ClientState2} =
+        Client:handle_request(Request, ClientState),
 
     case gen_tcp:send(Socket, Data) of
         ok ->
@@ -206,7 +213,8 @@ handle_msg({tcp, _Port, Data}, #state {
                     timing = shackle_utils:timing(Timestamp, Timing)
                 });
             {error, not_found} ->
-                shackle_utils:info_msg(PoolName, "shackle_queue not found: ~p", [ExtRequestId])
+                shackle_utils:info_msg(PoolName,
+                    "shackle_queue not found: ~p", [ExtRequestId])
         end
     end, Replies),
 

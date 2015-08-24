@@ -33,7 +33,8 @@ call(PoolName, Request, Timeout) ->
 cast(PoolName, Request) ->
     cast(PoolName, Request, self()).
 
--spec cast(pool_name(), term(), pid()) -> {ok, request_id()} | {error, backlog_full}.
+-spec cast(pool_name(), term(), pid()) ->
+    {ok, request_id()} | {error, backlog_full}.
 
 cast(PoolName, Request, Pid) ->
     Timestamp = os:timestamp(),
