@@ -1,4 +1,5 @@
-REBAR=./rebar3
+ELVIS=./bin/elvis
+REBAR=./bin/rebar3
 
 all: compile
 
@@ -18,11 +19,15 @@ edoc:
 	@echo "Running rebar3 edoc..."
 	@$(REBAR) as edoc edoc
 
+elvis:
+	@echo "Running elvis rock..."
+	@$(ELVIS) rock
+
 eunit:
 	@echo "Running rebar3 eunit..."
 	@$(REBAR) do eunit -cv, cover -v
 
-test: dialyzer eunit xref
+test: dialyzer elvis eunit xref
 
 xref:
 	@echo "Running rebar3 xref..."
