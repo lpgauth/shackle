@@ -271,6 +271,6 @@ terminate(Reason, #state {
 
     cancel_timer(TimerRef),
     ok = Client:terminate(ClientState),
-    ok = shackle_backlog:delete(Name),
     reply_all(Name, {error, shutdown}),
+    ok = shackle_backlog:delete(Name),
     exit(Reason).
