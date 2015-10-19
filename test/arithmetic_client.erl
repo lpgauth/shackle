@@ -14,6 +14,7 @@
     handle_data/2,
     handle_request/2,
     handle_timing/2,
+    init/0,
     options/0,
     terminate/1
 ]).
@@ -87,11 +88,13 @@ handle_request({Operation, A, B}, #state {
 handle_timing(_Request, _Timing) ->
     ok.
 
+init() ->
+    {ok, #state {}}.
+
 options() ->
     {ok, [
         {port, ?PORT},
-        {reconnect, true},
-        {state, #state {}}
+        {reconnect, true}
     ]}.
 
 terminate(_State) -> ok.

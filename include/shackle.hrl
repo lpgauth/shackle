@@ -18,8 +18,7 @@
                          {port, inet:port_number()} |
                          {reconnect, boolean()} |
                          {reconnect_time_max, time()} |
-                         {reconnect_time_min, time()} |
-                         {state, term()}.
+                         {reconnect_time_min, time()}.
 
 -type client_options() :: [client_option()].
 -type external_request_id() :: term().
