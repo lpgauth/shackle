@@ -51,7 +51,6 @@ init(Name, PoolName, Client, Parent) ->
     ok = shackle_backlog:new(Name),
     {ok, Options} = Client:options(),
 
-    ClientState = ?LOOKUP(state, Options),
     ConnectOptions = ?LOOKUP(connect_options, Options, ?DEFAULT_CONNECT_OPTS),
     Ip = ?LOOKUP(ip, Options, ?DEFAULT_IP),
     Port = ?LOOKUP(port, Options),
@@ -63,7 +62,6 @@ init(Name, PoolName, Client, Parent) ->
 
     loop(#state {
         client = Client,
-        client_state = ClientState,
         connect_options = ConnectOptions,
         ip = Ip,
         name = Name,
@@ -119,7 +117,6 @@ reconnect_time(#state {
 
 handle_msg(?MSG_CONNECT, #state {
         client = Client,
-        client_state = ClientState,
         connect_options = ConnectOptions,
         ip = Ip,
         pool_name = PoolName,
@@ -132,6 +129,9 @@ handle_msg(?MSG_CONNECT, #state {
         {active, false},
         {packet, raw}
     ] ++ ConnectOptions,
+
+    {ok, ClientOptions} = Client:options(),
+    ClientState = ?LOOKUP(state, ClientOptions),
 
     case gen_tcp:connect(Ip, Port, Options) of
         {ok, Socket} ->
