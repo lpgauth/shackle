@@ -13,12 +13,12 @@
 ]).
 
 %% public
--spec call(pool_name(), term()) -> {ok, term()} | {error, term()}.
+-spec call(pool_name(), term()) -> term() | {error, term()}.
 
 call(PoolName, Request) ->
     call(PoolName, Request, ?DEFAULT_TIMEOUT).
 
--spec call(atom(), term(), timeout()) -> {ok, term()} | {error, term()}.
+-spec call(atom(), term(), timeout()) -> term() | {error, term()}.
 
 call(PoolName, Request, Timeout) ->
     case cast(PoolName, Request) of
@@ -67,13 +67,13 @@ handle_timing(#cast {
     Client:handle_timing(Request, Timing3).
 
 -spec receive_response(request_id()) ->
-    {ok, term()} | {error, term()}.
+    term() | {error, term()}.
 
 receive_response(RequestId) ->
     receive_response(RequestId, ?DEFAULT_TIMEOUT).
 
 -spec receive_response(request_id(), timeout()) ->
-    {ok, term()} | {error, term()}.
+    term() | {error, term()}.
 
 receive_response({PoolName, _} = RequestId, Timeout) ->
     Timestamp = os:timestamp(),
