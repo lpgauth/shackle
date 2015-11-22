@@ -41,7 +41,7 @@ open() ->
 loop(Socket, Buffer) ->
     receive_msg(Socket),
     case gen_udp:recv(Socket, 0, 500) of
-        {ok, {{127,0,0,1}, Port, Requests}} ->
+        {ok, {{127, 0, 0, 1}, Port, Requests}} ->
             Requests2 = <<Buffer/binary, Requests/binary>>,
             {Replies, Buffer2} = parse_requests(Requests2, []),
             ok = gen_udp:send(Socket, "127.0.0.1", Port, Replies),

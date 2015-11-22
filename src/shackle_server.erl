@@ -155,7 +155,6 @@ handle_msg(?MSG_CONNECT, #state {
         protocol = udp,
         client = Client,
         pool_name = PoolName,
-        % port = Port,
         reconnect_time_min = TimeMin,
         socket_options = SocketOptions
     } = State) ->
@@ -255,37 +254,10 @@ handle_msg(#cast {
         {error, Reason} ->
             shackle_utils:warning_msg(PoolName, "udp send error: ~p", [Reason]),
             gen_udp:close(Socket),
-            tcp_close(State)
+            udp_close(State)
     end;
-handle_msg({tcp, _Port, Data}, #state {
-        protocol = tcp,
-        client = Client,
-        client_state = ClientState,
-        pool_name = PoolName,
-        name = Name
-    } = State) ->
-
-    {ok, Replies, ClientState2} = Client:handle_data(Data, ClientState),
-
-    lists:foreach(fun ({ExtRequestId, Reply}) ->
-        case shackle_queue:out(Name, ExtRequestId) of
-            {ok, #cast {
-                timestamp = Timestamp,
-                timing = Timing
-            } = Cast} ->
-
-                reply(Name, Reply, Cast#cast {
-                    timing = shackle_utils:timing(Timestamp, Timing)
-                });
-            {error, not_found} ->
-                shackle_utils:info_msg(PoolName,
-                    "shackle_queue not found: ~p", [ExtRequestId])
-        end
-    end, Replies),
-
-    {ok, State#state {
-        client_state = ClientState2
-    }};
+handle_msg({tcp, _Port, Data}, State) ->
+    handle_msg_data(Data, State);
 handle_msg({tcp_closed, Socket}, #state {
         protocol = tcp,
         socket = Socket,
@@ -303,8 +275,10 @@ handle_msg({tcp_error, Socket, Reason}, #state {
     shackle_utils:warning_msg(PoolName, "tcp connection error: ~p", [Reason]),
     gen_tcp:close(Socket),
     tcp_close(State);
-handle_msg({udp, _Socket, _Ip, _InPortNo, Data}, #state {
-        protocol = udp,
+handle_msg({udp, _Socket, _Ip, _InPortNo, Data}, State) ->
+    handle_msg_data(Data, State).
+
+handle_msg_data(Data, #state {
         client = Client,
         client_state = ClientState,
         pool_name = PoolName,
@@ -356,6 +330,10 @@ reply_all(Name, Reply) ->
 
 tcp_close(#state {name = Name} = State) ->
     reply_all(Name, {error, tcp_closed}),
+    reconnect_time(State).
+
+udp_close(#state {name = Name} = State) ->
+    reply_all(Name, {error, udp_closed}),
     reconnect_time(State).
 
 terminate(Reason, #state {
