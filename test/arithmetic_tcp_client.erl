@@ -18,8 +18,6 @@
     terminate/1
 ]).
 
--define(MAX_REQUEST_ID, 256).
-
 -record(state, {
     buffer = <<>>,
     request_counter = 0
@@ -78,7 +76,7 @@ handle_data(Data, #state {
     } = State) ->
 
     Data2 = <<Buffer/binary, Data/binary>>,
-    {Replies, Buffer2} = parse_replies(Data2, []),
+    {Replies, Buffer2} = arithmetic_protocol:parse_replies(Data2),
 
     {ok, Replies, State#state {
         buffer = Buffer2
@@ -88,8 +86,8 @@ handle_request({Operation, A, B}, #state {
         request_counter = RequestCounter
     } = State) ->
 
-    RequestId = request_id(RequestCounter),
-    Data = request(RequestId, Operation, A, B),
+    RequestId = arithmetic_protocol:request_id(RequestCounter),
+    Data = arithmetic_protocol:request(RequestId, Operation, A, B),
 
     {ok, RequestId, Data, State#state {
         request_counter = RequestCounter + 1
@@ -99,18 +97,3 @@ handle_timing(_Request, _Timing) ->
     ok.
 
 terminate(_State) -> ok.
-
-%% protocol
-opcode(add) -> 1;
-opcode(multiply) -> 2.
-
-parse_replies(<<ReqId:8/integer, A:16/integer, Rest/binary>>, Acc) ->
-    parse_replies(Rest, [{ReqId, A} | Acc]);
-parse_replies(Buffer, Acc) ->
-    {Acc, Buffer}.
-
-request(RequestId, Operation, A, B) ->
-    <<RequestId:8/integer, (opcode(Operation)), A:8/integer, B:8/integer>>.
-
-request_id(RequestCounter) ->
-    RequestCounter rem ?MAX_REQUEST_ID.
