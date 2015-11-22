@@ -1,4 +1,4 @@
--module(arithmetic_server).
+-module(arithmetic_tcp_server).
 -include("test.hrl").
 
 -export([
@@ -7,19 +7,23 @@
 ]).
 
 %% public
+-spec start() -> ok | {error, already_started}.
+
 start() ->
-    case whereis(arithmetic_server) of
+    case whereis(arithmetic_tcp_server) of
         undefined ->
             {ok, LSocket} = listen(),
             Pid = spawn(fun () -> accept(LSocket) end),
-            register(arithmetic_server, Pid),
+            register(arithmetic_tcp_server, Pid),
             ok;
         _Pid ->
             {error, already_started}
     end.
 
+-spec stop() -> ok | {error, not_started}.
+
 stop() ->
-    case whereis(arithmetic_server) of
+    case whereis(arithmetic_tcp_server) of
         undefined ->
             {error, not_started};
         Pid ->

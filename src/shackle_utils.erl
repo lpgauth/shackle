@@ -3,6 +3,7 @@
 
 %% public
 -export([
+    cancel_timer/1,
     info_msg/3,
     lookup/3,
     now_diff/1,
@@ -12,6 +13,13 @@
 ]).
 
 %% public
+-spec cancel_timer(erlang:timer_ref() | undefined) -> ok.
+
+cancel_timer(undefined) ->
+    ok;
+cancel_timer(TimerRef) ->
+    erlang:cancel_timer(TimerRef).
+
 -spec info_msg(pool_name(), string(), [term()]) -> ok.
 
 info_msg(Pool, Format, Data) ->

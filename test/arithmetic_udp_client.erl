@@ -1,4 +1,4 @@
--module(arithmetic_client).
+-module(arithmetic_udp_client).
 -include("test.hrl").
 
 -export([
@@ -10,11 +10,11 @@
 
 -behavior(shackle_client).
 -export([
-    after_connect/2,
-    handle_data/2,
-    handle_request/2,
-    handle_timing/2,
     options/0,
+    setup/2,
+    handle_request/2,
+    handle_data/2,
+    handle_timing/2,
     terminate/1
 ]).
 
@@ -41,7 +41,7 @@ multiply(A, B) ->
 -spec start() -> ok | {error, shackle_not_started | pool_already_started}.
 
 start() ->
-    shackle_pool:start(?POOL_NAME, ?CLIENT).
+    shackle_pool:start(?POOL_NAME, ?CLIENT_UDP).
 
 -spec stop() -> ok | {error, pool_not_started}.
 
@@ -49,11 +49,22 @@ stop() ->
     shackle_pool:stop(?POOL_NAME).
 
 %% shackle_server callbacks
-after_connect(Socket, State) ->
-    case gen_tcp:send(Socket, <<"INIT">>) of
+options() ->
+    {ok, [
+        {port, ?PORT},
+        {protocol, udp},
+        {reconnect, true},
+        {socket_options, [
+            binary
+        ]},
+        {state, #state {}}
+    ]}.
+
+setup(Socket, State) ->
+    case gen_udp:send(Socket, "127.0.0.1", ?PORT, <<"INIT">>) of
         ok ->
-            case gen_tcp:recv(Socket, 0) of
-                {ok, <<"OK">>} ->
+            case gen_udp:recv(Socket, 0) of
+                {ok, {_, ?PORT, <<"OK">>}} ->
                     {ok, State};
                 {error, Reason} ->
                     {error, Reason, State}
@@ -86,13 +97,6 @@ handle_request({Operation, A, B}, #state {
 
 handle_timing(_Request, _Timing) ->
     ok.
-
-options() ->
-    {ok, [
-        {port, ?PORT},
-        {reconnect, true},
-        {state, #state {}}
-    ]}.
 
 terminate(_State) -> ok.
 

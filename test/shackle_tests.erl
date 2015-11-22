@@ -1,65 +1,72 @@
 -module(shackle_tests).
+-include_lib("eunit/include/eunit.hrl").
 -include("test.hrl").
+
+-define(N, 1000).
 
 %% runners
 shackle_backlog_test_() ->
     {setup,
         fun () ->
-            setup(),
-            shackle_pool:start(?POOL_NAME, ?CLIENT, [
+            setup_tcp([
                 {backlog_size, 1},
                 {pool_size, 1}
             ])
         end,
-        fun (_) -> cleanup() end,
+        fun (_) -> cleanup_tcp() end,
     [fun backlog_full_subtest/0]}.
 
-shackle_random_test_() ->
+shackle_random_tcp_test_() ->
     {setup,
-        fun () ->
-            setup(),
-            arithmetic_client:start()
-        end,
-        fun (_) -> cleanup() end,
+        fun () -> setup_tcp([]) end,
+        fun (_) -> cleanup_tcp() end,
     {inparallel, [
-        fun add_subtest/0,
-        fun multiply_subtest/0
+        fun add_tcp_subtest/0,
+        fun multiply_tcp_subtest/0
+    ]}}.
+
+shackle_random_udp_test_() ->
+    {setup,
+        fun () -> setup_udp([]) end,
+        fun (_) -> cleanup_udp() end,
+    {inparallel, [
+        fun add_udp_subtest/0,
+        fun multiply_udp_subtest/0
     ]}}.
 
 shackle_reconnect_test_() ->
     {setup,
         fun () ->
             setup(),
-            arithmetic_server:stop(),
-            shackle_pool:start(?POOL_NAME, ?CLIENT, [
+            shackle_pool:start(?POOL_NAME, ?CLIENT_TCP, [
                 {pool_size, 1}
             ])
         end,
-        fun (_) -> cleanup() end,
+        fun (_) -> cleanup_tcp() end,
     [fun reconnect_subtest/0]}.
 
-shackle_round_robin_test() ->
+shackle_round_robin_test_() ->
     {setup,
-        fun () ->
-            setup(),
-            shackle_pool:start(?POOL_NAME, ?CLIENT, [
-                {pool_strategy, round_robin}
-            ])
-        end,
-        fun (_) -> cleanup() end,
+        fun () -> setup_tcp([
+            {pool_strategy, round_robin}
+        ]) end,
+        fun (_) -> cleanup_tcp() end,
     {inparallel, [
-        fun add_subtest/0,
-        fun multiply_subtest/0
+        fun add_tcp_subtest/0,
+        fun multiply_tcp_subtest/0
     ]}}.
 
 %% tests
-add_subtest() ->
-    [assert_random_add() || _ <- lists:seq(1, ?N)].
+add_tcp_subtest() ->
+    [assert_random_add(?CLIENT_TCP) || _ <- lists:seq(1, ?N)].
+
+add_udp_subtest() ->
+    [assert_random_add(?CLIENT_UDP) || _ <- lists:seq(1, ?N)].
 
 backlog_full_subtest() ->
     Pid = self(),
     [spawn(fun () ->
-        X = arithmetic_client:add(1, 1),
+        X = arithmetic_tcp_client:add(1, 1),
         Pid ! {response, X}
     end) || _ <- lists:seq(1, 20)],
 
@@ -68,30 +75,41 @@ backlog_full_subtest() ->
         (_) -> false
     end, receive_loop(20))).
 
-multiply_subtest() ->
-    [assert_random_multiply() || _ <- lists:seq(1, ?N)].
+multiply_tcp_subtest() ->
+    [assert_random_multiply(?CLIENT_TCP) || _ <- lists:seq(1, ?N)].
+
+multiply_udp_subtest() ->
+    [assert_random_multiply(?CLIENT_UDP) || _ <- lists:seq(1, ?N)].
 
 reconnect_subtest() ->
-    ?assertEqual({error, no_socket}, arithmetic_client:add(1, 1)),
-    arithmetic_server:start(),
+    ?assertEqual({error, no_socket}, arithmetic_tcp_client:add(1, 1)),
+    arithmetic_tcp_server:start(),
     timer:sleep(3000),
-    ?assertEqual(2, arithmetic_client:add(1, 1)).
+    ?assertEqual(2, arithmetic_tcp_client:add(1, 1)).
 
 %% utils
-assert_random_add() ->
+assert_random_add(Client) ->
     A = rand(),
     B = rand(),
-    ?assertEqual(A + B, arithmetic_client:add(A, B)).
+    ?assertEqual(A + B, Client:add(A, B)).
 
-assert_random_multiply() ->
+assert_random_multiply(Client) ->
     A = rand(),
     B = rand(),
-    ?assertEqual(A * B, arithmetic_client:multiply(A, B)).
+    ?assertEqual(A * B, Client:multiply(A, B)).
 
 cleanup() ->
-    arithmetic_server:stop(),
-    arithmetic_client:stop(),
     shackle_app:stop().
+
+cleanup_tcp() ->
+    arithmetic_tcp_client:stop(),
+    arithmetic_tcp_server:stop(),
+    cleanup().
+
+cleanup_udp() ->
+    arithmetic_udp_client:stop(),
+    arithmetic_udp_server:stop(),
+    cleanup().
 
 rand() ->
     random:uniform(255).
@@ -106,5 +124,14 @@ receive_loop(N) ->
 setup() ->
     random:seed(os:timestamp()),
     error_logger:tty(false),
-    arithmetic_server:start(),
     shackle_app:start().
+
+setup_tcp(Options) ->
+    setup(),
+    arithmetic_tcp_server:start(),
+    shackle_pool:start(?POOL_NAME, ?CLIENT_TCP, Options).
+
+setup_udp(Options) ->
+    setup(),
+    arithmetic_udp_server:start(),
+    shackle_pool:start(?POOL_NAME, ?CLIENT_UDP, Options).
