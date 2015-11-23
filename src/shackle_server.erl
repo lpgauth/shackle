@@ -17,6 +17,7 @@
 -record(state, {
     client             :: client(),
     client_state       :: term(),
+    header             :: term(),
     ip                 :: inet:ip_address() | inet:hostname(),
     name               :: server_name(),
     parent             :: pid(),
@@ -62,9 +63,16 @@ init(Name, PoolName, Client, Parent) ->
         ?DEFAULT_RECONNECT_MIN),
     SocketOptions = ?LOOKUP(socket_options, Options, ?DEFAULT_SOCKET_OPTS),
 
+    {ok, Addrs} = inet:getaddrs(Ip, inet),
+    {A, B, C, D} = Ip2 = shackle_utils:random_element(Addrs),
+
+    Header = [[((Port) bsr 8) band 16#ff, (Port) band 16#ff],
+        [A band 16#ff, B band 16#ff, C band 16#ff, D band 16#ff]],
+
     loop(#state {
         client = Client,
-        ip = Ip,
+        header = Header,
+        ip = Ip2,
         name = Name,
         parent = Parent,
         pool_name = PoolName,
@@ -232,25 +240,17 @@ handle_msg(#cast {
         protocol = udp,
         client = Client,
         client_state = ClientState,
-        ip = Ip,
+        header = Header,
         name = Name,
         pool_name = PoolName,
-        port = Port,
         socket = Socket
     } = State) ->
 
     {ok, ExtRequestId, Data, ClientState2} =
         Client:handle_request(Request, ClientState),
 
-    {ok, {A, B, C, D}} = inet:parse_ipv4_address(Ip),
-
-    % TODO: cache header
-    Header = [[((Port) bsr 8) band 16#ff, (Port) band 16#ff],
-        [A band 16#ff, B band 16#ff, C band 16#ff, D band 16#ff]],
-    Packet = [Header, Data],
-
     try
-        true = erlang:port_command(Socket, Packet),
+        true = erlang:port_command(Socket, [Header, Data]),
         shackle_queue:in(Name, ExtRequestId, Cast#cast {
             timing = shackle_utils:timing(Timestamp, Timing)
         }),
