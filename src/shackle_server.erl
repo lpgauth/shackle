@@ -242,20 +242,30 @@ handle_msg(#cast {
     {ok, ExtRequestId, Data, ClientState2} =
         Client:handle_request(Request, ClientState),
 
-    case gen_udp:send(Socket, Ip, Port, Data) of
-        ok ->
-            shackle_queue:in(Name, ExtRequestId, Cast#cast {
-                timing = shackle_utils:timing(Timestamp, Timing)
-            }),
+    {ok, {A, B, C, D}} = inet:parse_ipv4_address(Ip),
 
-            {ok, State#state {
-                client_state = ClientState2
-            }};
-        {error, Reason} ->
+    % TODO: cache header
+    Header = [[((Port) bsr 8) band 16#ff, (Port) band 16#ff],
+        [A band 16#ff, B band 16#ff, C band 16#ff, D band 16#ff]],
+    Packet = [Header, Data],
+
+    try
+        true = erlang:port_command(Socket, Packet),
+        shackle_queue:in(Name, ExtRequestId, Cast#cast {
+            timing = shackle_utils:timing(Timestamp, Timing)
+        }),
+
+        {ok, State#state {
+            client_state = ClientState2
+        }}
+    catch
+        _Error:Reason ->
             shackle_utils:warning_msg(PoolName, "udp send error: ~p", [Reason]),
             gen_udp:close(Socket),
             udp_close(State)
     end;
+handle_msg({inet_reply, _Socket, ok}, State) ->
+    {ok, State};
 handle_msg({tcp, _Port, Data}, State) ->
     handle_msg_data(Data, State);
 handle_msg({tcp_closed, Socket}, #state {
