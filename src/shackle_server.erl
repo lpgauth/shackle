@@ -290,28 +290,11 @@ handle_msg({udp, _Socket, _Ip, _InPortNo, Data}, State) ->
 
 handle_msg_data(Data, #state {
         client = Client,
-        client_state = ClientState,
-        pool_name = PoolName,
-        name = Name
+        client_state = ClientState
     } = State) ->
 
     {ok, Replies, ClientState2} = Client:handle_data(Data, ClientState),
-
-    lists:foreach(fun ({ExtRequestId, Reply}) ->
-        case shackle_queue:out(Name, ExtRequestId) of
-            {ok, #cast {
-                timestamp = Timestamp,
-                timing = Timing
-            } = Cast} ->
-
-                reply(Name, Reply, Cast#cast {
-                    timing = shackle_utils:timing(Timestamp, Timing)
-                });
-            {error, not_found} ->
-                shackle_utils:info_msg(PoolName,
-                    "shackle_queue not found: ~p", [ExtRequestId])
-        end
-    end, Replies),
+    ok = process_replies(Replies, State),
 
     {ok, State#state {
         client_state = ClientState2
@@ -327,6 +310,28 @@ loop(#state {parent = Parent} = State) ->
             {ok, State2} = handle_msg(Msg, State),
             loop(State2)
     end.
+
+process_replies([], _State) ->
+    ok;
+process_replies([{ExtRequestId, Reply} | T], #state {
+        pool_name = PoolName,
+        name = Name
+    } = State) ->
+
+    case shackle_queue:out(Name, ExtRequestId) of
+        {ok, #cast {
+            timestamp = Timestamp,
+            timing = Timing
+        } = Cast} ->
+
+            reply(Name, Reply, Cast#cast {
+                timing = shackle_utils:timing(Timestamp, Timing)
+            });
+        {error, not_found} ->
+            shackle_utils:info_msg(PoolName,
+                "shackle_queue not found: ~p", [ExtRequestId])
+    end,
+    process_replies(T, State).
 
 reply(Name, Reply, Cast) ->
     shackle_backlog:decrement(Name),
