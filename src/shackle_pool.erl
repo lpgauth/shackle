@@ -93,7 +93,7 @@ server(Name) ->
 
             ServerId = case PoolStrategy of
                 random ->
-                    random(PoolSize);
+                    shackle_utils:random(PoolSize) + 1;
                 round_robin ->
                     round_robin(Name, PoolSize)
             end,
@@ -150,9 +150,6 @@ options_rec(Client, PoolOptions) ->
         pool_size = PoolSize,
         pool_strategy = PoolStrategy
     }.
-
-random(PoolSize) ->
-    erlang:phash2({os:timestamp(), self()}, PoolSize) + 1.
 
 round_robin(Name, PoolSize) ->
     UpdateOps = [{2, 1, PoolSize, 1}],
