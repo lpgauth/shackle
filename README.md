@@ -16,6 +16,7 @@ Non-blocking Erlang client framework
 * Fast pool implementation (random, round_robin)
 * Performance optimized
 * Request pipelining
+* TCP/UDP protcol support
 
 ## How-to
 
@@ -24,11 +25,12 @@ Non-blocking Erlang client framework
 ```erlang
 -behavior(shackle_client).
 -export([
-    after_connect/2,
-    handle_data/2,
-    handle_request/2,
-    handle_timing/2,
     options/0,
+    init/0,
+    setup/2,
+    handle_request/2,
+    handle_data/2,
+    handle_timing/2,
     terminate/1
 ]).
 
@@ -37,12 +39,25 @@ Non-blocking Erlang client framework
     request_counter = 0
 }).
 
-%% called after the connection is established
--callback after_connect(Socket :: inet:socket(), State :: term()) ->
+-spec options() -> {ok, Options :: client_options()}.
+
+options() ->
+    {ok, [
+        {port, 123},
+        {protocol, tcp},
+        {reconnect, true}
+    ]}.
+
+-callback init() -> {ok, State :: term()}.
+
+init() ->
+     {ok, #state {}}.
+
+-callback setup(Socket :: inet:socket(), State :: term()) ->
     {ok, State :: term()} |
     {error, Reason :: term(), State :: term()}.
 
-after_connect(Socket, State) ->
+setup(Socket, State) ->
     case gen_tcp:send(Socket, <<"INIT">>) of
         ok ->
             case gen_tcp:recv(Socket, 0) of
@@ -55,22 +70,6 @@ after_connect(Socket, State) ->
             {error, Reason, State}
     end.
 
-%% handles data received on the connection
--spec handle_data(Data :: binary(), State :: term()) ->
-    {ok, [{RequestId :: external_request_id(), Reply :: term()}], State :: term()}.
-
-handle_data(Data, #state {
-        buffer = Buffer
-    } = State) ->
-
-    Data2 = <<Buffer/binary, Data/binary>>,
-    {Replies, Buffer2} = parse_replies(Data2, []),
-
-    {ok, Replies, State#state {
-        buffer = Buffer2
-    }}.
-
-%% handles request serialization
 -spec handle_request(Request :: term(), State :: term()) ->
     {ok, RequestId :: external_request_id(), Data :: iodata(), State :: term()}.
 
@@ -85,23 +84,25 @@ handle_request({Operation, A, B}, #state {
         request_counter = RequestCounter + 1
     }}.
 
-%% handles timing information (in microseconds)
+-spec handle_data(Data :: binary(), State :: term()) ->
+    {ok, [{RequestId :: external_request_id(), Reply :: term()}], State :: term()}.
+
+handle_data(Data, #state {
+        buffer = Buffer
+    } = State) ->
+
+    Data2 = <<Buffer/binary, Data/binary>>,
+    {Replies, Buffer2} = parse_replies(Data2, []),
+
+    {ok, Replies, State#state {
+        buffer = Buffer2
+    }}.
+
 -spec handle_timing(Request :: term(), Timing :: [non_neg_integer()]) -> ok.
 
 handle_timing(_Request, [_Pool, _Request, _Response]) ->
     ok.
 
-%% client config
--spec options() -> {ok, Options :: client_options()}.
-
-options() ->
-    {ok, [
-        {port, 123},
-        {reconnect, true},
-        {state, #state {}}
-    ]}.
-
-%% called when the client is terminating
 -spec terminate(State :: term()) -> ok.
 
 terminate(_State) -> ok.
@@ -135,6 +136,12 @@ terminate(_State) -> ok.
     <td>server port</td>
   </tr>
   <tr>
+    <td>protocol</td>
+    <td>tcp | udp</td>
+    <td>tcp</td>
+    <td>server protocol</td>
+  </tr>
+  <tr>
     <td>reconnect</td>
     <td>boolean()</td>
     <td>true</td>
@@ -151,12 +158,6 @@ terminate(_State) -> ok.
     <td>pos_integer()</td>
     <td>timer:seconds(1)</td>
     <td>minimum reconnect time</td>
-  </tr>
-  <tr>
-    <td>state</td>
-    <td>term()</td>
-    <td>undefined</td>
-    <td>client state</td>
   </tr>
 </table>
 

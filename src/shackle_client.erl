@@ -4,6 +4,9 @@
 % client options (e.g. ip, port)
 -callback options() -> {ok, Options :: client_options()}.
 
+% init state
+-callback init() -> {ok, State :: term()}.
+
 % setup socket (e.g. set default keyspace)
 -callback setup(Socket :: inet:socket(), State :: term()) ->
     {ok, State :: term()} |
@@ -20,5 +23,5 @@
 % request timing information
 -callback handle_timing(Request :: term(), Timing :: [non_neg_integer()]) -> ok.
 
-% cleanup state
+% terminate state
 -callback terminate(State :: term()) -> ok.

@@ -11,6 +11,7 @@
 -behavior(shackle_client).
 -export([
     options/0,
+    init/0,
     setup/2,
     handle_request/2,
     handle_data/2,
@@ -55,9 +56,11 @@ options() ->
         {reconnect, true},
         {socket_options, [
             binary
-        ]},
-        {state, #state {}}
+        ]}
     ]}.
+
+init() ->
+    {ok, #state {}}.
 
 setup(Socket, State) ->
     case gen_udp:send(Socket, "127.0.0.1", ?PORT, <<"INIT">>) of
