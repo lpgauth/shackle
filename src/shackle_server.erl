@@ -48,7 +48,6 @@ init(Name, PoolName, Client, Parent) ->
     proc_lib:init_ack(Parent, {ok, self()}),
     register(Name, self()),
 
-    random:seed(os:timestamp()),
     self() ! ?MSG_CONNECT,
     ok = shackle_backlog:new(Name),
     {ok, Options} = Client:options(),
