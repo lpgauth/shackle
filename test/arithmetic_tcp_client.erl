@@ -11,6 +11,7 @@
 -behavior(shackle_client).
 -export([
     options/0,
+    init/0,
     setup/2,
     handle_request/2,
     handle_data/2,
@@ -54,9 +55,11 @@ options() ->
         {socket_options, [
             binary,
             {packet, raw}
-        ]},
-        {state, #state {}}
+        ]}
     ]}.
+
+init() ->
+    {ok, #state {}}.
 
 setup(Socket, State) ->
     case gen_tcp:send(Socket, <<"INIT">>) of

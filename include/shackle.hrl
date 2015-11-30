@@ -19,8 +19,7 @@
                          {reconnect, boolean()} |
                          {reconnect_time_max, time()} |
                          {reconnect_time_min, time()} |
-                         {socket_options, [gen_tcp:connect_option() | gen_udp:option()]} |
-                         {state, term()}.
+                         {socket_options, [gen_tcp:connect_option() | gen_udp:option()]}.
 
 -type client_options() :: [client_option()].
 -type external_request_id() :: term().
