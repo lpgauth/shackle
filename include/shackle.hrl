@@ -13,12 +13,13 @@
 -type backlog_size() :: pos_integer().
 -type cast() :: #cast {}.
 -type client() :: module().
--type client_option() :: {connect_options, [gen_tcp:connect_option()]} |
-                         {ip, inet:ip_address() | inet:hostname()} |
+-type client_option() :: {ip, inet:ip_address() | inet:hostname()} |
                          {port, inet:port_number()} |
+                         {protocol, protocol()} |
                          {reconnect, boolean()} |
                          {reconnect_time_max, time()} |
                          {reconnect_time_min, time()} |
+                         {socket_options, [gen_tcp:connect_option() | gen_udp:option()]} |
                          {state, term()}.
 
 -type client_options() :: [client_option()].
@@ -31,6 +32,7 @@
 -type pool_options() :: [pool_option()].
 -type pool_size() :: pos_integer().
 -type pool_strategy() :: random | round_robin.
+-type protocol() :: tcp | udp.
 -type response() :: {external_request_id(), term()}.
 -type server_name() :: atom().
 -type request_id() :: {pool_name(), reference()}.
