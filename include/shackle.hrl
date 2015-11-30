@@ -1,10 +1,10 @@
 %% records
 -record(cast, {
+    request_id     :: request_id(),
     client         :: client(),
     pid            :: pid(),
     reply          :: term(),
     request        :: term(),
-    request_id     :: request_id(),
     timestamp      :: erlang:timestamp(),
     timing    = [] :: [pos_integer()]
 }).
