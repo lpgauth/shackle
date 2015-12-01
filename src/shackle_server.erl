@@ -242,8 +242,7 @@ process_replies([{ExtRequestId, Reply} | T], #state {
                 timing = shackle_utils:timing(Timestamp, Timing)
             });
         {error, not_found} ->
-            shackle_utils:info_msg(PoolName,
-                "shackle_queue not found: ~p", [ExtRequestId])
+            ok
     end,
     process_replies(T, State).
 
