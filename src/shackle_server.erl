@@ -227,11 +227,7 @@ loop(#state {parent = Parent} = State) ->
 
 process_replies([], _State) ->
     ok;
-process_replies([{ExtRequestId, Reply} | T], #state {
-        pool_name = PoolName,
-        name = Name
-    } = State) ->
-
+process_replies([{ExtRequestId, Reply} | T], #state {name = Name} = State) ->
     case shackle_queue:out(Name, ExtRequestId) of
         {ok, #cast {
             timestamp = Timestamp,
