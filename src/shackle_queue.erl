@@ -52,5 +52,5 @@ out(ServerName, RequestId) ->
 -spec remove(external_request_id()) -> true.
 
 remove(RequestId) ->
-    Match = {'_', #cast {request_id = RequestId}},
+    Match = {'_', {cast, RequestId, '_', '_', '_', '_', '_', '_'}},
     ets:match_delete(?ETS_TABLE_QUEUE, Match).

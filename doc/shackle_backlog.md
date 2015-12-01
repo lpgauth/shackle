@@ -92,6 +92,16 @@ protocol() = shackle_tcp | shackle_udp
 
 
 
+### <a name="type-request_id">request_id()</a> ###
+
+
+<pre><code>
+request_id() = {<a href="#type-server_name">server_name()</a>, reference()}
+</code></pre>
+
+
+
+
 ### <a name="type-server_name">server_name()</a> ###
 
 
@@ -135,7 +145,7 @@ check(ServerName::<a href="#type-server_name">server_name()</a>, BacklogSize::<a
 ### decrement/1 ###
 
 <pre><code>
-decrement(ServerName::<a href="#type-server_name">server_name()</a>) -&gt; non_neg_integer()
+decrement(ServerName::<a href="#type-server_name">server_name()</a> | <a href="#type-request_id">request_id()</a>) -&gt; non_neg_integer()
 </code></pre>
 <br />
 

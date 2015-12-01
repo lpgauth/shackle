@@ -34,7 +34,7 @@
 -type protocol() :: shackle_tcp | shackle_udp.
 -type response() :: {external_request_id(), term()}.
 -type server_name() :: atom().
--type request_id() :: {pool_name(), reference()}.
+-type request_id() :: {server_name(), reference()}.
 -type time() :: pos_integer().
 
 -export_type([
