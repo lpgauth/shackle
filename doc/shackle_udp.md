@@ -104,7 +104,7 @@ time() = pos_integer()
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#close-1">close/1</a></td><td></td></tr><tr><td valign="top"><a href="#new-3">new/3</a></td><td></td></tr><tr><td valign="top"><a href="#send-3">send/3</a></td><td></td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#close-1">close/1</a></td><td></td></tr><tr><td valign="top"><a href="#header-2">header/2</a></td><td></td></tr><tr><td valign="top"><a href="#new-3">new/3</a></td><td></td></tr><tr><td valign="top"><a href="#send-3">send/3</a></td><td></td></tr></table>
 
 
 <a name="functions"></a>
@@ -117,6 +117,15 @@ time() = pos_integer()
 
 <pre><code>
 close(Socket::<a href="inet.md#type-socket">inet:socket()</a>) -&gt; ok
+</code></pre>
+<br />
+
+<a name="header-2"></a>
+
+### header/2 ###
+
+<pre><code>
+header(X1::<a href="inet.md#type-ip_address">inet:ip_address()</a>, Port::<a href="inet.md#type-port_number">inet:port_number()</a>) -&gt; iodata()
 </code></pre>
 <br />
 

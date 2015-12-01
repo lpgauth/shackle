@@ -85,6 +85,6 @@ receive_response({PoolName, _} = RequestId, Timeout) ->
             Timeout2 = shackle_utils:timeout(Timeout, Timestamp),
             receive_response(RequestId, Timeout2)
     after Timeout ->
-        % shackle_queue:remove(RequestId),
+        shackle_queue:remove(RequestId),
         {error, timeout}
     end.

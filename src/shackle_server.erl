@@ -17,7 +17,7 @@
 -record(state, {
     client             :: client(),
     client_state       :: term(),
-    header             :: term(),
+    header             :: iodata(),
     ip                 :: inet:ip_address() | inet:hostname(),
     name               :: server_name(),
     parent             :: pid(),
@@ -64,10 +64,8 @@ init(Name, PoolName, Client, Parent) ->
     SocketOptions = ?LOOKUP(socket_options, Options, ?DEFAULT_SOCKET_OPTS),
 
     {ok, Addrs} = inet:getaddrs(Ip, inet),
-    {A, B, C, D} = Ip2 = shackle_utils:random_element(Addrs),
-
-    Header = [[((Port) bsr 8) band 16#ff, (Port) band 16#ff],
-        [A band 16#ff, B band 16#ff, C band 16#ff, D band 16#ff]],
+    Ip2 = shackle_utils:random_element(Addrs),
+    Header = shackle_udp:header(Ip2, Port),
 
     loop(#state {
         client = Client,
@@ -103,37 +101,9 @@ system_terminate(Reason, _Parent, _Debug, _State) ->
     exit(Reason).
 
 %% private
-close(Reason, #state {name = Name} = State) ->
-    reply_all(Name, {error, Reason}),
+close(#state {name = Name} = State) ->
+    reply_all(Name, {error, socket_closed}),
     reconnect(State).
-
-reconnect(#state {client_state = undefined} = State) ->
-    reconnect_timer(State);
-reconnect(#state {
-        client = Client,
-        client_state = ClientState
-    } = State) ->
-
-    ok = Client:terminate(ClientState),
-    reconnect_timer(State).
-
-reconnect_timer(#state {reconnect = false} = State) ->
-    {ok, State#state {
-        socket = undefined
-    }};
-reconnect_timer(#state {
-        reconnect_time_max = TimeMax,
-        reconnect_time = Time
-    } = State) ->
-
-    Time2 = shackle_backoff:timeout(Time, TimeMax),
-    TimerRef = erlang:send_after(Time2, self(), ?MSG_CONNECT),
-
-    {ok, State#state {
-        reconnect_time = Time2,
-        socket = undefined,
-        timer_ref = TimerRef
-    }}.
 
 handle_msg(?MSG_CONNECT, #state {
         client = Client,
@@ -208,21 +178,19 @@ handle_msg(#cast {
         {error, Reason} ->
             shackle_utils:warning_msg(PoolName, "tcp send error: ~p", [Reason]),
             Protocol:close(Socket),
-            % TODO: fix me
-            close(tcp_closed, State)
+            close(State)
     end;
 handle_msg({inet_reply, _Socket, ok}, State) ->
     {ok, State};
 handle_msg({tcp, _Port, Data}, State) ->
     handle_msg_data(Data, State);
 handle_msg({tcp_closed, Socket}, #state {
-        protocol = tcp,
         socket = Socket,
         pool_name = PoolName
     } = State) ->
 
     shackle_utils:warning_msg(PoolName, "tcp connection closed", []),
-    close(tcp_closed, State);
+    close(State);
 handle_msg({tcp_error, Socket, Reason}, #state {
         socket = Socket,
         pool_name = PoolName
@@ -230,7 +198,7 @@ handle_msg({tcp_error, Socket, Reason}, #state {
 
     shackle_utils:warning_msg(PoolName, "tcp connection error: ~p", [Reason]),
     shackle_tcp:close(Socket),
-    close(tcp_closed, State);
+    close(State);
 handle_msg({udp, _Socket, _Ip, _InPortNo, Data}, State) ->
     handle_msg_data(Data, State).
 
@@ -279,9 +247,37 @@ process_replies([{ExtRequestId, Reply} | T], #state {
     end,
     process_replies(T, State).
 
-reply(Name, Reply, Cast) ->
+reconnect(#state {client_state = undefined} = State) ->
+    reconnect_timer(State);
+reconnect(#state {
+        client = Client,
+        client_state = ClientState
+    } = State) ->
+
+    ok = Client:terminate(ClientState),
+    reconnect_timer(State).
+
+reconnect_timer(#state {reconnect = false} = State) ->
+    {ok, State#state {
+        socket = undefined
+    }};
+reconnect_timer(#state {
+        reconnect_time_max = TimeMax,
+        reconnect_time = Time
+    } = State) ->
+
+    Time2 = shackle_backoff:timeout(Time, TimeMax),
+    TimerRef = erlang:send_after(Time2, self(), ?MSG_CONNECT),
+
+    {ok, State#state {
+        reconnect_time = Time2,
+        socket = undefined,
+        timer_ref = TimerRef
+    }}.
+
+reply(Name, Reply, #cast {pid = Pid} = Cast) ->
     shackle_backlog:decrement(Name),
-    Cast#cast.pid ! Cast#cast {
+    Pid ! Cast#cast {
         reply = Reply
     }.
 

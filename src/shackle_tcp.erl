@@ -2,10 +2,16 @@
 -include("shackle_internal.hrl").
 
 -export([
+    close/1,
     new/3,
-    send/3,
-    close/1
+    send/3
 ]).
+
+%% public
+-spec close(inet:socket()) -> ok.
+
+close(Socket) ->
+    gen_tcp:close(Socket).
 
 -spec new(inet:ip_address(), inet:port_number(), [gen_tcp:connect_option()]) ->
     {ok, inet:socket()} | {error, term()}.
@@ -17,8 +23,3 @@ new(Ip, Port, Options) ->
 
 send(Socket, _Header, Data) ->
     gen_tcp:send(Socket, Data).
-
--spec close(inet:socket()) -> ok.
-
-close(Socket) ->
-    gen_tcp:socket(Socket).
