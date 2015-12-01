@@ -78,12 +78,9 @@ receive_response(RequestId) ->
 receive_response({PoolName, ServerName, _} = RequestId, Timeout) ->
     Timestamp = os:timestamp(),
     receive
-        #cast {request_id = RequestId} = Cast ->
+        #cast {request_id = RequestId, reply = Reply} = Cast ->
             handle_timing(Cast),
-            Cast#cast.reply;
-        #cast {request_id = {PoolName, _}} ->
-            Timeout2 = shackle_utils:timeout(Timeout, Timestamp),
-            receive_response(RequestId, Timeout2)
+            Reply
     after Timeout ->
         shackle_queue:remove(RequestId),
         shackle_backlog:decrement(ServerName),
