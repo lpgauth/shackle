@@ -30,7 +30,7 @@
     reconnect_time_min :: time(),
     reconnect_time     :: time(),
     socket             :: undefined | inet:socket(),
-    socket_options     :: [gen_tcp:connect_option()],
+    socket_options     :: [gen_tcp:connect_option() | gen_udp:connect_option()],
     timer_ref          :: undefined | timer:ref()
 }).
 
@@ -136,16 +136,16 @@ reconnect_timer(#state {
     }}.
 
 handle_msg(?MSG_CONNECT, #state {
-        protocol = tcp,
         client = Client,
         ip = Ip,
         pool_name = PoolName,
         port = Port,
+        protocol = Protocol,
         reconnect_time_min = TimeMin,
         socket_options = SocketOptions
     } = State) ->
 
-    case gen_tcp:connect(Ip, Port, SocketOptions) of
+    case Protocol:new(Ip, Port, SocketOptions) of
         {ok, Socket} ->
             {ok, ClientState} = Client:init(),
             inet:setopts(Socket, [{active, false}]),
@@ -169,42 +169,7 @@ handle_msg(?MSG_CONNECT, #state {
             end;
         {error, Reason} ->
             shackle_utils:warning_msg(PoolName,
-                "tcp connect error: ~p", [Reason]),
-            reconnect(State)
-    end;
-handle_msg(?MSG_CONNECT, #state {
-        protocol = udp,
-        client = Client,
-        pool_name = PoolName,
-        reconnect_time_min = TimeMin,
-        socket_options = SocketOptions
-    } = State) ->
-
-    case gen_udp:open(0, SocketOptions) of
-        {ok, Socket} ->
-            {ok, ClientState} = Client:init(),
-            inet:setopts(Socket, [{active, false}]),
-
-            case Client:setup(Socket, ClientState) of
-                {ok, ClientState2} ->
-                    inet:setopts(Socket, [{active, true}]),
-
-                    {ok, State#state {
-                        client_state = ClientState2,
-                        socket = Socket,
-                        reconnect_time = TimeMin
-                    }};
-                {error, Reason, ClientState2} ->
-                    shackle_utils:warning_msg(PoolName,
-                        "setup error: ~p", [Reason]),
-
-                    reconnect(State#state {
-                        client_state = ClientState2
-                    })
-            end;
-        {error, Reason} ->
-            shackle_utils:warning_msg(PoolName,
-                "udp connect error: ~p", [Reason]),
+                "~p connect error: ~p", [Protocol, Reason]),
             reconnect(State)
     end;
 handle_msg(#cast {} = Cast, #state {
@@ -219,10 +184,11 @@ handle_msg(#cast {
         timestamp = Timestamp,
         timing = Timing
     } = Cast, #state {
-        protocol = tcp,
         client = Client,
         client_state = ClientState,
+        header = Header,
         pool_name = PoolName,
+        protocol = Protocol,
         name = Name,
         socket = Socket
     } = State) ->
@@ -230,7 +196,7 @@ handle_msg(#cast {
     {ok, ExtRequestId, Data, ClientState2} =
         Client:handle_request(Request, ClientState),
 
-    case gen_tcp:send(Socket, Data) of
+    case Protocol:send(Socket, Header, Data) of
         ok ->
             shackle_queue:in(Name, ExtRequestId, Cast#cast {
                 timing = shackle_utils:timing(Timestamp, Timing)
@@ -241,40 +207,9 @@ handle_msg(#cast {
             }};
         {error, Reason} ->
             shackle_utils:warning_msg(PoolName, "tcp send error: ~p", [Reason]),
-            gen_tcp:close(Socket),
+            Protocol:close(Socket),
+            % TODO: fix me
             close(tcp_closed, State)
-    end;
-handle_msg(#cast {
-        request = Request,
-        timestamp = Timestamp,
-        timing = Timing
-    } = Cast, #state {
-        protocol = udp,
-        client = Client,
-        client_state = ClientState,
-        header = Header,
-        name = Name,
-        pool_name = PoolName,
-        socket = Socket
-    } = State) ->
-
-    {ok, ExtRequestId, Data, ClientState2} =
-        Client:handle_request(Request, ClientState),
-
-    try
-        true = erlang:port_command(Socket, [Header, Data]),
-        shackle_queue:in(Name, ExtRequestId, Cast#cast {
-            timing = shackle_utils:timing(Timestamp, Timing)
-        }),
-
-        {ok, State#state {
-            client_state = ClientState2
-        }}
-    catch
-        _Error:Reason ->
-            shackle_utils:warning_msg(PoolName, "udp send error: ~p", [Reason]),
-            gen_udp:close(Socket),
-            close(udp_closed, State)
     end;
 handle_msg({inet_reply, _Socket, ok}, State) ->
     {ok, State};
@@ -289,13 +224,12 @@ handle_msg({tcp_closed, Socket}, #state {
     shackle_utils:warning_msg(PoolName, "tcp connection closed", []),
     close(tcp_closed, State);
 handle_msg({tcp_error, Socket, Reason}, #state {
-        protocol = tcp,
         socket = Socket,
         pool_name = PoolName
     } = State) ->
 
     shackle_utils:warning_msg(PoolName, "tcp connection error: ~p", [Reason]),
-    gen_tcp:close(Socket),
+    shackle_tcp:close(Socket),
     close(tcp_closed, State);
 handle_msg({udp, _Socket, _Ip, _InPortNo, Data}, State) ->
     handle_msg_data(Data, State).

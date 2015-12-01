@@ -31,7 +31,7 @@
 -type pool_options() :: [pool_option()].
 -type pool_size() :: pos_integer().
 -type pool_strategy() :: random | round_robin.
--type protocol() :: tcp | udp.
+-type protocol() :: shackle_tcp | shackle_udp.
 -type response() :: {external_request_id(), term()}.
 -type server_name() :: atom().
 -type request_id() :: {pool_name(), reference()}.

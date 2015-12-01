@@ -52,7 +52,7 @@ stop() ->
 options() ->
     {ok, [
         {port, ?PORT},
-        {protocol, udp},
+        {protocol, shackle_udp},
         {reconnect, true},
         {socket_options, [
             binary

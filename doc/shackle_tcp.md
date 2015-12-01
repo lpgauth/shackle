@@ -1,9 +1,9 @@
 
 
-# Module shackle_client #
+# Module shackle_tcp #
 * [Data Types](#types)
-
-__This module defines the `shackle_client` behaviour.__<br /> Required callback functions: `options/0`, `init/0`, `setup/2`, `handle_request/2`, `handle_data/2`, `handle_timing/2`, `terminate/1`.
+* [Function Index](#index)
+* [Function Details](#functions)
 
 <a name="types"></a>
 
@@ -98,4 +98,43 @@ protocol() = shackle_tcp | shackle_udp
 <pre><code>
 time() = pos_integer()
 </code></pre>
+
+<a name="index"></a>
+
+## Function Index ##
+
+
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#close-1">close/1</a></td><td></td></tr><tr><td valign="top"><a href="#new-3">new/3</a></td><td></td></tr><tr><td valign="top"><a href="#send-3">send/3</a></td><td></td></tr></table>
+
+
+<a name="functions"></a>
+
+## Function Details ##
+
+<a name="close-1"></a>
+
+### close/1 ###
+
+<pre><code>
+close(Socket::<a href="inet.md#type-socket">inet:socket()</a>) -&gt; ok
+</code></pre>
+<br />
+
+<a name="new-3"></a>
+
+### new/3 ###
+
+<pre><code>
+new(Ip::<a href="inet.md#type-ip_address">inet:ip_address()</a>, Port::<a href="inet.md#type-port_number">inet:port_number()</a>, Options::[<a href="gen_tcp.md#type-connect_option">gen_tcp:connect_option()</a>]) -&gt; {ok, <a href="inet.md#type-socket">inet:socket()</a>} | {error, term()}
+</code></pre>
+<br />
+
+<a name="send-3"></a>
+
+### send/3 ###
+
+<pre><code>
+send(Socket::<a href="inet.md#type-socket">inet:socket()</a>, Header::iodata(), Data::iodata()) -&gt; ok | {error, term()}
+</code></pre>
+<br />
 

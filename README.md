@@ -118,12 +118,6 @@ terminate(_State) -> ok.
     <th>Description</th>
   </theader>
   <tr>
-    <td>connect_options</td>
-    <td>[gen_tcp:connect_option()]</td>
-    <td>[{send_timeout, 50}, {send_timeout_close, true}]</td>
-    <td>options passed to gen_tcp:connect/2</td>
-  </tr>
-  <tr>
     <td>ip</td>
     <td>inet:ip_address() | inet:hostname()</td>
     <td>"127.0.0.1"</td>
@@ -137,7 +131,7 @@ terminate(_State) -> ok.
   </tr>
   <tr>
     <td>protocol</td>
-    <td>tcp | udp</td>
+    <td>shackle_tcp | shackle_udp</td>
     <td>tcp</td>
     <td>server protocol</td>
   </tr>
@@ -158,6 +152,12 @@ terminate(_State) -> ok.
     <td>pos_integer()</td>
     <td>timer:seconds(1)</td>
     <td>minimum reconnect time</td>
+  </tr>
+  <tr>
+    <td>socket_options</td>
+    <td>[gen_tcp:connect_option() | gen_udp:connect_option()]</td>
+    <td>[]</td>
+    <td>options passed to the socket</td>
   </tr>
 </table>
 
@@ -212,10 +212,7 @@ shackle_pool:start(pool_name, client, [{pool_size, 32}]).
 ## Tests
 
 ```makefile
-make dialyzer
-make elvis
-make eunit
-make xref
+make test
 ```
 
 \* *Elvis requires Erlang 17.0 +*
