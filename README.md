@@ -14,18 +14,15 @@ Non-blocking Erlang network client framework
 
 * Backpressure via backlog (OOM protection)
 * Fast pool implementation (random, round_robin)
+* Multi-protocol support (TCP / UDP)
 * Performance optimized
 * Request pipelining
-* Multi-protocol support (TCP / UDP)
 
 ## How-to
 
 #### Implementing a client
 
 ```erlang
--module(test).
--include("shackle_internal.hrl").
-
 -behavior(shackle_client).
 -export([
     options/0,
