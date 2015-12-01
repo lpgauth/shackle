@@ -40,7 +40,7 @@ cast(PoolName, Request, Pid) ->
     Timestamp = os:timestamp(),
     case shackle_pool:server(PoolName) of
         {ok, Client, Server} ->
-            RequestId = {PoolName, make_ref()},
+            RequestId = {PoolName, Server, make_ref()},
             Server ! #cast {
                 client = Client,
                 pid = Pid,
@@ -75,7 +75,7 @@ receive_response(RequestId) ->
 -spec receive_response(request_id(), timeout()) ->
     term() | {error, term()}.
 
-receive_response({PoolName, _} = RequestId, Timeout) ->
+receive_response({PoolName, ServerName, _} = RequestId, Timeout) ->
     Timestamp = os:timestamp(),
     receive
         #cast {request_id = RequestId} = Cast ->
@@ -86,5 +86,6 @@ receive_response({PoolName, _} = RequestId, Timeout) ->
             receive_response(RequestId, Timeout2)
     after Timeout ->
         shackle_queue:remove(RequestId),
+        shackle_backlog:decrement(ServerName),
         {error, timeout}
     end.
