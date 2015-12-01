@@ -17,7 +17,7 @@
 -record(state, {
     client             :: client(),
     client_state       :: term(),
-    header             :: term(),
+    header             :: iodata(),
     ip                 :: inet:ip_address() | inet:hostname(),
     name               :: server_name(),
     parent             :: pid(),
@@ -102,7 +102,7 @@ system_terminate(Reason, _Parent, _Debug, _State) ->
 
 %% private
 close(#state {name = Name} = State) ->
-    reply_all(Name, {error, closed}),
+    reply_all(Name, {error, socket_closed}),
     reconnect(State).
 
 handle_msg(?MSG_CONNECT, #state {
