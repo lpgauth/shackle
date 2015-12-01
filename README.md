@@ -2,7 +2,7 @@
 
 __Author:__ Louis-Philippe Gauthier.
 
-Non-blocking Erlang client framework
+Non-blocking Erlang network client framework
 
 [![Build Status](https://travis-ci.org/lpgauth/shackle.svg?branch=master)](https://travis-ci.org/lpgauth/shackle)
 
@@ -14,9 +14,9 @@ Non-blocking Erlang client framework
 
 * Backpressure via backlog (OOM protection)
 * Fast pool implementation (random, round_robin)
+* Multi-protocol support (TCP / UDP)
 * Performance optimized
 * Request pipelining
-* TCP/UDP protcol support
 
 ## How-to
 
@@ -35,8 +35,8 @@ Non-blocking Erlang client framework
 ]).
 
 -record(state, {
-    buffer = <<>>,
-    request_counter = 0
+    buffer =       <<>> :: binary(),
+    request_counter = 0 :: non_neg_integer()
 }).
 
 -spec options() -> {ok, Options :: client_options()}.
@@ -44,16 +44,16 @@ Non-blocking Erlang client framework
 options() ->
     {ok, [
         {port, 123},
-        {protocol, tcp},
+        {protocol, shackle_tcp},
         {reconnect, true}
     ]}.
 
--callback init() -> {ok, State :: term()}.
+-spec init() -> {ok, State :: term()}.
 
 init() ->
      {ok, #state {}}.
 
--callback setup(Socket :: inet:socket(), State :: term()) ->
+-spec setup(Socket :: inet:socket(), State :: term()) ->
     {ok, State :: term()} |
     {error, Reason :: term(), State :: term()}.
 
@@ -212,10 +212,11 @@ shackle_pool:start(pool_name, client, [{pool_size, 32}]).
 ## Tests
 
 ```makefile
-make test
+make dialyzer
+make elvis
+make eunit
+make xref
 ```
-
-\* *Elvis requires Erlang 17.0 +*
 
 ## Clients
 
