@@ -72,16 +72,6 @@ external_request_id() = term()
 
 
 
-### <a name="type-pool_name">pool_name()</a> ###
-
-
-<pre><code>
-pool_name() = atom()
-</code></pre>
-
-
-
-
 ### <a name="type-pool_option">pool_option()</a> ###
 
 
@@ -136,7 +126,7 @@ protocol() = shackle_tcp | shackle_udp
 
 
 <pre><code>
-request_id() = {<a href="#type-pool_name">pool_name()</a>, reference()}
+request_id() = {<a href="#type-server_name">server_name()</a>, reference()}
 </code></pre>
 
 

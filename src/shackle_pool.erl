@@ -91,13 +91,8 @@ server(Name) ->
                 pool_strategy = PoolStrategy
             } = Options,
 
-            ServerId = case PoolStrategy of
-                random ->
-                    shackle_utils:random(PoolSize) + 1;
-                round_robin ->
-                    round_robin(Name, PoolSize)
-            end,
-            Server = child_name(Client, ServerId),
+            ServerIndex = server_index(Name, PoolSize, PoolStrategy),
+            Server = child_name(Client, ServerIndex),
             case shackle_backlog:check(Server, BacklogSize) of
                 true ->
                     {ok, Client, Server};
@@ -151,7 +146,9 @@ options_rec(Client, PoolOptions) ->
         pool_strategy = PoolStrategy
     }.
 
-round_robin(Name, PoolSize) ->
+server_index(_Name, PoolSize, random) ->
+    shackle_utils:random(PoolSize) + 1;
+server_index(Name, PoolSize, round_robin) ->
     UpdateOps = [{2, 1, PoolSize, 1}],
     Key = {Name, round_robin},
     [ServerId] = ets:update_counter(?ETS_TABLE_POOL, Key, UpdateOps),

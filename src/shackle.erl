@@ -75,13 +75,13 @@ receive_response(RequestId) ->
 -spec receive_response(request_id(), timeout()) ->
     term() | {error, term()}.
 
-receive_response({ServerName, _} = RequestId, Timeout) ->
+receive_response(RequestId, Timeout) ->
     receive
         #cast {request_id = RequestId, reply = Reply} = Cast ->
             handle_timing(Cast),
             Reply
     after Timeout ->
         shackle_queue:remove(RequestId),
-        shackle_backlog:decrement(ServerName),
+        shackle_backlog:decrement(RequestId),
         {error, timeout}
     end.
