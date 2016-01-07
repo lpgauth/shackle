@@ -1,3 +1,6 @@
+%% TODO: benchmark active once
+%% TODO: benchmark gen_tcp / gen_udp buffer option
+
 -module(shackle_server).
 -include("shackle_internal.hrl").
 
