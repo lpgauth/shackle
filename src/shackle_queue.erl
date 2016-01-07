@@ -6,7 +6,8 @@
     all/1,
     in/3,
     init/0,
-    out/2
+    out/2,
+    remove/1
 ]).
 
 %% internal
@@ -39,6 +40,7 @@ in(ServerName, RequestId, Request) ->
 out(ServerName, RequestId) ->
     Key = {ServerName, RequestId},
     try
+        % TODO: use ets:take/2
         Request = ets:lookup_element(?ETS_TABLE_QUEUE, Key, 2),
         ets:delete(?ETS_TABLE_QUEUE, Key),
         {ok, Request}
@@ -46,3 +48,9 @@ out(ServerName, RequestId) ->
         error:badarg ->
             {error, not_found}
     end.
+
+-spec remove(external_request_id()) -> true.
+
+remove(RequestId) ->
+    Match = {'_', {cast, RequestId, '_', '_', '_', '_', '_', '_'}},
+    ets:match_delete(?ETS_TABLE_QUEUE, Match).

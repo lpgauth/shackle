@@ -2,7 +2,7 @@
 
 __Author:__ Louis-Philippe Gauthier.
 
-Non-blocking Erlang client framework
+Non-blocking Erlang network client framework
 
 [![Build Status](https://travis-ci.org/lpgauth/shackle.svg?branch=master)](https://travis-ci.org/lpgauth/shackle)
 
@@ -14,6 +14,7 @@ Non-blocking Erlang client framework
 
 * Backpressure via backlog (OOM protection)
 * Fast pool implementation (random, round_robin)
+* Multi-protocol support (TCP / UDP)
 * Performance optimized
 * Request pipelining
 
@@ -24,25 +25,39 @@ Non-blocking Erlang client framework
 ```erlang
 -behavior(shackle_client).
 -export([
-    after_connect/2,
-    handle_data/2,
-    handle_request/2,
-    handle_timing/2,
     options/0,
+    init/0,
+    setup/2,
+    handle_request/2,
+    handle_data/2,
+    handle_timing/2,
     terminate/1
 ]).
 
 -record(state, {
-    buffer = <<>>,
-    request_counter = 0
+    buffer =       <<>> :: binary(),
+    request_counter = 0 :: non_neg_integer()
 }).
 
-%% called after the connection is established
--callback after_connect(Socket :: inet:socket(), State :: term()) ->
+-spec options() -> {ok, Options :: client_options()}.
+
+options() ->
+    {ok, [
+        {port, 123},
+        {protocol, shackle_tcp},
+        {reconnect, true}
+    ]}.
+
+-spec init() -> {ok, State :: term()}.
+
+init() ->
+     {ok, #state {}}.
+
+-spec setup(Socket :: inet:socket(), State :: term()) ->
     {ok, State :: term()} |
     {error, Reason :: term(), State :: term()}.
 
-after_connect(Socket, State) ->
+setup(Socket, State) ->
     case gen_tcp:send(Socket, <<"INIT">>) of
         ok ->
             case gen_tcp:recv(Socket, 0) of
@@ -55,22 +70,6 @@ after_connect(Socket, State) ->
             {error, Reason, State}
     end.
 
-%% handles data received on the connection
--spec handle_data(Data :: binary(), State :: term()) ->
-    {ok, [{RequestId :: external_request_id(), Reply :: term()}], State :: term()}.
-
-handle_data(Data, #state {
-        buffer = Buffer
-    } = State) ->
-
-    Data2 = <<Buffer/binary, Data/binary>>,
-    {Replies, Buffer2} = parse_replies(Data2, []),
-
-    {ok, Replies, State#state {
-        buffer = Buffer2
-    }}.
-
-%% handles request serialization
 -spec handle_request(Request :: term(), State :: term()) ->
     {ok, RequestId :: external_request_id(), Data :: iodata(), State :: term()}.
 
@@ -85,23 +84,25 @@ handle_request({Operation, A, B}, #state {
         request_counter = RequestCounter + 1
     }}.
 
-%% handles timing information (in microseconds)
+-spec handle_data(Data :: binary(), State :: term()) ->
+    {ok, [{RequestId :: external_request_id(), Reply :: term()}], State :: term()}.
+
+handle_data(Data, #state {
+        buffer = Buffer
+    } = State) ->
+
+    Data2 = <<Buffer/binary, Data/binary>>,
+    {Replies, Buffer2} = parse_replies(Data2, []),
+
+    {ok, Replies, State#state {
+        buffer = Buffer2
+    }}.
+
 -spec handle_timing(Request :: term(), Timing :: [non_neg_integer()]) -> ok.
 
 handle_timing(_Request, [_Pool, _Request, _Response]) ->
     ok.
 
-%% client config
--spec options() -> {ok, Options :: client_options()}.
-
-options() ->
-    {ok, [
-        {port, 123},
-        {reconnect, true},
-        {state, #state {}}
-    ]}.
-
-%% called when the client is terminating
 -spec terminate(State :: term()) -> ok.
 
 terminate(_State) -> ok.
@@ -117,12 +118,6 @@ terminate(_State) -> ok.
     <th>Description</th>
   </theader>
   <tr>
-    <td>connect_options</td>
-    <td>[gen_tcp:connect_option()]</td>
-    <td>[{send_timeout, 50}, {send_timeout_close, true}]</td>
-    <td>options passed to gen_tcp:connect/2</td>
-  </tr>
-  <tr>
     <td>ip</td>
     <td>inet:ip_address() | inet:hostname()</td>
     <td>"127.0.0.1"</td>
@@ -133,6 +128,12 @@ terminate(_State) -> ok.
     <td>inet:port_number()</td>
     <td>undefined</td>
     <td>server port</td>
+  </tr>
+  <tr>
+    <td>protocol</td>
+    <td>shackle_tcp | shackle_udp</td>
+    <td>tcp</td>
+    <td>server protocol</td>
   </tr>
   <tr>
     <td>reconnect</td>
@@ -153,10 +154,10 @@ terminate(_State) -> ok.
     <td>minimum reconnect time</td>
   </tr>
   <tr>
-    <td>state</td>
-    <td>term()</td>
-    <td>undefined</td>
-    <td>client state</td>
+    <td>socket_options</td>
+    <td>[gen_tcp:connect_option() | gen_udp:connect_option()]</td>
+    <td>[]</td>
+    <td>options passed to the socket</td>
   </tr>
 </table>
 
@@ -216,8 +217,6 @@ make elvis
 make eunit
 make xref
 ```
-
-\* *Elvis requires Erlang 17.0 +*
 
 ## Clients
 

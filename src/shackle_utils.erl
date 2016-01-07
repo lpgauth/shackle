@@ -3,15 +3,25 @@
 
 %% public
 -export([
+    cancel_timer/1,
     info_msg/3,
     lookup/3,
     now_diff/1,
+    random/1,
+    random_element/1,
     timeout/2,
     timing/2,
     warning_msg/3
 ]).
 
 %% public
+-spec cancel_timer(erlang:timer_ref() | undefined) -> ok.
+
+cancel_timer(undefined) ->
+    ok;
+cancel_timer(TimerRef) ->
+    erlang:cancel_timer(TimerRef).
+
 -spec info_msg(pool_name(), string(), [term()]) -> ok.
 
 info_msg(Pool, Format, Data) ->
@@ -29,6 +39,19 @@ lookup(Key, List, Default) ->
 
 now_diff(Timestamp) ->
     timer:now_diff(os:timestamp(), Timestamp).
+
+-spec random(pos_integer()) -> non_neg_integer().
+
+random(N) ->
+    erlang:phash2({self(), os:timestamp()}, N).
+
+-spec random_element([term()]) -> term().
+
+random_element([X]) ->
+    X;
+random_element([_|_] = List) ->
+    T = list_to_tuple(List),
+    element(random(tuple_size(T)) + 1, T).
 
 -spec timeout(time(), erlang:timestamp()) -> integer().
 
