@@ -34,7 +34,7 @@ cast(PoolName, Request) ->
     cast(PoolName, Request, self()).
 
 -spec cast(pool_name(), term(), pid()) ->
-    {ok, request_id()} | {error, backlog_full}.
+    {ok, request_id()} | {error, atom()}.
 
 cast(PoolName, Request, Pid) ->
     Timestamp = os:timestamp(),
@@ -49,8 +49,8 @@ cast(PoolName, Request, Pid) ->
                 timestamp = Timestamp
             },
             {ok, RequestId};
-        {error, backlog_full} ->
-            {error, backlog_full}
+        {error, Reason} ->
+            {error, Reason}
     end.
 
 -spec handle_timing(cast()) -> ok.
