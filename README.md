@@ -28,6 +28,7 @@ Non-blocking Erlang client framework
     handle_data/2,
     handle_request/2,
     handle_timing/2,
+    init/0,
     options/0,
     terminate/1
 ]).
@@ -39,8 +40,7 @@ Non-blocking Erlang client framework
 
 %% called after the connection is established
 -callback after_connect(Socket :: inet:socket(), State :: term()) ->
-    {ok, State :: term()} |
-    {error, Reason :: term(), State :: term()}.
+    {ok, State :: term()} | {error, Reason :: term(), State :: term()}.
 
 after_connect(Socket, State) ->
     case gen_tcp:send(Socket, <<"INIT">>) of
@@ -91,14 +91,19 @@ handle_request({Operation, A, B}, #state {
 handle_timing(_Request, [_Pool, _Request, _Response]) ->
     ok.
 
-%% client config
+%% init client state
+-callback init() -> {ok, State :: term()}.
+
+init() ->
+    {ok, #state {}}.
+
+%% client options
 -spec options() -> {ok, Options :: client_options()}.
 
 options() ->
     {ok, [
         {port, 123},
-        {reconnect, true},
-        {state, #state {}}
+        {reconnect, true}
     ]}.
 
 %% called when the client is terminating
@@ -151,12 +156,6 @@ terminate(_State) -> ok.
     <td>pos_integer()</td>
     <td>timer:seconds(1)</td>
     <td>minimum reconnect time</td>
-  </tr>
-  <tr>
-    <td>state</td>
-    <td>term()</td>
-    <td>undefined</td>
-    <td>client state</td>
   </tr>
 </table>
 

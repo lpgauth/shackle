@@ -14,6 +14,8 @@
 
 -callback handle_timing(Request :: term(), Timing :: [non_neg_integer()]) -> ok.
 
+-callback init() -> {ok, State :: term()}.
+
 -callback options() -> {ok, Options :: client_options()}.
 
 -callback terminate(State :: term()) -> ok.

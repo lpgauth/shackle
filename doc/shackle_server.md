@@ -36,7 +36,7 @@ client() = module()
 
 
 <pre><code>
-client_option() = {connect_options, [<a href="gen_tcp.md#type-connect_option">gen_tcp:connect_option()</a>]} | {ip, <a href="inet.md#type-ip_address">inet:ip_address()</a> | <a href="inet.md#type-hostname">inet:hostname()</a>} | {port, <a href="inet.md#type-port_number">inet:port_number()</a>} | {reconnect, boolean()} | {reconnect_time_max, <a href="#type-time">time()</a>} | {reconnect_time_min, <a href="#type-time">time()</a>} | {state, term()}
+client_option() = {connect_options, [<a href="gen_tcp.md#type-connect_option">gen_tcp:connect_option()</a>]} | {ip, <a href="inet.md#type-ip_address">inet:ip_address()</a> | <a href="inet.md#type-hostname">inet:hostname()</a>} | {port, <a href="inet.md#type-port_number">inet:port_number()</a>} | {reconnect, boolean()} | {reconnect_time_max, <a href="#type-time">time()</a>} | {reconnect_time_min, <a href="#type-time">time()</a>}
 </code></pre>
 
 
@@ -112,6 +112,16 @@ server_name() = atom()
 
 
 
+### <a name="type-state">state()</a> ###
+
+
+<pre><code>
+state() = #state{client = undefined | <a href="#type-client">client()</a>, client_state = undefined | term(), connect_options = undefined | [<a href="gen_tcp.md#type-connect_option">gen_tcp:connect_option()</a>], ip = undefined | <a href="inet.md#type-ip_address">inet:ip_address()</a> | <a href="inet.md#type-hostname">inet:hostname()</a>, name = undefined | <a href="#type-server_name">server_name()</a>, parent = undefined | pid(), pool_name = undefined | <a href="#type-pool_name">pool_name()</a>, port = undefined | <a href="inet.md#type-port_number">inet:port_number()</a>, reconnect = undefined | boolean(), reconnect_time_max = undefined | <a href="#type-time">time()</a>, reconnect_time_min = undefined | <a href="#type-time">time()</a>, reconnect_time = undefined | <a href="#type-time">time()</a>, socket = undefined | <a href="inet.md#type-socket">inet:socket()</a>, timer_ref = undefined | <a href="timer.md#type-ref">timer:ref()</a>}
+</code></pre>
+
+
+
+
 ### <a name="type-time">time()</a> ###
 
 
@@ -154,7 +164,7 @@ start_link(Name::<a href="#type-server_name">server_name()</a>, PoolName::<a hre
 ### system_code_change/4 ###
 
 <pre><code>
-system_code_change(State::#state{client = undefined | <a href="#type-client">client()</a>, client_state = undefined | term(), connect_options = undefined | [<a href="gen_tcp.md#type-connect_option">gen_tcp:connect_option()</a>], ip = undefined | <a href="inet.md#type-ip_address">inet:ip_address()</a> | <a href="inet.md#type-hostname">inet:hostname()</a>, name = undefined | <a href="#type-server_name">server_name()</a>, parent = undefined | pid(), pool_name = undefined | <a href="#type-pool_name">pool_name()</a>, port = undefined | <a href="inet.md#type-port_number">inet:port_number()</a>, reconnect = undefined | boolean(), reconnect_time_max = undefined | <a href="#type-time">time()</a>, reconnect_time_min = undefined | <a href="#type-time">time()</a>, reconnect_time = undefined | <a href="#type-time">time()</a>, socket = undefined | <a href="inet.md#type-socket">inet:socket()</a>, timer_ref = undefined | <a href="timer.md#type-ref">timer:ref()</a>}, Module::module(), OldVsn::undefined | term(), Extra::term()) -&gt; {ok, #state{client = undefined | <a href="#type-client">client()</a>, client_state = undefined | term(), connect_options = undefined | [<a href="gen_tcp.md#type-connect_option">gen_tcp:connect_option()</a>], ip = undefined | <a href="inet.md#type-ip_address">inet:ip_address()</a> | <a href="inet.md#type-hostname">inet:hostname()</a>, name = undefined | <a href="#type-server_name">server_name()</a>, parent = undefined | pid(), pool_name = undefined | <a href="#type-pool_name">pool_name()</a>, port = undefined | <a href="inet.md#type-port_number">inet:port_number()</a>, reconnect = undefined | boolean(), reconnect_time_max = undefined | <a href="#type-time">time()</a>, reconnect_time_min = undefined | <a href="#type-time">time()</a>, reconnect_time = undefined | <a href="#type-time">time()</a>, socket = undefined | <a href="inet.md#type-socket">inet:socket()</a>, timer_ref = undefined | <a href="timer.md#type-ref">timer:ref()</a>}}
+system_code_change(State::<a href="#type-state">state()</a>, Module::module(), OldVsn::undefined | term(), Extra::term()) -&gt; {ok, <a href="#type-state">state()</a>}
 </code></pre>
 <br />
 
@@ -163,7 +173,7 @@ system_code_change(State::#state{client = undefined | <a href="#type-client">cli
 ### system_continue/3 ###
 
 <pre><code>
-system_continue(Parent::pid(), Debug::[], State::#state{client = undefined | <a href="#type-client">client()</a>, client_state = undefined | term(), connect_options = undefined | [<a href="gen_tcp.md#type-connect_option">gen_tcp:connect_option()</a>], ip = undefined | <a href="inet.md#type-ip_address">inet:ip_address()</a> | <a href="inet.md#type-hostname">inet:hostname()</a>, name = undefined | <a href="#type-server_name">server_name()</a>, parent = undefined | pid(), pool_name = undefined | <a href="#type-pool_name">pool_name()</a>, port = undefined | <a href="inet.md#type-port_number">inet:port_number()</a>, reconnect = undefined | boolean(), reconnect_time_max = undefined | <a href="#type-time">time()</a>, reconnect_time_min = undefined | <a href="#type-time">time()</a>, reconnect_time = undefined | <a href="#type-time">time()</a>, socket = undefined | <a href="inet.md#type-socket">inet:socket()</a>, timer_ref = undefined | <a href="timer.md#type-ref">timer:ref()</a>}) -&gt; ok
+system_continue(Parent::pid(), Debug::[], State::<a href="#type-state">state()</a>) -&gt; ok
 </code></pre>
 <br />
 
@@ -172,7 +182,7 @@ system_continue(Parent::pid(), Debug::[], State::#state{client = undefined | <a 
 ### system_terminate/4 ###
 
 <pre><code>
-system_terminate(Reason::term(), Parent::pid(), Debug::[], State::#state{client = undefined | <a href="#type-client">client()</a>, client_state = undefined | term(), connect_options = undefined | [<a href="gen_tcp.md#type-connect_option">gen_tcp:connect_option()</a>], ip = undefined | <a href="inet.md#type-ip_address">inet:ip_address()</a> | <a href="inet.md#type-hostname">inet:hostname()</a>, name = undefined | <a href="#type-server_name">server_name()</a>, parent = undefined | pid(), pool_name = undefined | <a href="#type-pool_name">pool_name()</a>, port = undefined | <a href="inet.md#type-port_number">inet:port_number()</a>, reconnect = undefined | boolean(), reconnect_time_max = undefined | <a href="#type-time">time()</a>, reconnect_time_min = undefined | <a href="#type-time">time()</a>, reconnect_time = undefined | <a href="#type-time">time()</a>, socket = undefined | <a href="inet.md#type-socket">inet:socket()</a>, timer_ref = undefined | <a href="timer.md#type-ref">timer:ref()</a>}) -&gt; none()
+system_terminate(Reason::term(), Parent::pid(), Debug::[], State::<a href="#type-state">state()</a>) -&gt; none()
 </code></pre>
 <br />
 

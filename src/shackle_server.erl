@@ -97,11 +97,21 @@ cancel_timer(undefined) ->
 cancel_timer(TimerRef) ->
     erlang:cancel_timer(TimerRef).
 
-reconnect_time(#state {reconnect = false} = State) ->
+reconnect(#state {client_state = undefined} = State) ->
+    reconnect_timer(State);
+reconnect(#state {
+        client = Client,
+        client_state = ClientState
+    } = State) ->
+
+    ok = Client:terminate(ClientState),
+    reconnect_timer(State).
+
+reconnect_timer(#state {reconnect = false} = State) ->
     {ok, State#state {
         socket = undefined
     }};
-reconnect_time(#state {
+reconnect_timer(#state {
         reconnect_time_max = TimeMax,
         reconnect_time = Time
     } = State) ->
@@ -130,9 +140,7 @@ handle_msg(?MSG_CONNECT, #state {
         {packet, raw}
     ] ++ ConnectOptions,
 
-    {ok, ClientOptions} = Client:options(),
-    ClientState = ?LOOKUP(state, ClientOptions),
-
+    {ok, ClientState} = Client:init(),
     case gen_tcp:connect(Ip, Port, Options) of
         {ok, Socket} ->
             case Client:after_connect(Socket, ClientState) of
@@ -147,15 +155,16 @@ handle_msg(?MSG_CONNECT, #state {
                 {error, Reason, ClientState2} ->
                     shackle_utils:warning_msg(PoolName,
                         "after connect error: ~p", [Reason]),
-
-                    reconnect_time(State#state {
+                    reconnect(State#state {
                         client_state = ClientState2
                     })
             end;
         {error, Reason} ->
             shackle_utils:warning_msg(PoolName,
                 "tcp connect error: ~p", [Reason]),
-            reconnect_time(State)
+            reconnect(State#state {
+                client_state = ClientState
+            })
     end;
 handle_msg(#cast {} = Cast, #state {
         socket = undefined,
@@ -260,7 +269,7 @@ reply_all(Name, Reply) ->
 
 tcp_close(#state {name = Name} = State) ->
     reply_all(Name, {error, tcp_closed}),
-    reconnect_time(State).
+    reconnect(State).
 
 terminate(Reason, #state {
         client = Client,
