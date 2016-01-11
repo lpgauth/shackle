@@ -61,6 +61,8 @@ timeout(Timeout, Timestamp) ->
 
 -spec timing(erlang:timestamp(), [non_neg_integer()]) -> [non_neg_integer()].
 
+timing(undefined, []) ->
+    [];
 timing(Timestamp, []) ->
     [now_diff(Timestamp)];
 timing(Timestamp, [H | _] = Timing) ->

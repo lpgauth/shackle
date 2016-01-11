@@ -28,7 +28,7 @@ clear(ServerName) ->
     Match = {{{ServerName, '_'}, '_'}, '_'},
     case match_take(Match) of
         [] ->
-            {error, not_found};
+            [];
         Objects ->
             [Cast || {_, Cast} <- Objects]
     end.
