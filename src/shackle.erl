@@ -7,9 +7,9 @@
     call/3,
     cast/2,
     cast/3,
+    cast/4,
     handle_timing/1,
-    receive_response/1,
-    receive_response/2
+    receive_response/1
 ]).
 
 %% public
@@ -21,9 +21,9 @@ call(PoolName, Request) ->
 -spec call(atom(), term(), timeout()) -> term() | {error, term()}.
 
 call(PoolName, Request, Timeout) ->
-    case cast(PoolName, Request) of
+    case cast(PoolName, Request, self(), Timeout) of
         {ok, RequestId} ->
-            receive_response(RequestId, Timeout);
+            receive_response(RequestId);
         {error, Reason} ->
             {error, Reason}
     end.
@@ -33,19 +33,28 @@ call(PoolName, Request, Timeout) ->
 cast(PoolName, Request) ->
     cast(PoolName, Request, self()).
 
--spec cast(pool_name(), term(), pid()) ->
+-spec cast(pool_name(), term(), pid() | undefined) ->
     {ok, request_id()} | {error, backlog_full}.
 
 cast(PoolName, Request, Pid) ->
+    cast(PoolName, Request, Pid, ?DEFAULT_TIMEOUT).
+
+-spec cast(pool_name(), term(), pid() | undefined, timeout()) ->
+    {ok, request_id()} | {error, backlog_full}.
+
+cast(PoolName, Request, Pid, Timeout) ->
     Timestamp = os:timestamp(),
     case shackle_pool:server(PoolName) of
         {ok, Client, Server} ->
             RequestId = {Server, make_ref()},
+            TimerRef = new_timer(Timeout, RequestId, Pid),
             Server ! #cast {
                 client = Client,
                 pid = Pid,
                 request = Request,
                 request_id = RequestId,
+                timeout = Timeout,
+                timer_ref = TimerRef,
                 timestamp = Timestamp
             },
             {ok, RequestId};
@@ -70,18 +79,15 @@ handle_timing(#cast {
     term() | {error, term()}.
 
 receive_response(RequestId) ->
-    receive_response(RequestId, ?DEFAULT_TIMEOUT).
-
--spec receive_response(request_id(), timeout()) ->
-    term() | {error, term()}.
-
-receive_response(RequestId, Timeout) ->
     receive
         #cast {request_id = RequestId, reply = Reply} = Cast ->
             handle_timing(Cast),
             Reply
-    after Timeout ->
-        shackle_queue:remove(RequestId),
-        shackle_backlog:decrement(RequestId),
-        {error, timeout}
     end.
+
+%% private
+new_timer(undefined, _RequestId, _Pid) ->
+    undefined;
+new_timer(Timeout, {Server, _} = RequestId, Pid) ->
+    Msg = {timeout, RequestId, Pid},
+    erlang:send_after(Timeout, Server, Msg).

@@ -1,25 +1,40 @@
+%% TODO: benchmark ETS read_concurrency / write_concurrency
+
 -module(shackle_queue).
 -include("shackle_internal.hrl").
 
 %% internal
 -export([
-    all/1,
-    in/3,
+    add/2,
+    clear/1,
     init/0,
-    out/2,
-    remove/1
+    remove/1,
+    remove/2
 ]).
 
 %% internal
--spec all(server_name()) -> [cast()].
+-spec add(external_request_id(), cast()) ->
+    ok.
 
-all(ServerName) ->
-    Match = {{ServerName, '_'}, '_'},
-    Matches = ets:match_object(?ETS_TABLE_QUEUE, Match),
-    ets:match_delete(?ETS_TABLE_QUEUE, Match),
-    [Request || {_, Request} <- Matches].
+add(ExtRequestId, #cast {request_id = RequestId} = Cast) ->
+    Object = {{RequestId, ExtRequestId}, Cast},
+    ets:insert(?ETS_TABLE_QUEUE, Object),
+    ok.
 
--spec init() -> ?ETS_TABLE_QUEUE.
+-spec clear(server_name()) ->
+    [cast()].
+
+clear(ServerName) ->
+    Match = {{{ServerName, '_'}, '_'}, '_'},
+    case match_take(Match) of
+        [] ->
+            {error, not_found};
+        Objects ->
+            [Cast || {_, Cast} <- Objects]
+    end.
+
+-spec init() ->
+    ?ETS_TABLE_QUEUE.
 
 init() ->
     ets:new(?ETS_TABLE_QUEUE, [
@@ -29,28 +44,36 @@ init() ->
         {write_concurrency, true}
     ]).
 
--spec in(server_name(), external_request_id(), cast()) -> ok.
-
-in(ServerName, RequestId, Request) ->
-    ets:insert(?ETS_TABLE_QUEUE, {{ServerName, RequestId}, Request}),
-    ok.
-
--spec out(atom(), external_request_id()) -> {ok, cast()} | {error, not_found}.
-
-out(ServerName, RequestId) ->
-    Key = {ServerName, RequestId},
-    try
-        % TODO: use ets:take/2
-        Request = ets:lookup_element(?ETS_TABLE_QUEUE, Key, 2),
-        ets:delete(?ETS_TABLE_QUEUE, Key),
-        {ok, Request}
-    catch
-        error:badarg ->
-            {error, not_found}
-    end.
-
--spec remove(external_request_id()) -> true.
+-spec remove(request_id()) ->
+    {ok, cast()} | {error, not_found}.
 
 remove(RequestId) ->
-    Match = {'_', {cast, RequestId, '_', '_', '_', '_', '_', '_'}},
-    ets:match_delete(?ETS_TABLE_QUEUE, Match).
+    Match = {{RequestId, '_'}, '_'},
+    case match_take(Match) of
+        [] ->
+            {error, not_found};
+        [{_, Cast}] ->
+            {ok, Cast}
+    end.
+
+-spec remove(server_name(), external_request_id()) ->
+    {ok, cast()} | {error, not_found}.
+
+remove(ServerName, ExtRequestId) ->
+    Match = {{{ServerName, '_'}, ExtRequestId}, '_'},
+    case match_take(Match) of
+        [] ->
+            {error, not_found};
+        [{_, Cast}] ->
+            {ok, Cast}
+    end.
+
+%% private
+match_take(Match) ->
+    case ets:match_object(?ETS_TABLE_QUEUE, Match) of
+        [] ->
+            [];
+        Objects ->
+            ets:match_delete(?ETS_TABLE_QUEUE, Match),
+            Objects
+    end.

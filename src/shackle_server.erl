@@ -1,5 +1,5 @@
-%% TODO: benchmark active once
-%% TODO: benchmark gen_tcp / gen_udp buffer option
+%% TODO: benchmark inet active once
+%% TODO: benchmark inet buffer sizes
 
 -module(shackle_server).
 -include("shackle_internal.hrl").
@@ -104,6 +104,11 @@ system_terminate(Reason, _Parent, _Debug, _State) ->
     exit(Reason).
 
 %% private
+cancel_timer(undefined) ->
+    ok;
+cancel_timer(TimerRef) ->
+    erlang:cancel_timer(TimerRef).
+
 close(#state {name = Name} = State) ->
     reply_all(Name, {error, socket_closed}),
     reconnect(State).
@@ -162,7 +167,6 @@ handle_msg(#cast {
         header = Header,
         pool_name = PoolName,
         protocol = Protocol,
-        name = Name,
         socket = Socket
     } = State) ->
 
@@ -171,7 +175,7 @@ handle_msg(#cast {
 
     case Protocol:send(Socket, Header, Data) of
         ok ->
-            shackle_queue:in(Name, ExtRequestId, Cast#cast {
+            shackle_queue:add(ExtRequestId, Cast#cast {
                 timing = shackle_utils:timing(Timestamp, Timing)
             }),
 
@@ -202,6 +206,18 @@ handle_msg({tcp_error, Socket, Reason}, #state {
     shackle_utils:warning_msg(PoolName, "tcp connection error: ~p", [Reason]),
     shackle_tcp:close(Socket),
     close(State);
+handle_msg({timeout, RequestId, Pid}, #state {name = Name} = State) ->
+    Reply = {error, timeout},
+    case shackle_queue:remove(RequestId) of
+        {ok, Cast} ->
+            reply(Name, Reply, Cast);
+        {error, not_found} ->
+            reply(Name, Reply, #cast {
+                request_id = RequestId,
+                pid = Pid
+            })
+    end,
+    {ok, State};
 handle_msg({udp, _Socket, _Ip, _InPortNo, Data}, State) ->
     handle_msg_data(Data, State).
 
@@ -231,12 +247,14 @@ loop(#state {parent = Parent} = State) ->
 process_replies([], _State) ->
     ok;
 process_replies([{ExtRequestId, Reply} | T], #state {name = Name} = State) ->
-    case shackle_queue:out(Name, ExtRequestId) of
+    case shackle_queue:remove(Name, ExtRequestId) of
         {ok, #cast {
+            timer_ref = TimerRef,
             timestamp = Timestamp,
             timing = Timing
         } = Cast} ->
 
+            cancel_timer(TimerRef),
             reply(Name, Reply, Cast#cast {
                 timing = shackle_utils:timing(Timestamp, Timing)
             });
@@ -273,6 +291,8 @@ reconnect_timer(#state {
         timer_ref = TimerRef
     }}.
 
+reply(Name, _Reply, #cast {pid = undefined}) ->
+    shackle_backlog:decrement(Name);
 reply(Name, Reply, #cast {pid = Pid} = Cast) ->
     shackle_backlog:decrement(Name),
     Pid ! Cast#cast {
@@ -280,7 +300,7 @@ reply(Name, Reply, #cast {pid = Pid} = Cast) ->
     }.
 
 reply_all(Name, Reply) ->
-    Requests = shackle_queue:all(Name),
+    Requests = shackle_queue:clear(Name),
     [reply(Name, Reply, Request) || Request <- Requests].
 
 terminate(Reason, #state {

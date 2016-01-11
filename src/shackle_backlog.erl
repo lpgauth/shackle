@@ -1,6 +1,7 @@
+%% TODO: benchmark ETS read_concurrency / write_concurrency
+
 -module(shackle_backlog).
 -include("shackle_internal.hrl").
-
 
 %% internal
 -export([
@@ -22,7 +23,7 @@ check(ServerName, BacklogSize) ->
             true
     end.
 
--spec decrement(server_name() | request_id()) -> non_neg_integer().
+-spec decrement(request_id() | server_name()) -> non_neg_integer().
 
 decrement({ServerName, _}) ->
     decrement(ServerName);
