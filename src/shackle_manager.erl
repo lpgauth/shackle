@@ -60,19 +60,16 @@ system_terminate(Reason, _Parent, _Debug, _State) ->
 handle_msg({timeout, {ServerName, _} = RequestId, Pid},
         #state {client = Client} = State) ->
 
-    shackle_backlog:decrement(ServerName),
+    Reply = {error, timeout},
     case shackle_queue:remove(RequestId) of
         {ok, Cast} ->
-            Pid ! Cast#cast {
-                reply = {error, timeout}
-            };
+            reply(ServerName, Reply, Cast);
         {error, not_found} ->
-            Pid ! #cast {
+            reply(ServerName, Reply, #cast {
                 client = Client,
                 pid = Pid,
-                reply = {error, timeout},
                 request_id = RequestId
-            }
+            })
     end,
     {ok, State}.
 
@@ -86,6 +83,12 @@ loop(#state {parent = Parent} = State) ->
             {ok, State2} = handle_msg(Msg, State),
             loop(State2)
     end.
+
+reply(ServerName, Reply, #cast {pid = Pid} = Cast) ->
+    shackle_backlog:decrement(ServerName),
+    Pid ! Cast#cast {
+        reply = Reply
+    }.
 
 terminate(Reason, _State) ->
     exit(Reason).
