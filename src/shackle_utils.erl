@@ -9,6 +9,7 @@
     now_diff/1,
     random/1,
     random_element/1,
+    send/2,
     timeout/2,
     timing/2,
     warning_msg/3
@@ -52,6 +53,13 @@ random_element([X]) ->
 random_element([_|_] = List) ->
     T = list_to_tuple(List),
     element(random(tuple_size(T)) + 1, T).
+
+-spec send(undefined | pid(), term()) -> term().
+
+send(undefined, _Msg) ->
+    ok;
+send(Pid, Msg) ->
+    erlang:send(Pid, Msg).
 
 -spec timeout(time(), erlang:timestamp()) -> integer().
 

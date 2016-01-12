@@ -237,12 +237,10 @@ process_replies([], _State) ->
 process_replies([{ExtRequestId, Reply} | T], #state {name = Name} = State) ->
     case shackle_queue:remove(Name, ExtRequestId) of
         {ok, #cast {
-            timer_ref = TimerRef,
             timestamp = Timestamp,
             timing = Timing
         } = Cast} ->
 
-            cancel_timer(TimerRef),
             reply(Name, Reply, Cast#cast {
                 timing = shackle_utils:timing(Timestamp, Timing)
             });
@@ -279,13 +277,16 @@ reconnect_timer(#state {
         timer_ref = TimerRef
     }}.
 
-reply(Name, _Reply, #cast {pid = undefined}) ->
-    shackle_backlog:decrement(Name);
-reply(Name, Reply, #cast {pid = Pid} = Cast) ->
+reply(Name, Reply, #cast {
+        pid = Pid,
+        timer_ref = TimerRef
+    } = Cast) ->
+
+    cancel_timer(TimerRef),
     shackle_backlog:decrement(Name),
-    Pid ! Cast#cast {
+    shackle_utils:send(Pid, Cast#cast {
         reply = Reply
-    }.
+    }).
 
 reply_all(Name, Reply) ->
     Requests = shackle_queue:clear(Name),

@@ -86,9 +86,9 @@ loop(#state {parent = Parent} = State) ->
 
 reply(ServerName, Reply, #cast {pid = Pid} = Cast) ->
     shackle_backlog:decrement(ServerName),
-    Pid ! Cast#cast {
+    shackle_utils:send(Pid, Cast#cast {
         reply = Reply
-    }.
+    }).
 
 terminate(Reason, _State) ->
     exit(Reason).
