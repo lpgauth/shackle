@@ -25,6 +25,7 @@
 
 -type client_options() :: [client_option()].
 -type external_request_id() :: term().
+-type manager_name() :: atom().
 -type pool_name() :: atom().
 -type pool_option() :: {backlog_size, backlog_size()} |
                        {pool_size, pool_size()} |

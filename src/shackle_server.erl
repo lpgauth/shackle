@@ -206,23 +206,6 @@ handle_msg({tcp_error, Socket, Reason}, #state {
     shackle_utils:warning_msg(PoolName, "tcp connection error: ~p", [Reason]),
     shackle_tcp:close(Socket),
     close(State);
-handle_msg({timeout, RequestId, Pid}, #state {
-        client = Client,
-        name = Name
-    } = State) ->
-
-    Reply = {error, timeout},
-    case shackle_queue:remove(RequestId) of
-        {ok, Cast} ->
-            reply(Name, Reply, Cast);
-        {error, not_found} ->
-            reply(Name, Reply, #cast {
-                client = Client,
-                request_id = RequestId,
-                pid = Pid
-            })
-    end,
-    {ok, State};
 handle_msg({udp, _Socket, _Ip, _InPortNo, Data}, State) ->
     handle_msg_data(Data, State).
 

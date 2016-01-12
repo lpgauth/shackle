@@ -4,6 +4,7 @@
 -define(APP, shackle).
 -define(LOOKUP(Key, List), ?LOOKUP(Key, List, undefined)).
 -define(LOOKUP(Key, List, Default), shackle_utils:lookup(Key, List, Default)).
+-define(MANAGER, shackle_manager).
 -define(MSG_CONNECT, connect).
 -define(SERVER, shackle_server).
 -define(SUPERVISOR, shackle_sup).

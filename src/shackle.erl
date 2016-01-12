@@ -45,9 +45,9 @@ cast(PoolName, Request, Pid) ->
 cast(PoolName, Request, Pid, Timeout) ->
     Timestamp = os:timestamp(),
     case shackle_pool:server(PoolName) of
-        {ok, Client, Server} ->
+        {ok, Client, Server, Manager} ->
             RequestId = {Server, make_ref()},
-            TimerRef = new_timer(Timeout, RequestId, Pid),
+            TimerRef = timeout(Manager, RequestId, Pid, Timeout),
             Server ! #cast {
                 client = Client,
                 pid = Pid,
@@ -86,8 +86,8 @@ receive_response(RequestId) ->
     end.
 
 %% private
-new_timer(undefined, _RequestId, _Pid) ->
+timeout(_Manager, _RequestId, _Pid, undefined) ->
     undefined;
-new_timer(Timeout, {Server, _} = RequestId, Pid) ->
+timeout(Manager, RequestId, Pid, Timeout) ->
     Msg = {timeout, RequestId, Pid},
-    erlang:send_after(Timeout, Server, Msg).
+    erlang:send_after(Timeout, Manager, Msg).
