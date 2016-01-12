@@ -245,6 +245,7 @@ process_replies([{ExtRequestId, Reply} | T], #state {name = Name} = State) ->
                 timing = shackle_utils:timing(Timestamp, Timing)
             });
         {error, not_found} ->
+            shackle_backlog:decrement(Name),
             ok
     end,
     process_replies(T, State).
