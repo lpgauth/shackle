@@ -16,43 +16,46 @@
 -spec add(external_request_id(), cast()) ->
     ok.
 
-add(ExtRequestId, #cast {request_id = RequestId} = Cast) ->
-    Object = {{RequestId, ExtRequestId}, Cast},
+add(ExtRequestId, #cast {
+        request_id = {ServerName, _} = RequestId
+    } = Cast) ->
+
+    Object = {{ServerName, ExtRequestId}, Cast},
     ets:insert(?ETS_TABLE_QUEUE, Object),
+    Object2 = {RequestId, ExtRequestId},
+    ets:insert(?ETS_TABLE_QUEUE_REVERSE, Object2),
     ok.
 
 -spec clear(server_name()) ->
     [cast()].
 
 clear(ServerName) ->
-    Match = {{{ServerName, '_'}, '_'}, '_'},
-    case match_take(Match) of
+    Match = {{ServerName, '_'}, '_'},
+    case ets_match_take(?ETS_TABLE_QUEUE, Match) of
         [] ->
             [];
         Objects ->
+            ets:match_delete(?ETS_TABLE_QUEUE_REVERSE, Match),
             [Cast || {_, Cast} <- Objects]
     end.
 
 -spec init() ->
-    ?ETS_TABLE_QUEUE.
+    ok.
 
 init() ->
-    ets:new(?ETS_TABLE_QUEUE, [
-        named_table,
-        public,
-        {read_concurrency, true},
-        {write_concurrency, true}
-    ]).
+    ets_new(?ETS_TABLE_QUEUE),
+    ets_new(?ETS_TABLE_QUEUE_REVERSE),
+    ok.
 
 -spec remove(request_id()) ->
     {ok, cast()} | {error, not_found}.
 
-remove(RequestId) ->
-    Match = {{RequestId, '_'}, '_'},
-    case match_take(Match) of
+remove({ServerName, _} = RequestId) ->
+    case ets:take(?ETS_TABLE_QUEUE_REVERSE, RequestId) of
         [] ->
             {error, not_found};
-        [{_, Cast}] ->
+        [{_, ExtRequestId}] ->
+            [{_, Cast}] = ets:take(?ETS_TABLE_QUEUE, {ServerName, ExtRequestId}),
             {ok, Cast}
     end.
 
@@ -60,20 +63,28 @@ remove(RequestId) ->
     {ok, cast()} | {error, not_found}.
 
 remove(ServerName, ExtRequestId) ->
-    Match = {{{ServerName, '_'}, ExtRequestId}, '_'},
-    case match_take(Match) of
+    case ets:take(?ETS_TABLE_QUEUE, {ServerName, ExtRequestId}) of
         [] ->
             {error, not_found};
-        [{_, Cast}] ->
+        [{_, #cast {request_id = RequestId} = Cast}] ->
+            ets:delete(?ETS_TABLE_QUEUE_REVERSE, RequestId),
             {ok, Cast}
     end.
 
 %% private
-match_take(Match) ->
-    case ets:match_object(?ETS_TABLE_QUEUE, Match) of
+ets_match_take(Tid, Match) ->
+    case ets:match_object(Tid, Match) of
         [] ->
             [];
         Objects ->
-            ets:match_delete(?ETS_TABLE_QUEUE, Match),
+            ets:match_delete(Tid, Match),
             Objects
     end.
+
+ets_new(Tid) ->
+    ets:new(Tid, [
+        named_table,
+        public,
+        {read_concurrency, true},
+        {write_concurrency, true}
+    ]).
