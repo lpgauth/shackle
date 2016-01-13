@@ -159,7 +159,6 @@ handle_msg(#cast {
         header = Header,
         pool_name = PoolName,
         protocol = Protocol,
-        name = Name,
         socket = Socket
     } = State) ->
 
@@ -168,7 +167,7 @@ handle_msg(#cast {
 
     case Protocol:send(Socket, Header, Data) of
         ok ->
-            shackle_queue:in(Name, ExtRequestId, Cast#cast {
+            shackle_queue:add(ExtRequestId, Cast#cast {
                 timing = shackle_utils:timing(Timestamp, Timing)
             }),
 
@@ -228,7 +227,7 @@ loop(#state {parent = Parent} = State) ->
 process_replies([], _State) ->
     ok;
 process_replies([{ExtRequestId, Reply} | T], #state {name = Name} = State) ->
-    case shackle_queue:out(Name, ExtRequestId) of
+    case shackle_queue:remove(Name, ExtRequestId) of
         {ok, #cast {
             timestamp = Timestamp,
             timing = Timing
@@ -277,7 +276,7 @@ reply(Name, Reply, #cast {pid = Pid} = Cast) ->
     }.
 
 reply_all(Name, Reply) ->
-    Requests = shackle_queue:all(Name),
+    Requests = shackle_queue:clear(Name),
     [reply(Name, Reply, Request) || Request <- Requests].
 
 terminate(Reason, #state {
