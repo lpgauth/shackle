@@ -269,6 +269,8 @@ reconnect_timer(#state {
         timer_ref = TimerRef
     }}.
 
+reply(Name, _Reply, #cast {pid = undefined}) ->
+    shackle_backlog:decrement(Name);
 reply(Name, Reply, #cast {pid = Pid} = Cast) ->
     shackle_backlog:decrement(Name),
     Pid ! Cast#cast {

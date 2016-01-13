@@ -2,8 +2,8 @@
 -record(cast, {
     request_id     :: request_id(),
     client         :: client(),
-    pid            :: pid(),
-    reply          :: term(),
+    pid            :: undefined | pid(),
+    reply          :: undefined | term(),
     request        :: term(),
     timestamp      :: erlang:timestamp(),
     timing    = [] :: [pos_integer()]
