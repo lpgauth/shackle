@@ -10,7 +10,7 @@
 }).
 
 %% types
--type backlog_size() :: pos_integer().
+-type backlog_size() :: pos_integer() | infinity.
 -type cast() :: #cast {}.
 -type client() :: module().
 -type client_option() :: {ip, inet:ip_address() | inet:hostname()} |

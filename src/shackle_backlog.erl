@@ -14,6 +14,8 @@
 %% internal
 -spec check(server_name(), backlog_size()) -> boolean().
 
+check(_ServerName, infinity) ->
+    true;
 check(ServerName, BacklogSize) ->
     case increment(ServerName, BacklogSize) of
         [BacklogSize, BacklogSize] ->
