@@ -65,7 +65,7 @@ init() ->
 setup(Socket, State) ->
     case gen_udp:send(Socket, "127.0.0.1", ?PORT, <<"INIT">>) of
         ok ->
-            case gen_udp:recv(Socket, 0) of
+            case gen_udp:recv(Socket, 0, ?TIMEOUT) of
                 {ok, {_, ?PORT, <<"OK">>}} ->
                     {ok, State};
                 {error, Reason} ->

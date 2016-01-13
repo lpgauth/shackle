@@ -64,7 +64,7 @@ init() ->
 setup(Socket, State) ->
     case gen_tcp:send(Socket, <<"INIT">>) of
         ok ->
-            case gen_tcp:recv(Socket, 0) of
+            case gen_tcp:recv(Socket, 0, ?TIMEOUT) of
                 {ok, <<"OK">>} ->
                     {ok, State};
                 {error, Reason} ->
