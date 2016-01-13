@@ -57,15 +57,15 @@ system_terminate(Reason, _Parent, _Debug, _State) ->
     exit(Reason).
 
 %% private
-handle_msg({timeout, {ServerName, _} = RequestId, Pid},
+handle_msg({timeout, RequestId, Pid},
         #state {client = Client} = State) ->
 
     Reply = {error, timeout},
     case shackle_queue:remove(RequestId) of
         {ok, Cast} ->
-            reply(ServerName, Reply, Cast);
+            reply(Reply, Cast);
         {error, not_found} ->
-            reply(ServerName, Reply, #cast {
+            reply(Reply, #cast {
                 client = Client,
                 pid = Pid,
                 request_id = RequestId
@@ -84,7 +84,7 @@ loop(#state {parent = Parent} = State) ->
             loop(State2)
     end.
 
-reply(ServerName, Reply, #cast {pid = Pid} = Cast) ->
+reply(Reply, #cast {pid = Pid} = Cast) ->
     shackle_utils:send(Pid, Cast#cast {
         reply = Reply
     }).
