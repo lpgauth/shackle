@@ -1,4 +1,6 @@
 .eunit
 doc/README.md
 erl_crash.dump
+fprofx.analysis
+fprofx.cgrind
 _build
