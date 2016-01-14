@@ -37,6 +37,10 @@ profile:
 	@_build/test/lib/fprofx/erlgrindx -p fprofx.analysis
 	@qcachegrind fprofx.cgrind
 
+shell:
+	@echo "Running rebar3 shell..."
+	@$(REBAR) as test shell
+
 test: dialyzer elvis eunit xref
 
 xref:
