@@ -57,9 +57,12 @@ remove({ServerName, _} = RequestId) ->
         [] ->
             {error, not_found};
         [{_, ExtRequestId}] ->
-            Key = {ServerName, ExtRequestId},
-            [{_, Cast}] = ets:take(?ETS_TABLE_QUEUE, Key),
-            {ok, Cast}
+            case ets:take(?ETS_TABLE_QUEUE, {ServerName, ExtRequestId}) of
+                [] ->
+                    {error, not_found};
+                [{_, Cast}] ->
+                    {ok, Cast}
+            end
     end.
 
 -spec remove(server_name(), external_request_id()) ->
