@@ -7,7 +7,6 @@
     call/3,
     cast/2,
     cast/3,
-    handle_timing/1,
     receive_response/1,
     receive_response/2
 ]).
@@ -53,19 +52,6 @@ cast(PoolName, Request, Pid) ->
             {error, Reason}
     end.
 
--spec handle_timing(cast()) -> ok.
-
-handle_timing(#cast {
-        client = Client,
-        request = Request,
-        timestamp = Timestamp,
-        timing = Timing
-    }) ->
-
-    Timing2 = shackle_utils:timing(Timestamp, Timing),
-    Timing3 = lists:reverse(Timing2),
-    Client:handle_timing(Request, Timing3).
-
 -spec receive_response(request_id()) ->
     term() | {error, term()}.
 
@@ -78,7 +64,6 @@ receive_response(RequestId) ->
 receive_response(RequestId, Timeout) ->
     receive
         #cast {request_id = RequestId, reply = Reply} = Cast ->
-            handle_timing(Cast),
             Reply
     after Timeout ->
         shackle_queue:remove(RequestId),

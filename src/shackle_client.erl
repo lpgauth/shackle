@@ -20,8 +20,5 @@
 -callback handle_data(Data :: binary(), State :: term()) ->
     {ok, [Response :: response()], State :: term()}.
 
-% request timing information
--callback handle_timing(Request :: term(), Timing :: [non_neg_integer()]) -> ok.
-
 % terminate state
 -callback terminate(State :: term()) -> ok.

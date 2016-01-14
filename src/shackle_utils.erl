@@ -6,11 +6,9 @@
     cancel_timer/1,
     info_msg/3,
     lookup/3,
-    now_diff/1,
     random/1,
     random_element/1,
     timeout/2,
-    timing/2,
     warning_msg/3
 ]).
 
@@ -35,11 +33,6 @@ lookup(Key, List, Default) ->
         {_, Value} -> Value
     end.
 
--spec now_diff(erlang:timestamp()) -> non_neg_integer().
-
-now_diff(Timestamp) ->
-    timer:now_diff(os:timestamp(), Timestamp).
-
 -spec random(pos_integer()) -> non_neg_integer().
 
 random(N) ->
@@ -58,13 +51,6 @@ random_element([_|_] = List) ->
 timeout(Timeout, Timestamp) ->
     Diff = timer:now_diff(os:timestamp(), Timestamp) div 1000,
     Timeout - Diff.
-
--spec timing(erlang:timestamp(), [non_neg_integer()]) -> [non_neg_integer()].
-
-timing(Timestamp, []) ->
-    [now_diff(Timestamp)];
-timing(Timestamp, [H | _] = Timing) ->
-    [(now_diff(Timestamp) - H) | Timing].
 
 -spec warning_msg(pool_name(), string(), [term()]) -> ok.
 

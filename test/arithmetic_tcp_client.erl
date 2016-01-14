@@ -15,7 +15,6 @@
     setup/2,
     handle_request/2,
     handle_data/2,
-    handle_timing/2,
     terminate/1
 ]).
 
@@ -95,8 +94,5 @@ handle_request({Operation, A, B}, #state {
     {ok, RequestId, Data, State#state {
         request_counter = RequestCounter + 1
     }}.
-
-handle_timing(_Request, _Timing) ->
-    ok.
 
 terminate(_State) -> ok.

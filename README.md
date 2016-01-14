@@ -30,7 +30,6 @@ Non-blocking Erlang network client framework
     setup/2,
     handle_request/2,
     handle_data/2,
-    handle_timing/2,
     terminate/1
 ]).
 
@@ -97,11 +96,6 @@ handle_data(Data, #state {
     {ok, Replies, State#state {
         buffer = Buffer2
     }}.
-
--spec handle_timing(Request :: term(), Timing :: [non_neg_integer()]) -> ok.
-
-handle_timing(_Request, [_Pool, _Request, _Response]) ->
-    ok.
 
 -spec terminate(State :: term()) -> ok.
 

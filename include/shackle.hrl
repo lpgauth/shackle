@@ -5,8 +5,7 @@
     pid            :: undefined | pid(),
     reply          :: undefined | term(),
     request        :: term(),
-    timestamp      :: erlang:timestamp(),
-    timing    = [] :: [pos_integer()]
+    timestamp      :: erlang:timestamp()
 }).
 
 %% types

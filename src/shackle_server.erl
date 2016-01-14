@@ -149,11 +149,7 @@ handle_msg(#cast {} = Cast, #state {
 
     reply(Name, {error, no_socket}, Cast),
     {ok, State};
-handle_msg(#cast {
-        request = Request,
-        timestamp = Timestamp,
-        timing = Timing
-    } = Cast, #state {
+handle_msg(#cast {request = Request} = Cast, #state {
         client = Client,
         client_state = ClientState,
         header = Header,
@@ -167,9 +163,7 @@ handle_msg(#cast {
 
     case Protocol:send(Socket, Header, Data) of
         ok ->
-            shackle_queue:add(ExtRequestId, Cast#cast {
-                timing = shackle_utils:timing(Timestamp, Timing)
-            }),
+            shackle_queue:add(ExtRequestId, Cast),
 
             {ok, State#state {
                 client_state = ClientState2
@@ -228,14 +222,8 @@ process_replies([], _State) ->
     ok;
 process_replies([{ExtRequestId, Reply} | T], #state {name = Name} = State) ->
     case shackle_queue:remove(Name, ExtRequestId) of
-        {ok, #cast {
-            timestamp = Timestamp,
-            timing = Timing
-        } = Cast} ->
-
-            reply(Name, Reply, Cast#cast {
-                timing = shackle_utils:timing(Timestamp, Timing)
-            });
+        {ok, Cast} ->
+            reply(Name, Reply, Cast);
         {error, not_found} ->
             ok
     end,
