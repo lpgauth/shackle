@@ -40,7 +40,7 @@ multiply(A, B) ->
 -spec start() -> ok | {error, shackle_not_started | pool_already_started}.
 
 start() ->
-    shackle_pool:start(?POOL_NAME, ?CLIENT_UDP).
+    shackle_pool:start(?POOL_NAME, ?CLIENT_UDP, [{backlog_size, infinity}]).
 
 -spec stop() -> ok | {error, pool_not_started}.
 

@@ -10,39 +10,36 @@
 -spec start() -> ok | {error, already_started}.
 
 start() ->
-    case whereis(arithmetic_tcp_server) of
+    case get(?MODULE) of
         undefined ->
             {ok, LSocket} = listen(),
-            Pid = spawn(fun () -> accept(LSocket) end),
-            register(arithmetic_tcp_server, Pid),
+            put(?MODULE, LSocket),
+            spawn(fun () -> accept(LSocket) end),
             ok;
-        _Pid ->
+        _LSocket ->
             {error, already_started}
     end.
 
 -spec stop() -> ok | {error, not_started}.
 
 stop() ->
-    case whereis(arithmetic_tcp_server) of
+    case get(?MODULE) of
         undefined ->
             {error, not_started};
-        Pid ->
-            Pid ! {stop, self()},
-            receive
-                closed -> ok
-            end
+        LSocket ->
+            gen_tcp:close(LSocket),
+            put(?MODULE, undefined),
+            ok
     end.
 
 %% private
 accept(LSocket) ->
-    case gen_tcp:accept(LSocket, 0) of
+    case gen_tcp:accept(LSocket) of
         {ok, Socket} ->
             spawn(fun() -> loop(Socket, <<>>) end),
             accept(LSocket);
         {error, closed} ->
-            ok;
-        {error, timeout} ->
-            receive_msg(LSocket)
+            ok
     end.
 
 listen() ->
@@ -58,14 +55,4 @@ loop(Socket, Buffer) ->
             loop(Socket, Buffer2);
         {error, closed} ->
             ok
-    end.
-
-receive_msg(LSocket) ->
-    receive
-        {stop, Pid} ->
-            gen_tcp:close(LSocket),
-            unregister(?MODULE),
-            Pid ! closed
-    after 0 ->
-        accept(LSocket)
     end.
