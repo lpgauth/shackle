@@ -1,3 +1,6 @@
+% TODO: switch server names to pool_name + client + index
+% TODO: cleanup shackle_pool_utils when pool stop
+
 -module(shackle_pool).
 -include("shackle_internal.hrl").
 
@@ -23,14 +26,14 @@
 }).
 
 %% public
--spec start(pool_name(), client()) -> ok |
-    {error, shackle_not_started | pool_already_started}.
+-spec start(pool_name(), client()) ->
+    ok | {error, shackle_not_started | pool_already_started}.
 
 start(Name, Client) ->
     start(Name, Client, []).
 
--spec start(pool_name(), client(), pool_options()) -> ok |
-    {error, shackle_not_started | pool_already_started}.
+-spec start(pool_name(), client(), pool_options()) ->
+    ok | {error, shackle_not_started | pool_already_started}.
 
 start(Name, Client, PoolOptions) ->
     case options(Name) of
@@ -45,8 +48,8 @@ start(Name, Client, PoolOptions) ->
             ok
     end.
 
--spec stop(pool_name()) -> ok |
-    {error, shackle_not_started | pool_not_started}.
+-spec stop(pool_name()) ->
+    ok | {error, shackle_not_started | pool_not_started}.
 
 stop(Name) ->
     case options(Name) of
@@ -57,11 +60,11 @@ stop(Name) ->
                 pool_strategy = PoolStrategy
             } = Options,
 
-            ChildNames = child_names(Client, PoolSize),
-            lists:foreach(fun (ChildName) ->
-                supervisor:terminate_child(?SUPERVISOR, ChildName),
-                supervisor:delete_child(?SUPERVISOR, ChildName)
-            end, ChildNames),
+            ServerNames = server_names(Client, PoolSize),
+            lists:foreach(fun (ServerName) ->
+                supervisor:terminate_child(?SUPERVISOR, ServerName),
+                supervisor:delete_child(?SUPERVISOR, ServerName)
+            end, ServerNames),
             cleanup(Name, PoolStrategy),
             ok;
         {error, Reason} ->
@@ -69,17 +72,24 @@ stop(Name) ->
     end.
 
 %% internal
--spec init() -> ?ETS_TABLE_POOL.
+-spec init() ->
+    ok.
 
 init() ->
     ets:new(?ETS_TABLE_POOL, [
         named_table,
         public,
         {read_concurrency, true}
-    ]).
+    ]),
+    ets:new(?ETS_TABLE_POOL_INDEX, [
+        named_table,
+        public,
+        {write_concurrency, true}
+    ]),
+    ok.
 
--spec server(pool_name()) -> {ok, pid()} |
-    {error, backlog_full | shackle_not_started | pool_not_started}.
+-spec server(pool_name()) ->
+    {ok, client(), pid()} | {error, atom()}.
 
 server(Name) ->
     case options(Name) of
@@ -92,7 +102,7 @@ server(Name) ->
             } = Options,
 
             ServerIndex = server_index(Name, PoolSize, PoolStrategy),
-            Server = child_name(Client, ServerIndex),
+            Server = shackle_pool_utils:server_name(Client, ServerIndex),
             case shackle_backlog:check(Server, BacklogSize) of
                 true ->
                     {ok, Client, Server};
@@ -104,19 +114,9 @@ server(Name) ->
     end.
 
 %% private
-child_name(Client, N) ->
-    list_to_atom(atom_to_list(Client) ++ integer_to_list(N)).
-
-child_names(Client, PoolSize) ->
-    [child_name(Client, N) || N <- lists:seq(1, PoolSize)].
-
-child_spec(ChildName, Name, Client) ->
-    StartFunc = {?SERVER, start_link, [ChildName, Name, Client]},
-    {ChildName, StartFunc, permanent, 5000, worker, [?SERVER]}.
-
 cleanup(Name, round_robin) ->
     ets:delete(?ETS_TABLE_POOL, Name),
-    ets:delete(?ETS_TABLE_POOL, {Name, round_robin});
+    ets:delete(?ETS_TABLE_POOL_INDEX, {Name, round_robin});
 cleanup(Name, _) ->
     ets:delete(?ETS_TABLE_POOL, Name).
 
@@ -151,17 +151,37 @@ server_index(_Name, PoolSize, random) ->
 server_index(Name, PoolSize, round_robin) ->
     UpdateOps = [{2, 1, PoolSize, 1}],
     Key = {Name, round_robin},
-    [ServerId] = ets:update_counter(?ETS_TABLE_POOL, Key, UpdateOps),
+    [ServerId] = ets:update_counter(?ETS_TABLE_POOL_INDEX, Key, UpdateOps),
     ServerId.
 
-setup(Name, #pool_options {pool_strategy = round_robin} = Options) ->
-    ets:insert(?ETS_TABLE_POOL, {Name, Options}),
-    ets:insert(?ETS_TABLE_POOL, {{Name, round_robin}, 1});
 setup(Name, Options) ->
+    setup_ets(Name, Options),
+    setup_pool_utils().
+
+setup_ets(Name, #pool_options {pool_strategy = round_robin} = Options) ->
+    ets:insert(?ETS_TABLE_POOL, {Name, Options}),
+    ets:insert(?ETS_TABLE_POOL_INDEX, {{Name, round_robin}, 1});
+setup_ets(Name, Options) ->
     ets:insert(?ETS_TABLE_POOL, {Name, Options}).
 
+setup_pool_utils() ->
+    Pools = [{Client, PoolSize} ||
+        {_Name, #pool_options {
+            client = Client,
+            pool_size = PoolSize
+        }} <- ets:tab2list(?ETS_TABLE_POOL)],
+    shackle_generator:pool_utils(Pools).
+
+server_names(Client, PoolSize) ->
+    [shackle_pool_utils:server_name(Client, N) || N <- lists:seq(1, PoolSize)].
+
+server_spec(ServerName, Name, Client) ->
+    StartFunc = {?SERVER, start_link, [ServerName, Name, Client]},
+    {ServerName, StartFunc, permanent, 5000, worker, [?SERVER]}.
+
 start_children(Name, Client, #pool_options {pool_size = PoolSize}) ->
-    ChildNames = child_names(Client, PoolSize),
-    ChildSpecs = [child_spec(ChildName, Name, Client) ||
-        ChildName <- ChildNames],
-    [supervisor:start_child(?SUPERVISOR, ChildSpec) || ChildSpec <- ChildSpecs].
+    ServerNames = server_names(Client, PoolSize),
+    ServerSpecs = [server_spec(ServerName, Name, Client) ||
+        ServerName <- ServerNames],
+    [supervisor:start_child(?SUPERVISOR, ServerSpec) ||
+        ServerSpec <- ServerSpecs].
