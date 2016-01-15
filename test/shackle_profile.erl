@@ -22,25 +22,29 @@ fprofx() ->
     fprofx:trace([start, {procs, new}, {tracer, Tracer}]),
 
     arithmetic_tcp_client:start(),
+    Self = self(),
     [spawn(fun () ->
-        [20 = arithmetic_tcp_client:add(10, 10) || _ <- lists:seq(1, ?N)]
+        [arithmetic_tcp_client:add(10, 10) || _ <- lists:seq(1, ?N)],
+        Self ! exit
     end) || _ <- lists:seq(1, ?P)],
-    sleep(),
+    wait(),
 
     fprofx:trace(stop),
     fprofx:analyse([totals, {dest, ""}]),
     fprofx:stop(),
+    arithmetic_tcp_client:stop(),
+    application:stop(shackle),
 
     ok.
 
 %% private
-sleep() ->
-    timer:sleep(500),
-    ProcessCount = erlang:system_info(process_count),
-    sleep(ProcessCount, erlang:system_info(process_count) - ?P).
+wait() ->
+    wait(?P).
 
-sleep(X, X) ->
+wait(0) ->
     ok;
-sleep(_X, Y) ->
-    timer:sleep(100),
-    sleep(erlang:system_info(process_count), Y).
+wait(X) ->
+    receive
+        exit ->
+            wait(X - 1)
+    end.

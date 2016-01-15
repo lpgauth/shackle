@@ -1,3 +1,4 @@
+CACHEGRIND=qcachegrind
 ELVIS=./bin/elvis
 REBAR=./bin/rebar3
 
@@ -35,7 +36,7 @@ profile:
 		 -eval 'shackle_profile:fprofx()' \
 		 -eval 'init:stop()'
 	@_build/test/lib/fprofx/erlgrindx -p fprofx.analysis
-	@qcachegrind fprofx.cgrind
+	@$(CACHEGRIND) fprofx.cgrind
 
 shell:
 	@echo "Running rebar3 shell..."
