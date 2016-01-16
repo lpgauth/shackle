@@ -17,6 +17,7 @@ fprofx() ->
     lists:foreach(fun code:load_abs/1, Rootnames),
 
     application:start(shackle),
+
     fprofx:start(),
     {ok, Tracer} = fprofx:profile(start),
     fprofx:trace([start, {procs, new}, {tracer, Tracer}]),
@@ -32,6 +33,7 @@ fprofx() ->
     fprofx:trace(stop),
     fprofx:analyse([totals, {dest, ""}]),
     fprofx:stop(),
+
     arithmetic_tcp_client:stop(),
     application:stop(shackle),
 

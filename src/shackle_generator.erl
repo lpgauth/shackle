@@ -1,3 +1,5 @@
+%% TODO: user erl_syntax
+
 -module(shackle_generator).
 -include("shackle_internal.hrl").
 
@@ -18,8 +20,8 @@
 pool_utils(Pools) ->
     Abstract = abstract(Pools),
     {ok, Module, Bin} = compile:forms(Abstract, [verbose, report_errors]),
+    code:purge(Module),
     {module, Module} = code:load_binary(Module, "shackle_pool_utils.erl", Bin),
-    code:soft_purge(Module),
     ok.
 
 %% private
@@ -39,11 +41,11 @@ server_clause(PoolName, Index, Line) ->
     abstract_clause(Ps, [], Body, Line).
 
 server_clauses([], Acc, Line) ->
-    {lists:flatten(lists:reverse(Acc)), Line};
+    {Acc, Line};
 server_clauses([{PoolName, PoolSize} | T], Acc, Line) ->
     ServerClauses = [server_clause(PoolName, Index, Line + Index) ||
         Index <- lists:seq(0, PoolSize)],
-    server_clauses(T, [ServerClauses | Acc], Line + PoolSize).
+    server_clauses(T, Acc ++ ServerClauses, Line + PoolSize).
 
 server_clause_body(PoolName, Index, Line) ->
     [{atom, Line, server_atom(PoolName, Index)}].
