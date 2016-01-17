@@ -7,10 +7,10 @@
     pool_utils/1
 ]).
 
--define(ABSTRACT(Servers, Line), [
+-define(ABSTRACT(Clauses, Line), [
     {attribute, 1, module, shackle_pool_utils},
     {attribute, 2, export, [{server_name, 2}]},
-    {function, 3, server_name, 2, Servers},
+    {function, 3, server_name, 2, Clauses},
     {eof, Line + 1}
 ]).
 
@@ -26,8 +26,8 @@ pool_utils(Pools) ->
 
 %% private
 abstract(Pools) ->
-    {Servers, Line} = server_clauses(Pools, [], 4),
-    ?ABSTRACT(Servers, Line).
+    {Clauses, Line} = server_clauses(Pools, [], 4),
+    ?ABSTRACT(Clauses, Line).
 
 abstract_clause(Ps, Guard, Body, Line) ->
     {clause, Line, Ps, Guard, Body}.

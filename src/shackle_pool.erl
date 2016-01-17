@@ -1,4 +1,3 @@
-% TODO: switch server names to pool_name + client + index
 % TODO: cleanup shackle_pool_utils when pool stop
 
 -module(shackle_pool).
@@ -55,12 +54,11 @@ stop(Name) ->
     case options(Name) of
         {ok, Options} ->
             #pool_options {
-                client = Client,
                 pool_size = PoolSize,
                 pool_strategy = PoolStrategy
             } = Options,
 
-            ServerNames = server_names(Client, PoolSize),
+            ServerNames = server_names(Name, PoolSize),
             lists:foreach(fun (ServerName) ->
                 supervisor:terminate_child(?SUPERVISOR, ServerName),
                 supervisor:delete_child(?SUPERVISOR, ServerName)
@@ -102,7 +100,7 @@ server(Name) ->
             } = Options,
 
             ServerIndex = server_index(Name, PoolSize, PoolStrategy),
-            Server = shackle_pool_utils:server_name(Client, ServerIndex),
+            Server = shackle_pool_utils:server_name(Name, ServerIndex),
             case shackle_backlog:check(Server, BacklogSize) of
                 true ->
                     {ok, Client, Server};
@@ -165,22 +163,22 @@ setup_ets(Name, Options) ->
     ets:insert(?ETS_TABLE_POOL, {Name, Options}).
 
 setup_pool_utils() ->
-    Pools = [{Client, PoolSize} ||
-        {_Name, #pool_options {
-            client = Client,
+    Pools = [{Name, PoolSize} ||
+        {Name, #pool_options {
             pool_size = PoolSize
         }} <- ets:tab2list(?ETS_TABLE_POOL)],
     shackle_generator:pool_utils(Pools).
 
-server_names(Client, PoolSize) ->
-    [shackle_pool_utils:server_name(Client, N) || N <- lists:seq(1, PoolSize)].
+server_names(Name, PoolSize) ->
+    [shackle_pool_utils:server_name(Name, N) ||
+        N <- lists:seq(1, PoolSize)].
 
 server_spec(ServerName, Name, Client) ->
     StartFunc = {?SERVER, start_link, [ServerName, Name, Client]},
     {ServerName, StartFunc, permanent, 5000, worker, [?SERVER]}.
 
 start_children(Name, Client, #pool_options {pool_size = PoolSize}) ->
-    ServerNames = server_names(Client, PoolSize),
+    ServerNames = server_names(Name, PoolSize),
     ServerSpecs = [server_spec(ServerName, Name, Client) ||
         ServerName <- ServerNames],
     [supervisor:start_child(?SUPERVISOR, ServerSpec) ||
