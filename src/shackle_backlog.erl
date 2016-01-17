@@ -43,7 +43,6 @@ init() ->
     ets:new(?ETS_TABLE_BACKLOG, [
         named_table,
         public,
-        {read_concurrency, true},
         {write_concurrency, true}
     ]).
 

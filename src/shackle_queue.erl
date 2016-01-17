@@ -88,9 +88,4 @@ ets_match_take(Tid, Match) ->
     end.
 
 ets_new(Tid) ->
-    ets:new(Tid, [
-        named_table,
-        public,
-        {read_concurrency, true},
-        {write_concurrency, true}
-    ]).
+    ets:new(Tid, [named_table, public]).
