@@ -179,6 +179,12 @@ handle_msg(#cast {request = Request} = Cast, #state {
     end;
 handle_msg({inet_reply, _Socket, ok}, State) ->
     {ok, State};
+handle_msg({inet_reply, _Socket, {error, Reason}}, #state {
+        pool_name = PoolName
+    } = State) ->
+
+    shackle_utils:warning_msg(PoolName, "udp send error: ~p", [Reason]),
+    {ok, State};
 handle_msg({tcp, _Port, Data}, State) ->
     handle_msg_data(Data, State);
 handle_msg({tcp_closed, Socket}, #state {
