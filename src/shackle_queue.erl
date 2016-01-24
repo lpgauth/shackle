@@ -53,11 +53,11 @@ init() ->
     {ok, cast()} | {error, not_found}.
 
 remove({ServerName, _} = RequestId) ->
-    case ets:take(?ETS_TABLE_QUEUE_REVERSE, RequestId) of
+    case ets_take(?ETS_TABLE_QUEUE_REVERSE, RequestId) of
         [] ->
             {error, not_found};
         [{_, ExtRequestId}] ->
-            case ets:take(?ETS_TABLE_QUEUE, {ServerName, ExtRequestId}) of
+            case ets_take(?ETS_TABLE_QUEUE, {ServerName, ExtRequestId}) of
                 [] ->
                     {error, not_found};
                 [{_, Cast}] ->
@@ -69,7 +69,7 @@ remove({ServerName, _} = RequestId) ->
     {ok, cast()} | {error, not_found}.
 
 remove(ServerName, ExtRequestId) ->
-    case ets:take(?ETS_TABLE_QUEUE, {ServerName, ExtRequestId}) of
+    case ets_take(?ETS_TABLE_QUEUE, {ServerName, ExtRequestId}) of
         [] ->
             {error, not_found};
         [{_, #cast {request_id = RequestId} = Cast}] ->
@@ -89,3 +89,21 @@ ets_match_take(Tid, Match) ->
 
 ets_new(Tid) ->
     ets:new(Tid, [named_table, public]).
+
+-ifdef(ETS_TAKE).
+
+ets_take(Tid, Key) ->
+    ets:take(Tid, Key).
+
+-else.
+
+ets_take(Tid, Key) ->
+    case ets:lookup(Tid, Key) of
+        [] ->
+            [];
+        Objects ->
+            ets:delete(Tid, Key),
+            Objects
+    end.
+
+-endif.

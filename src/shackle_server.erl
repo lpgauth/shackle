@@ -30,8 +30,8 @@
     reconnect_time_min :: time(),
     reconnect_time     :: time(),
     socket             :: undefined | inet:socket(),
-    socket_options     :: [gen_tcp:connect_option() | gen_udp:connect_option()],
-    timer_ref          :: undefined | timer:ref()
+    socket_options     :: [gen_tcp:connect_option() | gen_udp:option()],
+    timer_ref          :: undefined | reference()
 }).
 
 -type state() :: #state {}.

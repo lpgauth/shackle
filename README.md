@@ -8,7 +8,7 @@ Non-blocking Erlang network client framework
 
 ### Requirements
 
-* Erlang 16.0 +
+* Erlang 17.0 +
 
 ### Features
 

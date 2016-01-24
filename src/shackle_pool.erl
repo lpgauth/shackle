@@ -3,6 +3,8 @@
 -module(shackle_pool).
 -include("shackle_internal.hrl").
 
+-ignore_xref([{shackle_pool_utils, server_name, 2}]).
+
 %% public
 -export([
     start/2,

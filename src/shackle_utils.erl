@@ -13,7 +13,7 @@
 ]).
 
 %% public
--spec cancel_timer(erlang:timer_ref() | undefined) -> ok.
+-spec cancel_timer(undefined | reference()) -> ok.
 
 cancel_timer(undefined) ->
     ok;

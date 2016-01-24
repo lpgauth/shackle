@@ -20,7 +20,7 @@ header({A, B, C, D}, Port) ->
     [[((Port) bsr 8) band 16#ff, (Port) band 16#ff],
             [A band 16#ff, B band 16#ff, C band 16#ff, D band 16#ff]].
 
--spec new(inet:ip_address(), inet:port_number(), [gen_udp:connect_option()]) ->
+-spec new(inet:ip_address(), inet:port_number(), [gen_udp:option()]) ->
     {ok, inet:socket()} | {error, term()}.
 
 new(_Ip, _Port, Options) ->
