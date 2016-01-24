@@ -16,7 +16,7 @@
 
 
 <pre><code>
-backlog_size() = pos_integer()
+backlog_size() = pos_integer() | infinity
 </code></pre>
 
 
@@ -134,7 +134,7 @@ header(X1::<a href="inet.md#type-ip_address">inet:ip_address()</a>, Port::<a hre
 ### new/3 ###
 
 <pre><code>
-new(Ip::<a href="inet.md#type-ip_address">inet:ip_address()</a>, Port::<a href="inet.md#type-port_number">inet:port_number()</a>, Options::[<a href="gen_udp.md#type-connect_option">gen_udp:connect_option()</a>]) -&gt; {ok, <a href="inet.md#type-socket">inet:socket()</a>} | {error, term()}
+new(Ip::<a href="inet.md#type-ip_address">inet:ip_address()</a>, Port::<a href="inet.md#type-port_number">inet:port_number()</a>, Options::[<a href="gen_udp.md#type-option">gen_udp:option()</a>]) -&gt; {ok, <a href="inet.md#type-socket">inet:socket()</a>} | {error, term()}
 </code></pre>
 <br />
 

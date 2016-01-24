@@ -12,12 +12,14 @@
 ]).
 
 %% public
--spec call(pool_name(), term()) -> term() | {error, term()}.
+-spec call(pool_name(), term()) ->
+    term() | {error, term()}.
 
 call(PoolName, Request) ->
     call(PoolName, Request, ?DEFAULT_TIMEOUT).
 
--spec call(atom(), term(), timeout()) -> term() | {error, term()}.
+-spec call(atom(), term(), timeout()) ->
+    term() | {error, term()}.
 
 call(PoolName, Request, Timeout) ->
     case cast(PoolName, Request) of
@@ -27,7 +29,8 @@ call(PoolName, Request, Timeout) ->
             {error, Reason}
     end.
 
--spec cast(pool_name(), term()) -> {ok, request_id()} | {error, backlog_full}.
+-spec cast(pool_name(), term()) ->
+    {ok, request_id()} | {error, backlog_full}.
 
 cast(PoolName, Request) ->
     cast(PoolName, Request, self()).

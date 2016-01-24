@@ -7,7 +7,8 @@
 ]).
 
 %% public
--spec timeout(integer(), integer()) -> integer().
+-spec timeout(integer(), integer()) ->
+    integer().
 
 timeout(Time, MaxTime) when Time >= MaxTime ->
     Time;

@@ -18,7 +18,7 @@ __Behaviours:__ [`application`](application.md).
 
 
 <pre><code>
-backlog_size() = pos_integer()
+backlog_size() = pos_integer() | infinity
 </code></pre>
 
 
@@ -118,7 +118,7 @@ time() = pos_integer()
 ### start/0 ###
 
 <pre><code>
-start() -&gt; {ok, [atom()]}
+start() -&gt; {ok, [atom()]} | {error, term()}
 </code></pre>
 <br />
 
@@ -136,7 +136,7 @@ start(StartType::<a href="application.md#type-start_type">application:start_type
 ### stop/0 ###
 
 <pre><code>
-stop() -&gt; ok | {error, {not_started, shackle}}
+stop() -&gt; ok | {error, term()}
 </code></pre>
 <br />
 

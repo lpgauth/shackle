@@ -26,22 +26,26 @@
 -type tiny_int() :: 0..255.
 
 %% public
--spec add(tiny_int(), tiny_int()) -> pos_integer().
+-spec add(tiny_int(), tiny_int()) ->
+    pos_integer().
 
 add(A, B) ->
     shackle:call(?POOL_NAME, {add, A, B}).
 
--spec multiply(tiny_int(), tiny_int()) -> pos_integer().
+-spec multiply(tiny_int(), tiny_int()) ->
+    pos_integer().
 
 multiply(A, B) ->
     shackle:call(?POOL_NAME, {multiply, A, B}).
 
--spec start() -> ok | {error, shackle_not_started | pool_already_started}.
+-spec start() ->
+    ok | {error, shackle_not_started | pool_already_started}.
 
 start() ->
     shackle_pool:start(?POOL_NAME, ?CLIENT_TCP).
 
--spec stop() -> ok | {error, pool_not_started}.
+-spec stop() ->
+    ok | {error, pool_not_started}.
 
 stop() ->
     shackle_pool:stop(?POOL_NAME).
@@ -95,4 +99,5 @@ handle_request({Operation, A, B}, #state {
         request_counter = RequestCounter + 1
     }}.
 
-terminate(_State) -> ok.
+terminate(_State) ->
+    ok.

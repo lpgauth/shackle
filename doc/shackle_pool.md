@@ -16,7 +16,7 @@
 
 
 <pre><code>
-backlog_size() = pos_integer()
+backlog_size() = pos_integer() | infinity
 </code></pre>
 
 
@@ -136,7 +136,7 @@ time() = pos_integer()
 ### init/0 ###
 
 <pre><code>
-init() -&gt; shackle_pool
+init() -&gt; ok
 </code></pre>
 <br />
 
@@ -145,7 +145,7 @@ init() -&gt; shackle_pool
 ### server/1 ###
 
 <pre><code>
-server(Name::<a href="#type-pool_name">pool_name()</a>) -&gt; {ok, pid()} | {error, backlog_full | shackle_not_started | pool_not_started}
+server(Name::<a href="#type-pool_name">pool_name()</a>) -&gt; {ok, <a href="#type-client">client()</a>, pid()} | {error, atom()}
 </code></pre>
 <br />
 

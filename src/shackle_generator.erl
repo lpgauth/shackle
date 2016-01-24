@@ -7,7 +7,7 @@
     pool_utils/1
 ]).
 
--define(ABSTRACT(Clauses, Line), [
+-define(POOL_UTILS_ABSTRACT(Clauses, Line), [
     {attribute, 1, module, shackle_pool_utils},
     {attribute, 2, export, [{server_name, 2}]},
     {function, 3, server_name, 2, Clauses},
@@ -15,22 +15,23 @@
 ]).
 
 %% public
--spec pool_utils([{pool_name(), pool_size()}]) -> ok.
+-spec pool_utils([{pool_name(), pool_size()}]) ->
+    ok.
 
 pool_utils(Pools) ->
-    Abstract = abstract(Pools),
+    Abstract = pool_utils_abstract(Pools),
     {ok, Module, Bin} = compile:forms(Abstract, [verbose, report_errors]),
     code:purge(Module),
     {module, Module} = code:load_binary(Module, "shackle_pool_utils.erl", Bin),
     ok.
 
 %% private
-abstract(Pools) ->
-    {Clauses, Line} = server_clauses(Pools, [], 4),
-    ?ABSTRACT(Clauses, Line).
-
 abstract_clause(Ps, Guard, Body, Line) ->
     {clause, Line, Ps, Guard, Body}.
+
+pool_utils_abstract(Pools) ->
+    {Clauses, Line} = server_clauses(Pools, [], 4),
+    ?POOL_UTILS_ABSTRACT(Clauses, Line).
 
 server_atom(PoolName, Index) ->
     list_to_atom(atom_to_list(PoolName) ++ "_" ++ integer_to_list(Index)).

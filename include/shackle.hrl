@@ -1,10 +1,10 @@
 %% records
 -record(cast, {
-    request_id     :: request_id(),
     client         :: client(),
     pid            :: undefined | pid(),
     reply          :: undefined | term(),
     request        :: term(),
+    request_id     :: request_id(),
     timestamp      :: erlang:timestamp()
 }).
 
@@ -31,9 +31,9 @@
 -type pool_size() :: pos_integer().
 -type pool_strategy() :: random | round_robin.
 -type protocol() :: shackle_tcp | shackle_udp.
+-type request_id() :: {server_name(), reference()}.
 -type response() :: {external_request_id(), term()}.
 -type server_name() :: atom().
--type request_id() :: {server_name(), reference()}.
 -type time() :: pos_integer().
 
 -export_type([

@@ -16,7 +16,7 @@
 
 
 <pre><code>
-backlog_size() = pos_integer()
+backlog_size() = pos_integer() | infinity
 </code></pre>
 
 
@@ -163,7 +163,7 @@ delete(ServerName::<a href="#type-server_name">server_name()</a>) -&gt; ok
 ### init/0 ###
 
 <pre><code>
-init() -&gt; shackle_backlog
+init() -&gt; ok
 </code></pre>
 <br />
 

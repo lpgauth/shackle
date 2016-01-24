@@ -37,12 +37,14 @@
 -type state() :: #state {}.
 
 %% public
--spec start_link(server_name(), pool_name(), client()) -> {ok, pid()}.
+-spec start_link(server_name(), pool_name(), client()) ->
+    {ok, pid()}.
 
 start_link(Name, PoolName, Client) ->
     proc_lib:start_link(?MODULE, init, [Name, PoolName, Client, self()]).
 
--spec init(server_name(), pool_name(), client(), pid()) -> no_return().
+-spec init(server_name(), pool_name(), client(), pid()) ->
+    no_return().
 
 init(Name, PoolName, Client, Parent) ->
     process_flag(trap_exit, true),
@@ -90,12 +92,14 @@ init(Name, PoolName, Client, Parent) ->
 system_code_change(State, _Module, _OldVsn, _Extra) ->
     {ok, State}.
 
--spec system_continue(pid(), [], state()) -> ok.
+-spec system_continue(pid(), [], state()) ->
+    ok.
 
 system_continue(_Parent, _Debug, State) ->
     loop(State).
 
--spec system_terminate(term(), pid(), [], state()) -> none().
+-spec system_terminate(term(), pid(), [], state()) ->
+    none().
 
 system_terminate(Reason, _Parent, _Debug, _State) ->
     exit(Reason).

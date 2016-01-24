@@ -16,7 +16,7 @@
 
 
 <pre><code>
-backlog_size() = pos_integer()
+backlog_size() = pos_integer() | infinity
 </code></pre>
 
 
@@ -26,7 +26,7 @@ backlog_size() = pos_integer()
 
 
 <pre><code>
-cast() = #cast{request_id = undefined | <a href="#type-request_id">request_id()</a>, client = undefined | <a href="#type-client">client()</a>, pid = undefined | pid(), reply = undefined | term(), request = undefined | term(), timestamp = undefined | <a href="erlang.md#type-timestamp">erlang:timestamp()</a>, timing = [pos_integer()]}
+cast() = #cast{client = undefined | <a href="#type-client">client()</a>, pid = undefined | pid(), reply = undefined | term(), request = undefined | term(), request_id = undefined | <a href="#type-request_id">request_id()</a>, timestamp = undefined | <a href="erlang.md#type-timestamp">erlang:timestamp()</a>}
 </code></pre>
 
 
@@ -154,28 +154,28 @@ time() = pos_integer()
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#all-1">all/1</a></td><td></td></tr><tr><td valign="top"><a href="#in-3">in/3</a></td><td></td></tr><tr><td valign="top"><a href="#init-0">init/0</a></td><td></td></tr><tr><td valign="top"><a href="#out-2">out/2</a></td><td></td></tr><tr><td valign="top"><a href="#remove-1">remove/1</a></td><td></td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#add-2">add/2</a></td><td></td></tr><tr><td valign="top"><a href="#clear-1">clear/1</a></td><td></td></tr><tr><td valign="top"><a href="#init-0">init/0</a></td><td></td></tr><tr><td valign="top"><a href="#remove-1">remove/1</a></td><td></td></tr><tr><td valign="top"><a href="#remove-2">remove/2</a></td><td></td></tr></table>
 
 
 <a name="functions"></a>
 
 ## Function Details ##
 
-<a name="all-1"></a>
+<a name="add-2"></a>
 
-### all/1 ###
+### add/2 ###
 
 <pre><code>
-all(ServerName::<a href="#type-server_name">server_name()</a>) -&gt; [<a href="#type-cast">cast()</a>]
+add(ExtRequestId::<a href="#type-external_request_id">external_request_id()</a>, Cast::<a href="#type-cast">cast()</a>) -&gt; ok
 </code></pre>
 <br />
 
-<a name="in-3"></a>
+<a name="clear-1"></a>
 
-### in/3 ###
+### clear/1 ###
 
 <pre><code>
-in(ServerName::<a href="#type-server_name">server_name()</a>, RequestId::<a href="#type-external_request_id">external_request_id()</a>, Request::<a href="#type-cast">cast()</a>) -&gt; ok
+clear(ServerName::<a href="#type-server_name">server_name()</a>) -&gt; [<a href="#type-cast">cast()</a>]
 </code></pre>
 <br />
 
@@ -184,16 +184,7 @@ in(ServerName::<a href="#type-server_name">server_name()</a>, RequestId::<a href
 ### init/0 ###
 
 <pre><code>
-init() -&gt; shackle_queue
-</code></pre>
-<br />
-
-<a name="out-2"></a>
-
-### out/2 ###
-
-<pre><code>
-out(ServerName::atom(), RequestId::<a href="#type-external_request_id">external_request_id()</a>) -&gt; {ok, <a href="#type-cast">cast()</a>} | {error, not_found}
+init() -&gt; ok
 </code></pre>
 <br />
 
@@ -202,7 +193,16 @@ out(ServerName::atom(), RequestId::<a href="#type-external_request_id">external_
 ### remove/1 ###
 
 <pre><code>
-remove(RequestId::<a href="#type-external_request_id">external_request_id()</a>) -&gt; true
+remove(RequestId::<a href="#type-request_id">request_id()</a>) -&gt; {ok, <a href="#type-cast">cast()</a>} | {error, not_found}
+</code></pre>
+<br />
+
+<a name="remove-2"></a>
+
+### remove/2 ###
+
+<pre><code>
+remove(ServerName::<a href="#type-server_name">server_name()</a>, ExtRequestId::<a href="#type-external_request_id">external_request_id()</a>) -&gt; {ok, <a href="#type-cast">cast()</a>} | {error, not_found}
 </code></pre>
 <br />
 

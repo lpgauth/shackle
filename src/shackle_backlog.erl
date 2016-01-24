@@ -1,7 +1,6 @@
 -module(shackle_backlog).
 -include("shackle_internal.hrl").
 
-
 %% internal
 -export([
     check/2,
@@ -12,7 +11,8 @@
 ]).
 
 %% internal
--spec check(server_name(), backlog_size()) -> boolean().
+-spec check(server_name(), backlog_size()) ->
+    boolean().
 
 check(_ServerName, infinity) ->
     true;
@@ -24,29 +24,34 @@ check(ServerName, BacklogSize) ->
             true
     end.
 
--spec decrement(server_name() | request_id()) -> non_neg_integer().
+-spec decrement(server_name() | request_id()) ->
+    non_neg_integer().
 
 decrement({ServerName, _}) ->
     decrement(ServerName);
 decrement(ServerName) ->
     ets:update_counter(?ETS_TABLE_BACKLOG, ServerName, {2, -1, 0, 0}).
 
--spec delete(server_name()) -> ok.
+-spec delete(server_name()) ->
+    ok.
 
 delete(ServerName) ->
     ets:delete(?ETS_TABLE_BACKLOG, ServerName),
     ok.
 
--spec init() -> ?ETS_TABLE_BACKLOG.
+-spec init() ->
+    ok.
 
 init() ->
     ets:new(?ETS_TABLE_BACKLOG, [
         named_table,
         public,
         {write_concurrency, true}
-    ]).
+    ]),
+    ok.
 
--spec new(server_name()) -> ok.
+-spec new(server_name()) ->
+    ok.
 
 new(ServerName) ->
     ets:insert(?ETS_TABLE_BACKLOG, {ServerName, 0}),

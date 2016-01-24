@@ -1,5 +1,3 @@
-%% TODO: benchmark ETS read_concurrency / write_concurrency
-
 -module(shackle_queue).
 -include("shackle_internal.hrl").
 

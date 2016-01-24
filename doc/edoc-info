@@ -1,5 +1,5 @@
 %% encoding: UTF-8
 {application,shackle}.
 {modules,[shackle,shackle_app,shackle_backlog,shackle_backoff,shackle_client,
-          shackle_pool,shackle_queue,shackle_server,shackle_sup,shackle_tcp,
-          shackle_udp,shackle_utils]}.
+          shackle_generator,shackle_pool,shackle_queue,shackle_server,
+          shackle_sup,shackle_tcp,shackle_udp,shackle_utils]}.

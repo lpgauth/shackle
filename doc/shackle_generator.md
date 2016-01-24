@@ -1,6 +1,6 @@
 
 
-# Module shackle_tcp #
+# Module shackle_generator #
 * [Data Types](#types)
 * [Function Index](#index)
 * [Function Details](#functions)
@@ -37,6 +37,16 @@ client_option() = {ip, <a href="inet.md#type-ip_address">inet:ip_address()</a> |
 
 <pre><code>
 client_options() = [<a href="#type-client_option">client_option()</a>]
+</code></pre>
+
+
+
+
+### <a name="type-pool_name">pool_name()</a> ###
+
+
+<pre><code>
+pool_name() = atom()
 </code></pre>
 
 
@@ -104,37 +114,19 @@ time() = pos_integer()
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#close-1">close/1</a></td><td></td></tr><tr><td valign="top"><a href="#new-3">new/3</a></td><td></td></tr><tr><td valign="top"><a href="#send-3">send/3</a></td><td></td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#pool_utils-1">pool_utils/1</a></td><td></td></tr></table>
 
 
 <a name="functions"></a>
 
 ## Function Details ##
 
-<a name="close-1"></a>
+<a name="pool_utils-1"></a>
 
-### close/1 ###
-
-<pre><code>
-close(Socket::<a href="inet.md#type-socket">inet:socket()</a>) -&gt; ok
-</code></pre>
-<br />
-
-<a name="new-3"></a>
-
-### new/3 ###
+### pool_utils/1 ###
 
 <pre><code>
-new(Ip::<a href="inet.md#type-ip_address">inet:ip_address()</a>, Port::<a href="inet.md#type-port_number">inet:port_number()</a>, Options::[<a href="gen_tcp.md#type-connect_option">gen_tcp:connect_option()</a>]) -&gt; {ok, <a href="inet.md#type-socket">inet:socket()</a>} | {error, term()}
-</code></pre>
-<br />
-
-<a name="send-3"></a>
-
-### send/3 ###
-
-<pre><code>
-send(Socket::<a href="inet.md#type-socket">inet:socket()</a>, Header::iodata(), Data::iodata()) -&gt; ok | {error, term()}
+pool_utils(Pools::[{<a href="#type-pool_name">pool_name()</a>, <a href="#type-pool_size">pool_size()</a>}]) -&gt; ok
 </code></pre>
 <br />
 

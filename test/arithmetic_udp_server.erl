@@ -7,7 +7,8 @@
 ]).
 
 %% public
--spec start() -> ok | {error, already_started}.
+-spec start() ->
+    ok | {error, already_started}.
 
 start() ->
     case get(?MODULE) of
@@ -20,7 +21,8 @@ start() ->
             {error, already_started}
     end.
 
--spec stop() -> ok | {error, not_started}.
+-spec stop() ->
+    ok | {error, not_started}.
 
 stop() ->
     case whereis(?MODULE) of

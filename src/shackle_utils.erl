@@ -13,19 +13,22 @@
 ]).
 
 %% public
--spec cancel_timer(undefined | reference()) -> ok.
+-spec cancel_timer(undefined | reference()) ->
+    ok.
 
 cancel_timer(undefined) ->
     ok;
 cancel_timer(TimerRef) ->
     erlang:cancel_timer(TimerRef).
 
--spec info_msg(pool_name(), string(), [term()]) -> ok.
+-spec info_msg(pool_name(), string(), [term()]) ->
+    ok.
 
 info_msg(Pool, Format, Data) ->
     error_logger:info_msg("[~p] " ++ Format, [Pool | Data]).
 
--spec lookup(atom(), [{atom(), term()}], term()) -> term().
+-spec lookup(atom(), [{atom(), term()}], term()) ->
+    term().
 
 lookup(Key, List, Default) ->
     case lists:keyfind(Key, 1, List) of
@@ -33,12 +36,14 @@ lookup(Key, List, Default) ->
         {_, Value} -> Value
     end.
 
--spec random(pos_integer()) -> non_neg_integer().
+-spec random(pos_integer()) ->
+    non_neg_integer().
 
 random(N) ->
     erlang:phash2({self(), os:timestamp()}, N).
 
--spec random_element([term()]) -> term().
+-spec random_element([term()]) ->
+    term().
 
 random_element([X]) ->
     X;
@@ -46,13 +51,15 @@ random_element([_|_] = List) ->
     T = list_to_tuple(List),
     element(random(tuple_size(T)) + 1, T).
 
--spec timeout(time(), erlang:timestamp()) -> integer().
+-spec timeout(time(), erlang:timestamp()) ->
+    integer().
 
 timeout(Timeout, Timestamp) ->
     Diff = timer:now_diff(os:timestamp(), Timestamp) div 1000,
     Timeout - Diff.
 
--spec warning_msg(pool_name(), string(), [term()]) -> ok.
+-spec warning_msg(pool_name(), string(), [term()]) ->
+    ok.
 
 warning_msg(Pool, Format, Data) ->
     error_logger:warning_msg("[~p] " ++ Format, [Pool | Data]).

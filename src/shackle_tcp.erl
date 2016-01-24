@@ -8,7 +8,8 @@
 ]).
 
 %% public
--spec close(inet:socket()) -> ok.
+-spec close(inet:socket()) ->
+    ok.
 
 close(Socket) ->
     gen_tcp:close(Socket).
@@ -19,7 +20,8 @@ close(Socket) ->
 new(Ip, Port, Options) ->
     gen_tcp:connect(Ip, Port, Options).
 
--spec send(inet:socket(), iodata(), iodata()) -> ok | {error, term()}.
+-spec send(inet:socket(), iodata(), iodata()) ->
+    ok | {error, term()}.
 
 send(Socket, _Header, Data) ->
     gen_tcp:send(Socket, Data).

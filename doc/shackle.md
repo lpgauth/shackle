@@ -16,27 +16,7 @@
 
 
 <pre><code>
-backlog_size() = pos_integer()
-</code></pre>
-
-
-
-
-### <a name="type-cast">cast()</a> ###
-
-
-<pre><code>
-cast() = #cast{request_id = undefined | <a href="#type-request_id">request_id()</a>, client = undefined | <a href="#type-client">client()</a>, pid = undefined | pid(), reply = undefined | term(), request = undefined | term(), timestamp = undefined | <a href="erlang.md#type-timestamp">erlang:timestamp()</a>, timing = [pos_integer()]}
-</code></pre>
-
-
-
-
-### <a name="type-client">client()</a> ###
-
-
-<pre><code>
-client() = module()
+backlog_size() = pos_integer() | infinity
 </code></pre>
 
 
@@ -154,7 +134,7 @@ time() = pos_integer()
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#call-2">call/2</a></td><td></td></tr><tr><td valign="top"><a href="#call-3">call/3</a></td><td></td></tr><tr><td valign="top"><a href="#cast-2">cast/2</a></td><td></td></tr><tr><td valign="top"><a href="#cast-3">cast/3</a></td><td></td></tr><tr><td valign="top"><a href="#handle_timing-1">handle_timing/1</a></td><td></td></tr><tr><td valign="top"><a href="#receive_response-1">receive_response/1</a></td><td></td></tr><tr><td valign="top"><a href="#receive_response-2">receive_response/2</a></td><td></td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#call-2">call/2</a></td><td></td></tr><tr><td valign="top"><a href="#call-3">call/3</a></td><td></td></tr><tr><td valign="top"><a href="#cast-2">cast/2</a></td><td></td></tr><tr><td valign="top"><a href="#cast-3">cast/3</a></td><td></td></tr><tr><td valign="top"><a href="#receive_response-1">receive_response/1</a></td><td></td></tr><tr><td valign="top"><a href="#receive_response-2">receive_response/2</a></td><td></td></tr></table>
 
 
 <a name="functions"></a>
@@ -193,16 +173,7 @@ cast(PoolName::<a href="#type-pool_name">pool_name()</a>, Request::term()) -&gt;
 ### cast/3 ###
 
 <pre><code>
-cast(PoolName::<a href="#type-pool_name">pool_name()</a>, Request::term(), Pid::pid()) -&gt; {ok, <a href="#type-request_id">request_id()</a>} | {error, backlog_full}
-</code></pre>
-<br />
-
-<a name="handle_timing-1"></a>
-
-### handle_timing/1 ###
-
-<pre><code>
-handle_timing(Cast::<a href="#type-cast">cast()</a>) -&gt; ok
+cast(PoolName::<a href="#type-pool_name">pool_name()</a>, Request::term(), Pid::undefined | pid()) -&gt; {ok, <a href="#type-request_id">request_id()</a>} | {error, backlog_full}
 </code></pre>
 <br />
 
