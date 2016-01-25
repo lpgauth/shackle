@@ -1,5 +1,3 @@
-% TODO: cleanup shackle_pool_utils when pool stop
-
 -module(shackle_pool).
 -include("shackle_internal.hrl").
 
@@ -36,16 +34,16 @@ start(Name, Client) ->
 -spec start(pool_name(), client(), pool_options()) ->
     ok | {error, shackle_not_started | pool_already_started}.
 
-start(Name, Client, PoolOptions) ->
+start(Name, Client, Options) ->
     case options(Name) of
-        {ok, _PoolOptions} ->
+        {ok, _OptionsRec} ->
             {error, pool_already_started};
         {error, shackle_not_started} ->
             {error, shackle_not_started};
         {error, pool_not_started} ->
-            PoolOptionsRec = options_rec(Client, PoolOptions),
-            setup(Name, PoolOptionsRec),
-            start_children(Name, Client, PoolOptionsRec),
+            OptionsRec = options_rec(Client, Options),
+            setup(Name, OptionsRec),
+            start_children(Name, Client, OptionsRec),
             ok
     end.
 
@@ -54,18 +52,16 @@ start(Name, Client, PoolOptions) ->
 
 stop(Name) ->
     case options(Name) of
-        {ok, Options} ->
-            #pool_options {
-                pool_size = PoolSize,
-                pool_strategy = PoolStrategy
-            } = Options,
+        {ok, #pool_options {
+                pool_size = PoolSize
+            } = OptionsRec} ->
 
             ServerNames = server_names(Name, PoolSize),
             lists:foreach(fun (ServerName) ->
                 supervisor:terminate_child(?SUPERVISOR, ServerName),
                 supervisor:delete_child(?SUPERVISOR, ServerName)
             end, ServerNames),
-            cleanup(Name, PoolStrategy),
+            cleanup(Name, OptionsRec),
             ok;
         {error, Reason} ->
             {error, Reason}
@@ -93,13 +89,12 @@ init() ->
 
 server(Name) ->
     case options(Name) of
-        {ok, Options} ->
-            #pool_options {
+        {ok, #pool_options {
                 backlog_size = BacklogSize,
                 client = Client,
                 pool_size = PoolSize,
                 pool_strategy = PoolStrategy
-            } = Options,
+            }} ->
 
             ServerIndex = server_index(Name, PoolSize, PoolStrategy),
             Server = shackle_pool_utils:server_name(Name, ServerIndex),
@@ -114,16 +109,26 @@ server(Name) ->
     end.
 
 %% private
-cleanup(Name, round_robin) ->
+cleanup(Name, OptionsRec) ->
+    cleanup_ets(Name, OptionsRec),
+    generate_pool_utils().
+
+cleanup_ets(Name, #pool_options {pool_strategy = round_robin}) ->
     ets:delete(?ETS_TABLE_POOL, Name),
     ets:delete(?ETS_TABLE_POOL_INDEX, {Name, round_robin});
-cleanup(Name, _) ->
+cleanup_ets(Name, _) ->
     ets:delete(?ETS_TABLE_POOL, Name).
+
+generate_pool_utils() ->
+    Pools = [{Name, PoolSize} ||
+        {Name, #pool_options {
+            pool_size = PoolSize
+        }} <- ets:tab2list(?ETS_TABLE_POOL)],
+    shackle_generator:pool_utils(Pools).
 
 options(Name) ->
     try
-        Options = ets:lookup_element(?ETS_TABLE_POOL, Name, 2),
-        {ok, Options}
+        {ok, ets:lookup_element(?ETS_TABLE_POOL, Name, 2)}
     catch
         error:badarg ->
             case ets:info(?ETS_TABLE_POOL) of
@@ -134,10 +139,10 @@ options(Name) ->
             end
     end.
 
-options_rec(Client, PoolOptions) ->
-    BacklogSize = ?LOOKUP(backlog_size, PoolOptions, ?DEFAULT_BACKLOG_SIZE),
-    PoolSize = ?LOOKUP(pool_size, PoolOptions, ?DEFAULT_POOL_SIZE),
-    PoolStrategy = ?LOOKUP(pool_strategy, PoolOptions, ?DEFAULT_POOL_STRATEGY),
+options_rec(Client, Options) ->
+    BacklogSize = ?LOOKUP(backlog_size, Options, ?DEFAULT_BACKLOG_SIZE),
+    PoolSize = ?LOOKUP(pool_size, Options, ?DEFAULT_POOL_SIZE),
+    PoolStrategy = ?LOOKUP(pool_strategy, Options, ?DEFAULT_POOL_STRATEGY),
 
     #pool_options {
         backlog_size = BacklogSize,
@@ -154,22 +159,15 @@ server_index(Name, PoolSize, round_robin) ->
     [ServerId] = ets:update_counter(?ETS_TABLE_POOL_INDEX, Key, UpdateOps),
     ServerId.
 
-setup(Name, Options) ->
-    setup_ets(Name, Options),
-    setup_pool_utils().
+setup(Name, OptionsRec) ->
+    setup_ets(Name, OptionsRec),
+    generate_pool_utils().
 
-setup_ets(Name, #pool_options {pool_strategy = round_robin} = Options) ->
-    ets:insert(?ETS_TABLE_POOL, {Name, Options}),
+setup_ets(Name, #pool_options {pool_strategy = round_robin} = OptionsRec) ->
+    ets:insert(?ETS_TABLE_POOL, {Name, OptionsRec}),
     ets:insert(?ETS_TABLE_POOL_INDEX, {{Name, round_robin}, 1});
-setup_ets(Name, Options) ->
-    ets:insert(?ETS_TABLE_POOL, {Name, Options}).
-
-setup_pool_utils() ->
-    Pools = [{Name, PoolSize} ||
-        {Name, #pool_options {
-            pool_size = PoolSize
-        }} <- ets:tab2list(?ETS_TABLE_POOL)],
-    shackle_generator:pool_utils(Pools).
+setup_ets(Name, OptionsRec) ->
+    ets:insert(?ETS_TABLE_POOL, {Name, OptionsRec}).
 
 server_names(Name, PoolSize) ->
     [shackle_pool_utils:server_name(Name, N) ||

@@ -30,26 +30,26 @@ abstract_clause(Ps, Guard, Body, Line) ->
     {clause, Line, Ps, Guard, Body}.
 
 pool_utils_abstract(Pools) ->
-    {Clauses, Line} = server_clauses(Pools, [], 4),
+    {Clauses, Line} = server_name_clauses(Pools, [], 4),
     ?POOL_UTILS_ABSTRACT(Clauses, Line).
 
 server_atom(PoolName, Index) ->
     list_to_atom(atom_to_list(PoolName) ++ "_" ++ integer_to_list(Index)).
 
-server_clause(PoolName, Index, Line) ->
-    Ps = server_clause_ps(PoolName, Index, Line),
-    Body = server_clause_body(PoolName, Index, Line),
+server_name_clause(PoolName, Index, Line) ->
+    Ps = server_name_clause_ps(PoolName, Index, Line),
+    Body = server_name_clause_body(PoolName, Index, Line),
     abstract_clause(Ps, [], Body, Line).
 
-server_clauses([], Acc, Line) ->
-    {Acc, Line};
-server_clauses([{PoolName, PoolSize} | T], Acc, Line) ->
-    ServerClauses = [server_clause(PoolName, Index, Line + Index) ||
+server_name_clauses([], Acc, Line) ->
+    {Acc ++ [server_name_clause(dummy, 0, Line)], Line + 1};
+server_name_clauses([{PoolName, PoolSize} | T], Acc, Line) ->
+    ServerClauses = [server_name_clause(PoolName, Index, Line + Index) ||
         Index <- lists:seq(0, PoolSize)],
-    server_clauses(T, Acc ++ ServerClauses, Line + PoolSize).
+    server_name_clauses(T, Acc ++ ServerClauses, Line + PoolSize).
 
-server_clause_body(PoolName, Index, Line) ->
+server_name_clause_body(PoolName, Index, Line) ->
     [{atom, Line, server_atom(PoolName, Index)}].
 
-server_clause_ps(PoolName, Index, Line) ->
+server_name_clause_ps(PoolName, Index, Line) ->
     [{atom, Line, PoolName}, {integer, Line, Index}].
