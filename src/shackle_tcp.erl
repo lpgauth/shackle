@@ -1,6 +1,9 @@
 -module(shackle_tcp).
 -include("shackle_internal.hrl").
 
+-compile(inline).
+-compile({inline_size, 512}).
+
 -export([
     close/1,
     new/3,

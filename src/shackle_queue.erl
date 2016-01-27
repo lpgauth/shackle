@@ -1,6 +1,9 @@
 -module(shackle_queue).
 -include("shackle_internal.hrl").
 
+-compile(inline).
+-compile({inline_size, 512}).
+
 %% internal
 -export([
     add/2,

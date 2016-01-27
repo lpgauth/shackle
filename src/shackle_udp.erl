@@ -1,6 +1,9 @@
 -module(shackle_udp).
 -include("shackle_internal.hrl").
 
+-compile(inline).
+-compile({inline_size, 512}).
+
 -export([
     close/1,
     header/2,

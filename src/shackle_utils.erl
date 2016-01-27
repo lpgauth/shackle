@@ -1,6 +1,9 @@
 -module(shackle_utils).
 -include("shackle_internal.hrl").
 
+-compile(inline).
+-compile({inline_size, 512}).
+
 %% public
 -export([
     cancel_timer/1,
