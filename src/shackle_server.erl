@@ -18,23 +18,19 @@
 ]).
 
 -record(state, {
-    client             :: client(),
-    client_state       :: term(),
-    header             :: iodata(),
-    ip                 :: inet:ip_address() | inet:hostname(),
-    name               :: server_name(),
-    parent             :: pid(),
-    pool_name          :: pool_name(),
-    port               :: inet:port_number(),
-    protocol           :: protocol(),
-    % TODO: refactor into shackle_backoff record
-    reconnect          :: boolean(),
-    reconnect_time_max :: time(),
-    reconnect_time_min :: time(),
-    reconnect_time     :: time(),
-    socket             :: undefined | inet:socket(),
-    socket_options     :: [gen_tcp:connect_option() | gen_udp:option()],
-    timer_ref          :: undefined | reference()
+    client           :: client(),
+    client_state     :: term(),
+    header           :: iodata(),
+    ip               :: inet:ip_address() | inet:hostname(),
+    name             :: server_name(),
+    parent           :: pid(),
+    pool_name        :: pool_name(),
+    port             :: inet:port_number(),
+    protocol         :: protocol(),
+    reconnect_state  :: reconnect_state(),
+    socket           :: undefined | inet:socket(),
+    socket_options   :: [gen_tcp:connect_option() | gen_udp:option()],
+    timer_ref        :: undefined | reference()
 }).
 
 -type state() :: #state {}.
@@ -61,11 +57,7 @@ init(Name, PoolName, Client, Parent) ->
     Ip = ?LOOKUP(ip, Options, ?DEFAULT_IP),
     Port = ?LOOKUP(port, Options),
     Protocol = ?LOOKUP(protocol, Options, ?DEFAULT_PROTOCOL),
-    Reconnect = ?LOOKUP(reconnect, Options, ?DEFAULT_RECONNECT),
-    ReconnectTimeMax = ?LOOKUP(reconnect_time_max, Options,
-        ?DEFAULT_RECONNECT_MAX),
-    ReconnectTimeMin = ?LOOKUP(reconnect_time_min, Options,
-        ?DEFAULT_RECONNECT_MIN),
+    ReconnectState = reconnect_state(Options),
     SocketOptions = ?LOOKUP(socket_options, Options, ?DEFAULT_SOCKET_OPTS),
 
     {ok, Addrs} = inet:getaddrs(Ip, inet),
@@ -81,10 +73,7 @@ init(Name, PoolName, Client, Parent) ->
         pool_name = PoolName,
         port = Port,
         protocol = Protocol,
-        reconnect = Reconnect,
-        reconnect_time = ReconnectTimeMin,
-        reconnect_time_max = ReconnectTimeMax,
-        reconnect_time_min = ReconnectTimeMin,
+        reconnect_state = ReconnectState,
         socket_options = SocketOptions
     }).
 
@@ -118,7 +107,9 @@ handle_msg(?MSG_CONNECT, #state {
         pool_name = PoolName,
         port = Port,
         protocol = Protocol,
-        reconnect_time_min = TimeMin,
+        reconnect_state = #reconnect_state {
+            min = Min
+        } = ReconnectState,
         socket_options = SocketOptions
     } = State) ->
 
@@ -133,8 +124,10 @@ handle_msg(?MSG_CONNECT, #state {
 
                     {ok, State#state {
                         client_state = ClientState2,
-                        socket = Socket,
-                        reconnect_time = TimeMin
+                        reconnect_state = ReconnectState#reconnect_state {
+                            current = Min
+                        },
+                        socket = Socket
                     }};
                 {error, Reason, ClientState2} ->
                     shackle_utils:warning_msg(PoolName,
@@ -252,20 +245,38 @@ reconnect(#state {
     ok = Client:terminate(ClientState),
     reconnect_timer(State).
 
-reconnect_timer(#state {reconnect = false} = State) ->
+reconnect_state(Options) ->
+    Reconnect = ?LOOKUP(reconnect, Options, ?DEFAULT_RECONNECT),
+    case Reconnect of
+        true ->
+            Max = ?LOOKUP(reconnect_time_max, Options,
+                ?DEFAULT_RECONNECT_MAX),
+            Min = ?LOOKUP(reconnect_time_min, Options,
+                ?DEFAULT_RECONNECT_MIN),
+
+            #reconnect_state {
+                min = Min,
+                max = Max
+            };
+        false ->
+            undefined
+    end.
+
+reconnect_timer(#state {reconnect_state = undefined} = State) ->
     {ok, State#state {
         socket = undefined
     }};
 reconnect_timer(#state {
-        reconnect_time_max = TimeMax,
-        reconnect_time = Time
+        reconnect_state = ReconnectState
     } = State) ->
 
-    Time2 = shackle_backoff:timeout(Time, TimeMax),
-    TimerRef = erlang:send_after(Time2, self(), ?MSG_CONNECT),
+    #reconnect_state {
+        current = Current
+    } = ReconnectState2 = shackle_backoff:timeout(ReconnectState),
+    TimerRef = erlang:send_after(Current, self(), ?MSG_CONNECT),
 
     {ok, State#state {
-        reconnect_time = Time2,
+        reconnect_state = ReconnectState2,
         socket = undefined,
         timer_ref = TimerRef
     }}.
