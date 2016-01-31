@@ -1,7 +1,5 @@
 # shackle
 
-__Author:__ Louis-Philippe Gauthier.
-
 Non-blocking Erlang network client framework
 
 [![Build Status](https://travis-ci.org/lpgauth/shackle.svg?branch=master)](https://travis-ci.org/lpgauth/shackle)
@@ -126,7 +124,7 @@ terminate(_State) -> ok.
   <tr>
     <td>protocol</td>
     <td>shackle_tcp | shackle_udp</td>
-    <td>tcp</td>
+    <td>shackle_tcp</td>
     <td>server protocol</td>
   </tr>
   <tr>
@@ -137,19 +135,19 @@ terminate(_State) -> ok.
   </tr>
   <tr>
     <td>reconnect_time_max</td>
-    <td>pos_integer()</td>
-    <td>timer:minutes(2)</td>
-    <td>maximum reconnect time</td>
+    <td>pos_integer() | infinity</td>
+    <td>120000</td>
+    <td>maximum reconnect time in milliseconds</td>
   </tr>
   <tr>
     <td>reconnect_time_min</td>
     <td>pos_integer()</td>
-    <td>timer:seconds(1)</td>
-    <td>minimum reconnect time</td>
+    <td>1000</td>
+    <td>minimum reconnect time in milliseconds</td>
   </tr>
   <tr>
     <td>socket_options</td>
-    <td>[gen_tcp:connect_option() | gen_udp:connect_option()]</td>
+    <td>[gen_tcp:connect_option() | gen_udp:option()]</td>
     <td>[]</td>
     <td>options passed to the socket</td>
   </tr>
@@ -172,7 +170,7 @@ shackle_pool:start(pool_name, client, [{pool_size, 32}]).
   </theader>
   <tr>
     <td>backlog_size</td>
-    <td>pos_integer()</td>
+    <td>pos_integer() | infinty</td>
     <td>1024</td>
     <td>maximum number of concurrent requests per connection</td>
   </tr>
@@ -185,7 +183,7 @@ shackle_pool:start(pool_name, client, [{pool_size, 32}]).
   <tr>
     <td>pool_strategy</td>
     <td>random | round_robin</td>
-    <td>random</td>
+    <td>round_robin</td>
     <td>connection selection strategy</td>
   </tr>
 </table>

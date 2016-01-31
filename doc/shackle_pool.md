@@ -163,7 +163,7 @@ start(Name::<a href="#type-pool_name">pool_name()</a>, Client::<a href="#type-cl
 ### start/3 ###
 
 <pre><code>
-start(Name::<a href="#type-pool_name">pool_name()</a>, Client::<a href="#type-client">client()</a>, PoolOptions::<a href="#type-pool_options">pool_options()</a>) -&gt; ok | {error, shackle_not_started | pool_already_started}
+start(Name::<a href="#type-pool_name">pool_name()</a>, Client::<a href="#type-client">client()</a>, Options::<a href="#type-pool_options">pool_options()</a>) -&gt; ok | {error, shackle_not_started | pool_already_started}
 </code></pre>
 <br />
 

@@ -112,6 +112,16 @@ protocol() = shackle_tcp | shackle_udp
 
 
 
+### <a name="type-reconnect_state">reconnect_state()</a> ###
+
+
+<pre><code>
+reconnect_state() = #reconnect_state{current = undefined | <a href="#type-time">time()</a>, max = undefined | <a href="#type-time">time()</a> | infinity, min = undefined | <a href="#type-time">time()</a>}
+</code></pre>
+
+
+
+
 ### <a name="type-server_name">server_name()</a> ###
 
 
@@ -126,7 +136,7 @@ server_name() = atom()
 
 
 <pre><code>
-state() = #{client =&gt; <a href="#type-client">client()</a>, client_state =&gt; term(), header =&gt; iodata(), ip =&gt; <a href="inet.md#type-ip_address">inet:ip_address()</a> | <a href="inet.md#type-hostname">inet:hostname()</a>, name =&gt; <a href="#type-server_name">server_name()</a>, parent =&gt; pid(), pool_name =&gt; <a href="#type-pool_name">pool_name()</a>, port =&gt; <a href="inet.md#type-port_number">inet:port_number()</a>, protocol =&gt; <a href="#type-protocol">protocol()</a>, reconnect =&gt; boolean(), reconnect_time =&gt; <a href="#type-time">time()</a>, reconnect_time_max =&gt; <a href="#type-time">time()</a>, reconnect_time_min =&gt; <a href="#type-time">time()</a>, socket =&gt; undefined | <a href="inet.md#type-socket">inet:socket()</a>, socket_options =&gt; [<a href="gen_tcp.md#type-connect_option">gen_tcp:connect_option()</a> | <a href="gen_udp.md#type-connect_option">gen_udp:connect_option()</a>], timer_ref =&gt; undefined | reference()}
+state() = #state{client = undefined | <a href="#type-client">client()</a>, client_state = undefined | term(), header = undefined | iodata(), ip = undefined | <a href="inet.md#type-ip_address">inet:ip_address()</a> | <a href="inet.md#type-hostname">inet:hostname()</a>, name = undefined | <a href="#type-server_name">server_name()</a>, parent = undefined | pid(), pool_name = undefined | <a href="#type-pool_name">pool_name()</a>, port = undefined | <a href="inet.md#type-port_number">inet:port_number()</a>, protocol = undefined | <a href="#type-protocol">protocol()</a>, reconnect_state = undefined | <a href="#type-reconnect_state">reconnect_state()</a>, socket = undefined | <a href="inet.md#type-socket">inet:socket()</a>, socket_options = undefined | [<a href="gen_tcp.md#type-connect_option">gen_tcp:connect_option()</a> | <a href="gen_udp.md#type-option">gen_udp:option()</a>], timer_ref = undefined | reference()}
 </code></pre>
 
 

@@ -92,6 +92,16 @@ protocol() = shackle_tcp | shackle_udp
 
 
 
+### <a name="type-reconnect_state">reconnect_state()</a> ###
+
+
+<pre><code>
+reconnect_state() = #reconnect_state{current = undefined | <a href="#type-time">time()</a>, max = undefined | <a href="#type-time">time()</a> | infinity, min = undefined | <a href="#type-time">time()</a>}
+</code></pre>
+
+
+
+
 ### <a name="type-time">time()</a> ###
 
 
@@ -104,19 +114,19 @@ time() = pos_integer()
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#timeout-2">timeout/2</a></td><td></td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#timeout-1">timeout/1</a></td><td></td></tr></table>
 
 
 <a name="functions"></a>
 
 ## Function Details ##
 
-<a name="timeout-2"></a>
+<a name="timeout-1"></a>
 
-### timeout/2 ###
+### timeout/1 ###
 
 <pre><code>
-timeout(Time::integer(), MaxTime::integer()) -&gt; integer()
+timeout(Reconnect_state::<a href="#type-reconnect_state">reconnect_state()</a>) -&gt; <a href="#type-reconnect_state">reconnect_state()</a>
 </code></pre>
 <br />
 

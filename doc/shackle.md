@@ -173,7 +173,7 @@ cast(PoolName::<a href="#type-pool_name">pool_name()</a>, Request::term()) -&gt;
 ### cast/3 ###
 
 <pre><code>
-cast(PoolName::<a href="#type-pool_name">pool_name()</a>, Request::term(), Pid::undefined | pid()) -&gt; {ok, <a href="#type-request_id">request_id()</a>} | {error, backlog_full}
+cast(PoolName::<a href="#type-pool_name">pool_name()</a>, Request::term(), Pid::pid()) -&gt; {ok, <a href="#type-request_id">request_id()</a>} | {error, atom()}
 </code></pre>
 <br />
 

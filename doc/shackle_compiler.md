@@ -1,6 +1,6 @@
 
 
-# Module shackle_generator #
+# Module shackle_compiler #
 * [Data Types](#types)
 * [Function Index](#index)
 * [Function Details](#functions)
