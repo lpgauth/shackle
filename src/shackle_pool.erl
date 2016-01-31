@@ -111,7 +111,7 @@ server(Name) ->
 %% private
 cleanup(Name, OptionsRec) ->
     cleanup_ets(Name, OptionsRec),
-    generate_pool_utils().
+    compile_pool_utils().
 
 cleanup_ets(Name, #pool_options {pool_strategy = round_robin}) ->
     ets:delete(?ETS_TABLE_POOL, Name),
@@ -119,12 +119,12 @@ cleanup_ets(Name, #pool_options {pool_strategy = round_robin}) ->
 cleanup_ets(Name, _) ->
     ets:delete(?ETS_TABLE_POOL, Name).
 
-generate_pool_utils() ->
+compile_pool_utils() ->
     Pools = [{Name, PoolSize} ||
         {Name, #pool_options {
             pool_size = PoolSize
         }} <- ets:tab2list(?ETS_TABLE_POOL)],
-    shackle_generator:pool_utils(Pools).
+    shackle_compiler:pool_utils(Pools).
 
 options(Name) ->
     try
@@ -161,7 +161,7 @@ server_index(Name, PoolSize, round_robin) ->
 
 setup(Name, OptionsRec) ->
     setup_ets(Name, OptionsRec),
-    generate_pool_utils().
+    compile_pool_utils().
 
 setup_ets(Name, #pool_options {pool_strategy = round_robin} = OptionsRec) ->
     ets:insert(?ETS_TABLE_POOL, {Name, OptionsRec}),
