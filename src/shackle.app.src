@@ -1,6 +1,6 @@
 {application, shackle, [
   {description, "client framework"},
-  {vsn, "0.1.6"},
+  {vsn, "0.2.0"},
   {registered, []},
   {applications, [
     kernel,
@@ -8,4 +8,4 @@
   ]},
   {mod, { shackle_app, []}},
   {env, []}
- ]}.
+]}.

@@ -1,6 +1,8 @@
 -module(shackle_pool).
 -include("shackle_internal.hrl").
 
+-ignore_xref([{shackle_pool_utils, server_name, 2}]).
+
 %% public
 -export([
     start/2,
@@ -23,81 +25,79 @@
 }).
 
 %% public
--spec start(pool_name(), client()) -> ok |
-    {error, shackle_not_started | pool_already_started}.
+-spec start(pool_name(), client()) ->
+    ok | {error, shackle_not_started | pool_already_started}.
 
 start(Name, Client) ->
     start(Name, Client, []).
 
--spec start(pool_name(), client(), pool_options()) -> ok |
-    {error, shackle_not_started | pool_already_started}.
+-spec start(pool_name(), client(), pool_options()) ->
+    ok | {error, shackle_not_started | pool_already_started}.
 
-start(Name, Client, PoolOptions) ->
+start(Name, Client, Options) ->
     case options(Name) of
-        {ok, _PoolOptions} ->
+        {ok, _OptionsRec} ->
             {error, pool_already_started};
         {error, shackle_not_started} ->
             {error, shackle_not_started};
         {error, pool_not_started} ->
-            PoolOptionsRec = options_rec(Client, PoolOptions),
-            setup(Name, PoolOptionsRec),
-            start_children(Name, Client, PoolOptionsRec),
+            OptionsRec = options_rec(Client, Options),
+            setup(Name, OptionsRec),
+            start_children(Name, Client, OptionsRec),
             ok
     end.
 
--spec stop(pool_name()) -> ok |
-    {error, shackle_not_started | pool_not_started}.
+-spec stop(pool_name()) ->
+    ok | {error, shackle_not_started | pool_not_started}.
 
 stop(Name) ->
     case options(Name) of
-        {ok, Options} ->
-            #pool_options {
-                client = Client,
-                pool_size = PoolSize,
-                pool_strategy = PoolStrategy
-            } = Options,
+        {ok, #pool_options {
+                pool_size = PoolSize
+            } = OptionsRec} ->
 
-            ChildNames = child_names(Client, PoolSize),
-            lists:foreach(fun (ChildName) ->
-                supervisor:terminate_child(?SUPERVISOR, ChildName),
-                supervisor:delete_child(?SUPERVISOR, ChildName)
-            end, ChildNames),
-            cleanup(Name, PoolStrategy),
+            ServerNames = server_names(Name, PoolSize),
+            lists:foreach(fun (ServerName) ->
+                supervisor:terminate_child(?SUPERVISOR, ServerName),
+                supervisor:delete_child(?SUPERVISOR, ServerName)
+            end, ServerNames),
+            cleanup(Name, OptionsRec),
             ok;
         {error, Reason} ->
             {error, Reason}
     end.
 
 %% internal
--spec init() -> ?ETS_TABLE_POOL.
+-spec init() ->
+    ok.
 
 init() ->
     ets:new(?ETS_TABLE_POOL, [
         named_table,
         public,
         {read_concurrency, true}
-    ]).
+    ]),
+    ets:new(?ETS_TABLE_POOL_INDEX, [
+        named_table,
+        public,
+        {write_concurrency, true}
+    ]),
+    ok.
 
--spec server(pool_name()) -> {ok, pid()} |
-    {error, backlog_full | shackle_not_started | pool_not_started}.
+-spec server(pool_name()) ->
+    {ok, client(), pid()} | {error, atom()}.
 
 server(Name) ->
     case options(Name) of
-        {ok, Options} ->
-            #pool_options {
+        {ok, #pool_options {
                 backlog_size = BacklogSize,
                 client = Client,
                 pool_size = PoolSize,
                 pool_strategy = PoolStrategy
-            } = Options,
+            }} ->
 
-            ServerId = case PoolStrategy of
-                random ->
-                    random(PoolSize);
-                round_robin ->
-                    round_robin(Name, PoolSize)
-            end,
-            Server = child_name(Client, ServerId),
+            ServerIndex = server_index(Name, PoolSize, PoolStrategy),
+            Server = shackle_pool_utils:server_name(Name, ServerIndex),
             case shackle_backlog:check(Server, BacklogSize) of
                 true ->
                     {ok, Client, Server};
@@ -109,26 +109,26 @@ server(Name) ->
     end.
 
 %% private
-child_name(Client, N) ->
-    list_to_atom(atom_to_list(Client) ++ integer_to_list(N)).
+cleanup(Name, OptionsRec) ->
+    cleanup_ets(Name, OptionsRec),
+    compile_pool_utils().
 
-child_names(Client, PoolSize) ->
-    [child_name(Client, N) || N <- lists:seq(1, PoolSize)].
-
-child_spec(ChildName, Name, Client) ->
-    StartFunc = {?SERVER, start_link, [ChildName, Name, Client]},
-    {ChildName, StartFunc, permanent, 5000, worker, [?SERVER]}.
-
-cleanup(Name, round_robin) ->
+cleanup_ets(Name, #pool_options {pool_strategy = round_robin}) ->
     ets:delete(?ETS_TABLE_POOL, Name),
-    ets:delete(?ETS_TABLE_POOL, {Name, round_robin});
-cleanup(Name, _) ->
+    ets:delete(?ETS_TABLE_POOL_INDEX, {Name, round_robin});
+cleanup_ets(Name, _) ->
     ets:delete(?ETS_TABLE_POOL, Name).
+
+compile_pool_utils() ->
+    Pools = [{Name, PoolSize} ||
+        {Name, #pool_options {
+            pool_size = PoolSize
+        }} <- ets:tab2list(?ETS_TABLE_POOL)],
+    shackle_compiler:pool_utils(Pools).
 
 options(Name) ->
     try
-        Options = ets:lookup_element(?ETS_TABLE_POOL, Name, 2),
-        {ok, Options}
+        {ok, ets:lookup_element(?ETS_TABLE_POOL, Name, 2)}
     catch
         error:badarg ->
             case ets:info(?ETS_TABLE_POOL) of
@@ -139,10 +139,10 @@ options(Name) ->
             end
     end.
 
-options_rec(Client, PoolOptions) ->
-    BacklogSize = ?LOOKUP(backlog_size, PoolOptions, ?DEFAULT_BACKLOG_SIZE),
-    PoolSize = ?LOOKUP(pool_size, PoolOptions, ?DEFAULT_POOL_SIZE),
-    PoolStrategy = ?LOOKUP(pool_strategy, PoolOptions, ?DEFAULT_POOL_STRATEGY),
+options_rec(Client, Options) ->
+    BacklogSize = ?LOOKUP(backlog_size, Options, ?DEFAULT_BACKLOG_SIZE),
+    PoolSize = ?LOOKUP(pool_size, Options, ?DEFAULT_POOL_SIZE),
+    PoolStrategy = ?LOOKUP(pool_strategy, Options, ?DEFAULT_POOL_STRATEGY),
 
     #pool_options {
         backlog_size = BacklogSize,
@@ -151,23 +151,35 @@ options_rec(Client, PoolOptions) ->
         pool_strategy = PoolStrategy
     }.
 
-random(PoolSize) ->
-    erlang:phash2({os:timestamp(), self()}, PoolSize) + 1.
-
-round_robin(Name, PoolSize) ->
+server_index(_Name, PoolSize, random) ->
+    shackle_utils:random(PoolSize) + 1;
+server_index(Name, PoolSize, round_robin) ->
     UpdateOps = [{2, 1, PoolSize, 1}],
     Key = {Name, round_robin},
-    [ServerId] = ets:update_counter(?ETS_TABLE_POOL, Key, UpdateOps),
+    [ServerId] = ets:update_counter(?ETS_TABLE_POOL_INDEX, Key, UpdateOps),
     ServerId.
 
-setup(Name, #pool_options {pool_strategy = round_robin} = Options) ->
-    ets:insert(?ETS_TABLE_POOL, {Name, Options}),
-    ets:insert(?ETS_TABLE_POOL, {{Name, round_robin}, 1});
-setup(Name, Options) ->
-    ets:insert(?ETS_TABLE_POOL, {Name, Options}).
+setup(Name, OptionsRec) ->
+    setup_ets(Name, OptionsRec),
+    compile_pool_utils().
+
+setup_ets(Name, #pool_options {pool_strategy = round_robin} = OptionsRec) ->
+    ets:insert(?ETS_TABLE_POOL, {Name, OptionsRec}),
+    ets:insert(?ETS_TABLE_POOL_INDEX, {{Name, round_robin}, 1});
+setup_ets(Name, OptionsRec) ->
+    ets:insert(?ETS_TABLE_POOL, {Name, OptionsRec}).
+
+server_names(Name, PoolSize) ->
+    [shackle_pool_utils:server_name(Name, N) ||
+        N <- lists:seq(1, PoolSize)].
+
+server_spec(ServerName, Name, Client) ->
+    StartFunc = {?SERVER, start_link, [ServerName, Name, Client]},
+    {ServerName, StartFunc, permanent, 5000, worker, [?SERVER]}.
 
 start_children(Name, Client, #pool_options {pool_size = PoolSize}) ->
-    ChildNames = child_names(Client, PoolSize),
-    ChildSpecs = [child_spec(ChildName, Name, Client) ||
-        ChildName <- ChildNames],
-    [supervisor:start_child(?SUPERVISOR, ChildSpec) || ChildSpec <- ChildSpecs].
+    ServerNames = server_names(Name, PoolSize),
+    ServerSpecs = [server_spec(ServerName, Name, Client) ||
+        ServerName <- ServerNames],
+    [supervisor:start_child(?SUPERVISOR, ServerSpec) ||
+        ServerSpec <- ServerSpecs].

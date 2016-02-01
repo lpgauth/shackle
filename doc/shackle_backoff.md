@@ -16,7 +16,7 @@
 
 
 <pre><code>
-backlog_size() = pos_integer()
+backlog_size() = pos_integer() | infinity
 </code></pre>
 
 
@@ -26,7 +26,7 @@ backlog_size() = pos_integer()
 
 
 <pre><code>
-client_option() = {connect_options, [<a href="gen_tcp.md#type-connect_option">gen_tcp:connect_option()</a>]} | {ip, <a href="inet.md#type-ip_address">inet:ip_address()</a> | <a href="inet.md#type-hostname">inet:hostname()</a>} | {port, <a href="inet.md#type-port_number">inet:port_number()</a>} | {reconnect, boolean()} | {reconnect_time_max, <a href="#type-time">time()</a>} | {reconnect_time_min, <a href="#type-time">time()</a>} | {state, term()}
+client_option() = {ip, <a href="inet.md#type-ip_address">inet:ip_address()</a> | <a href="inet.md#type-hostname">inet:hostname()</a>} | {port, <a href="inet.md#type-port_number">inet:port_number()</a>} | {protocol, <a href="#type-protocol">protocol()</a>} | {reconnect, boolean()} | {reconnect_time_max, <a href="#type-time">time()</a>} | {reconnect_time_min, <a href="#type-time">time()</a>} | {socket_options, [<a href="gen_tcp.md#type-connect_option">gen_tcp:connect_option()</a> | <a href="gen_udp.md#type-option">gen_udp:option()</a>]}
 </code></pre>
 
 
@@ -82,6 +82,26 @@ pool_strategy() = random | round_robin
 
 
 
+### <a name="type-protocol">protocol()</a> ###
+
+
+<pre><code>
+protocol() = shackle_tcp | shackle_udp
+</code></pre>
+
+
+
+
+### <a name="type-reconnect_state">reconnect_state()</a> ###
+
+
+<pre><code>
+reconnect_state() = #reconnect_state{current = undefined | <a href="#type-time">time()</a>, max = undefined | <a href="#type-time">time()</a> | infinity, min = undefined | <a href="#type-time">time()</a>}
+</code></pre>
+
+
+
+
 ### <a name="type-time">time()</a> ###
 
 
@@ -94,19 +114,19 @@ time() = pos_integer()
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#timeout-2">timeout/2</a></td><td></td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#timeout-1">timeout/1</a></td><td></td></tr></table>
 
 
 <a name="functions"></a>
 
 ## Function Details ##
 
-<a name="timeout-2"></a>
+<a name="timeout-1"></a>
 
-### timeout/2 ###
+### timeout/1 ###
 
 <pre><code>
-timeout(Time::integer(), MaxTime::integer()) -&gt; integer()
+timeout(Reconnect_state::<a href="#type-reconnect_state">reconnect_state()</a>) -&gt; <a href="#type-reconnect_state">reconnect_state()</a>
 </code></pre>
 <br />
 

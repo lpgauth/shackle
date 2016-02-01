@@ -10,19 +10,19 @@
 
 %% defaults
 -define(DEFAULT_BACKLOG_SIZE, 1024).
--define(DEFAULT_CONNECT_OPTS, [
-    {send_timeout, 50},
-    {send_timeout_close, true}
-]).
 -define(DEFAULT_IP, "127.0.0.1").
 -define(DEFAULT_POOL_SIZE, 16).
--define(DEFAULT_POOL_STRATEGY, random).
+-define(DEFAULT_POOL_STRATEGY, round_robin).
+-define(DEFAULT_PROTOCOL, shackle_tcp).
 -define(DEFAULT_RECONNECT, true).
 -define(DEFAULT_RECONNECT_MAX, timer:minutes(2)).
 -define(DEFAULT_RECONNECT_MIN, timer:seconds(1)).
+-define(DEFAULT_SOCKET_OPTS, []).
 -define(DEFAULT_TIMEOUT, 1000).
 
 %% ETS tables
 -define(ETS_TABLE_BACKLOG, shackle_backlog).
 -define(ETS_TABLE_POOL, shackle_pool).
+-define(ETS_TABLE_POOL_INDEX, shackle_pool_index).
 -define(ETS_TABLE_QUEUE, shackle_queue).
+-define(ETS_TABLE_QUEUE_REVERSE, shackle_queue_reverse).

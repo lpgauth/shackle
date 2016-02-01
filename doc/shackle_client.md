@@ -3,7 +3,7 @@
 # Module shackle_client #
 * [Data Types](#types)
 
-__This module defines the `shackle_client` behaviour.__<br /> Required callback functions: `after_connect/2`, `handle_data/2`, `handle_request/2`, `handle_timing/2`, `options/0`, `terminate/1`.
+__This module defines the `shackle_client` behaviour.__<br /> Required callback functions: `options/0`, `init/0`, `setup/2`, `handle_request/2`, `handle_data/2`, `terminate/1`.
 
 <a name="types"></a>
 
@@ -16,7 +16,7 @@ __This module defines the `shackle_client` behaviour.__<br /> Required callback 
 
 
 <pre><code>
-backlog_size() = pos_integer()
+backlog_size() = pos_integer() | infinity
 </code></pre>
 
 
@@ -26,7 +26,7 @@ backlog_size() = pos_integer()
 
 
 <pre><code>
-client_option() = {connect_options, [<a href="gen_tcp.md#type-connect_option">gen_tcp:connect_option()</a>]} | {ip, <a href="inet.md#type-ip_address">inet:ip_address()</a> | <a href="inet.md#type-hostname">inet:hostname()</a>} | {port, <a href="inet.md#type-port_number">inet:port_number()</a>} | {reconnect, boolean()} | {reconnect_time_max, <a href="#type-time">time()</a>} | {reconnect_time_min, <a href="#type-time">time()</a>} | {state, term()}
+client_option() = {ip, <a href="inet.md#type-ip_address">inet:ip_address()</a> | <a href="inet.md#type-hostname">inet:hostname()</a>} | {port, <a href="inet.md#type-port_number">inet:port_number()</a>} | {protocol, <a href="#type-protocol">protocol()</a>} | {reconnect, boolean()} | {reconnect_time_max, <a href="#type-time">time()</a>} | {reconnect_time_min, <a href="#type-time">time()</a>} | {socket_options, [<a href="gen_tcp.md#type-connect_option">gen_tcp:connect_option()</a> | <a href="gen_udp.md#type-option">gen_udp:option()</a>]}
 </code></pre>
 
 
@@ -77,6 +77,16 @@ pool_size() = pos_integer()
 
 <pre><code>
 pool_strategy() = random | round_robin
+</code></pre>
+
+
+
+
+### <a name="type-protocol">protocol()</a> ###
+
+
+<pre><code>
+protocol() = shackle_tcp | shackle_udp
 </code></pre>
 
 

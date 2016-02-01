@@ -1,48 +1,115 @@
 -module(shackle_queue).
 -include("shackle_internal.hrl").
 
+-compile(inline).
+-compile({inline_size, 512}).
+
 %% internal
 -export([
-    all/1,
-    in/3,
+    add/2,
+    clear/1,
     init/0,
-    out/2
+    remove/1,
+    remove/2
 ]).
 
 %% internal
--spec all(server_name()) -> [cast()].
+-spec add(external_request_id(), cast()) ->
+    ok.
 
-all(ServerName) ->
+add(ExtRequestId, #cast {
+        request_id = {ServerName, _} = RequestId
+    } = Cast) ->
+
+    Object = {{ServerName, ExtRequestId}, Cast},
+    ets:insert(?ETS_TABLE_QUEUE, Object),
+
+    Object2 = {RequestId, ExtRequestId},
+    ets:insert(?ETS_TABLE_QUEUE_REVERSE, Object2),
+
+    ok.
+
+-spec clear(server_name()) ->
+    [cast()].
+
+clear(ServerName) ->
     Match = {{ServerName, '_'}, '_'},
-    Matches = ets:match_object(?ETS_TABLE_QUEUE, Match),
-    ets:match_delete(?ETS_TABLE_QUEUE, Match),
-    [Request || {_, Request} <- Matches].
+    case ets_match_take(?ETS_TABLE_QUEUE, Match) of
+        [] ->
+            [];
+        Objects ->
+            ets:match_delete(?ETS_TABLE_QUEUE_REVERSE, Match),
+            [Cast || {_, Cast} <- Objects]
+    end.
 
--spec init() -> ?ETS_TABLE_QUEUE.
+-spec init() ->
+    ok.
 
 init() ->
-    ets:new(?ETS_TABLE_QUEUE, [
+    ets_new(?ETS_TABLE_QUEUE),
+    ets_new(?ETS_TABLE_QUEUE_REVERSE),
+    ok.
+
+-spec remove(request_id()) ->
+    {ok, cast()} | {error, not_found}.
+
+remove({ServerName, _} = RequestId) ->
+    case ets_take(?ETS_TABLE_QUEUE_REVERSE, RequestId) of
+        [] ->
+            {error, not_found};
+        [{_, ExtRequestId}] ->
+            case ets_take(?ETS_TABLE_QUEUE, {ServerName, ExtRequestId}) of
+                [] ->
+                    {error, not_found};
+                [{_, Cast}] ->
+                    {ok, Cast}
+            end
+    end.
+
+-spec remove(server_name(), external_request_id()) ->
+    {ok, cast()} | {error, not_found}.
+
+remove(ServerName, ExtRequestId) ->
+    case ets_take(?ETS_TABLE_QUEUE, {ServerName, ExtRequestId}) of
+        [] ->
+            {error, not_found};
+        [{_, #cast {request_id = RequestId} = Cast}] ->
+            ets:delete(?ETS_TABLE_QUEUE_REVERSE, RequestId),
+            {ok, Cast}
+    end.
+
+%% private
+ets_match_take(Tid, Match) ->
+    case ets:match_object(Tid, Match) of
+        [] ->
+            [];
+        Objects ->
+            ets:match_delete(Tid, Match),
+            Objects
+    end.
+
+ets_new(Tid) ->
+    ets:new(Tid, [
         named_table,
         public,
         {read_concurrency, true},
         {write_concurrency, true}
     ]).
 
--spec in(server_name(), external_request_id(), cast()) -> ok.
+-ifdef(ETS_TAKE).
 
-in(ServerName, RequestId, Request) ->
-    ets:insert(?ETS_TABLE_QUEUE, {{ServerName, RequestId}, Request}),
-    ok.
+ets_take(Tid, Key) ->
+    ets:take(Tid, Key).
 
--spec out(atom(), external_request_id()) -> {ok, cast()} | {error, not_found}.
+-else.
 
-out(ServerName, RequestId) ->
-    Key = {ServerName, RequestId},
-    try
-        Request = ets:lookup_element(?ETS_TABLE_QUEUE, Key, 2),
-        ets:delete(?ETS_TABLE_QUEUE, Key),
-        {ok, Request}
-    catch
-        error:badarg ->
-            {error, not_found}
+ets_take(Tid, Key) ->
+    case ets:lookup(Tid, Key) of
+        [] ->
+            [];
+        Objects ->
+            ets:delete(Tid, Key),
+            Objects
     end.
+
+-endif.

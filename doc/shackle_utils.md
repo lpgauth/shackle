@@ -16,7 +16,7 @@
 
 
 <pre><code>
-backlog_size() = pos_integer()
+backlog_size() = pos_integer() | infinity
 </code></pre>
 
 
@@ -26,7 +26,7 @@ backlog_size() = pos_integer()
 
 
 <pre><code>
-client_option() = {connect_options, [<a href="gen_tcp.md#type-connect_option">gen_tcp:connect_option()</a>]} | {ip, <a href="inet.md#type-ip_address">inet:ip_address()</a> | <a href="inet.md#type-hostname">inet:hostname()</a>} | {port, <a href="inet.md#type-port_number">inet:port_number()</a>} | {reconnect, boolean()} | {reconnect_time_max, <a href="#type-time">time()</a>} | {reconnect_time_min, <a href="#type-time">time()</a>} | {state, term()}
+client_option() = {ip, <a href="inet.md#type-ip_address">inet:ip_address()</a> | <a href="inet.md#type-hostname">inet:hostname()</a>} | {port, <a href="inet.md#type-port_number">inet:port_number()</a>} | {protocol, <a href="#type-protocol">protocol()</a>} | {reconnect, boolean()} | {reconnect_time_max, <a href="#type-time">time()</a>} | {reconnect_time_min, <a href="#type-time">time()</a>} | {socket_options, [<a href="gen_tcp.md#type-connect_option">gen_tcp:connect_option()</a> | <a href="gen_udp.md#type-option">gen_udp:option()</a>]}
 </code></pre>
 
 
@@ -92,6 +92,16 @@ pool_strategy() = random | round_robin
 
 
 
+### <a name="type-protocol">protocol()</a> ###
+
+
+<pre><code>
+protocol() = shackle_tcp | shackle_udp
+</code></pre>
+
+
+
+
 ### <a name="type-time">time()</a> ###
 
 
@@ -104,12 +114,21 @@ time() = pos_integer()
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#info_msg-3">info_msg/3</a></td><td></td></tr><tr><td valign="top"><a href="#lookup-3">lookup/3</a></td><td></td></tr><tr><td valign="top"><a href="#now_diff-1">now_diff/1</a></td><td></td></tr><tr><td valign="top"><a href="#timeout-2">timeout/2</a></td><td></td></tr><tr><td valign="top"><a href="#timing-2">timing/2</a></td><td></td></tr><tr><td valign="top"><a href="#warning_msg-3">warning_msg/3</a></td><td></td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#cancel_timer-1">cancel_timer/1</a></td><td></td></tr><tr><td valign="top"><a href="#info_msg-3">info_msg/3</a></td><td></td></tr><tr><td valign="top"><a href="#lookup-3">lookup/3</a></td><td></td></tr><tr><td valign="top"><a href="#random-1">random/1</a></td><td></td></tr><tr><td valign="top"><a href="#random_element-1">random_element/1</a></td><td></td></tr><tr><td valign="top"><a href="#timeout-2">timeout/2</a></td><td></td></tr><tr><td valign="top"><a href="#warning_msg-3">warning_msg/3</a></td><td></td></tr></table>
 
 
 <a name="functions"></a>
 
 ## Function Details ##
+
+<a name="cancel_timer-1"></a>
+
+### cancel_timer/1 ###
+
+<pre><code>
+cancel_timer(TimerRef::undefined | reference()) -&gt; ok
+</code></pre>
+<br />
 
 <a name="info_msg-3"></a>
 
@@ -129,12 +148,21 @@ lookup(Key::atom(), List::[{atom(), term()}], Default::term()) -&gt; term()
 </code></pre>
 <br />
 
-<a name="now_diff-1"></a>
+<a name="random-1"></a>
 
-### now_diff/1 ###
+### random/1 ###
 
 <pre><code>
-now_diff(Timestamp::<a href="erlang.md#type-timestamp">erlang:timestamp()</a>) -&gt; non_neg_integer()
+random(N::pos_integer()) -&gt; non_neg_integer()
+</code></pre>
+<br />
+
+<a name="random_element-1"></a>
+
+### random_element/1 ###
+
+<pre><code>
+random_element(List::[term()]) -&gt; term()
 </code></pre>
 <br />
 
@@ -144,15 +172,6 @@ now_diff(Timestamp::<a href="erlang.md#type-timestamp">erlang:timestamp()</a>) -
 
 <pre><code>
 timeout(Timeout::<a href="#type-time">time()</a>, Timestamp::<a href="erlang.md#type-timestamp">erlang:timestamp()</a>) -&gt; integer()
-</code></pre>
-<br />
-
-<a name="timing-2"></a>
-
-### timing/2 ###
-
-<pre><code>
-timing(Timestamp::<a href="erlang.md#type-timestamp">erlang:timestamp()</a>, Timing::[non_neg_integer()]) -&gt; [non_neg_integer()]
 </code></pre>
 <br />
 

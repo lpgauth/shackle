@@ -1,6 +1,6 @@
 
 
-# Module shackle_backlog #
+# Module shackle_compiler #
 * [Data Types](#types)
 * [Function Index](#index)
 * [Function Details](#functions)
@@ -37,6 +37,16 @@ client_option() = {ip, <a href="inet.md#type-ip_address">inet:ip_address()</a> |
 
 <pre><code>
 client_options() = [<a href="#type-client_option">client_option()</a>]
+</code></pre>
+
+
+
+
+### <a name="type-pool_name">pool_name()</a> ###
+
+
+<pre><code>
+pool_name() = atom()
 </code></pre>
 
 
@@ -92,26 +102,6 @@ protocol() = shackle_tcp | shackle_udp
 
 
 
-### <a name="type-request_id">request_id()</a> ###
-
-
-<pre><code>
-request_id() = {<a href="#type-server_name">server_name()</a>, reference()}
-</code></pre>
-
-
-
-
-### <a name="type-server_name">server_name()</a> ###
-
-
-<pre><code>
-server_name() = atom()
-</code></pre>
-
-
-
-
 ### <a name="type-time">time()</a> ###
 
 
@@ -124,55 +114,19 @@ time() = pos_integer()
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#check-2">check/2</a></td><td></td></tr><tr><td valign="top"><a href="#decrement-1">decrement/1</a></td><td></td></tr><tr><td valign="top"><a href="#delete-1">delete/1</a></td><td></td></tr><tr><td valign="top"><a href="#init-0">init/0</a></td><td></td></tr><tr><td valign="top"><a href="#new-1">new/1</a></td><td></td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#pool_utils-1">pool_utils/1</a></td><td></td></tr></table>
 
 
 <a name="functions"></a>
 
 ## Function Details ##
 
-<a name="check-2"></a>
+<a name="pool_utils-1"></a>
 
-### check/2 ###
-
-<pre><code>
-check(ServerName::<a href="#type-server_name">server_name()</a>, BacklogSize::<a href="#type-backlog_size">backlog_size()</a>) -&gt; boolean()
-</code></pre>
-<br />
-
-<a name="decrement-1"></a>
-
-### decrement/1 ###
+### pool_utils/1 ###
 
 <pre><code>
-decrement(ServerName::<a href="#type-server_name">server_name()</a> | <a href="#type-request_id">request_id()</a>) -&gt; non_neg_integer()
-</code></pre>
-<br />
-
-<a name="delete-1"></a>
-
-### delete/1 ###
-
-<pre><code>
-delete(ServerName::<a href="#type-server_name">server_name()</a>) -&gt; ok
-</code></pre>
-<br />
-
-<a name="init-0"></a>
-
-### init/0 ###
-
-<pre><code>
-init() -&gt; ok
-</code></pre>
-<br />
-
-<a name="new-1"></a>
-
-### new/1 ###
-
-<pre><code>
-new(ServerName::<a href="#type-server_name">server_name()</a>) -&gt; ok
+pool_utils(Pools::[{<a href="#type-pool_name">pool_name()</a>, <a href="#type-pool_size">pool_size()</a>}]) -&gt; ok
 </code></pre>
 <br />
 

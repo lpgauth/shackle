@@ -1,6 +1,5 @@
--include_lib("eunit/include/eunit.hrl").
-
--define(CLIENT, arithmetic_client).
--define(N, 1000).
+-define(CLIENT_TCP, arithmetic_tcp_client).
+-define(CLIENT_UDP, arithmetic_udp_client).
 -define(POOL_NAME, arithmetic).
 -define(PORT, 62169).
+-define(TIMEOUT, 1000).

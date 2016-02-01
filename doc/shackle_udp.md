@@ -1,6 +1,6 @@
 
 
-# Module shackle_queue #
+# Module shackle_udp #
 * [Data Types](#types)
 * [Function Index](#index)
 * [Function Details](#functions)
@@ -22,26 +22,6 @@ backlog_size() = pos_integer() | infinity
 
 
 
-### <a name="type-cast">cast()</a> ###
-
-
-<pre><code>
-cast() = #cast{client = undefined | <a href="#type-client">client()</a>, pid = undefined | pid(), reply = undefined | term(), request = undefined | term(), request_id = undefined | <a href="#type-request_id">request_id()</a>, timestamp = undefined | <a href="erlang.md#type-timestamp">erlang:timestamp()</a>}
-</code></pre>
-
-
-
-
-### <a name="type-client">client()</a> ###
-
-
-<pre><code>
-client() = module()
-</code></pre>
-
-
-
-
 ### <a name="type-client_option">client_option()</a> ###
 
 
@@ -57,16 +37,6 @@ client_option() = {ip, <a href="inet.md#type-ip_address">inet:ip_address()</a> |
 
 <pre><code>
 client_options() = [<a href="#type-client_option">client_option()</a>]
-</code></pre>
-
-
-
-
-### <a name="type-external_request_id">external_request_id()</a> ###
-
-
-<pre><code>
-external_request_id() = term()
 </code></pre>
 
 
@@ -122,26 +92,6 @@ protocol() = shackle_tcp | shackle_udp
 
 
 
-### <a name="type-request_id">request_id()</a> ###
-
-
-<pre><code>
-request_id() = {<a href="#type-server_name">server_name()</a>, reference()}
-</code></pre>
-
-
-
-
-### <a name="type-server_name">server_name()</a> ###
-
-
-<pre><code>
-server_name() = atom()
-</code></pre>
-
-
-
-
 ### <a name="type-time">time()</a> ###
 
 
@@ -154,55 +104,46 @@ time() = pos_integer()
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#add-2">add/2</a></td><td></td></tr><tr><td valign="top"><a href="#clear-1">clear/1</a></td><td></td></tr><tr><td valign="top"><a href="#init-0">init/0</a></td><td></td></tr><tr><td valign="top"><a href="#remove-1">remove/1</a></td><td></td></tr><tr><td valign="top"><a href="#remove-2">remove/2</a></td><td></td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#close-1">close/1</a></td><td></td></tr><tr><td valign="top"><a href="#header-2">header/2</a></td><td></td></tr><tr><td valign="top"><a href="#new-3">new/3</a></td><td></td></tr><tr><td valign="top"><a href="#send-3">send/3</a></td><td></td></tr></table>
 
 
 <a name="functions"></a>
 
 ## Function Details ##
 
-<a name="add-2"></a>
+<a name="close-1"></a>
 
-### add/2 ###
+### close/1 ###
 
 <pre><code>
-add(ExtRequestId::<a href="#type-external_request_id">external_request_id()</a>, Cast::<a href="#type-cast">cast()</a>) -&gt; ok
+close(Socket::<a href="inet.md#type-socket">inet:socket()</a>) -&gt; ok
 </code></pre>
 <br />
 
-<a name="clear-1"></a>
+<a name="header-2"></a>
 
-### clear/1 ###
+### header/2 ###
 
 <pre><code>
-clear(ServerName::<a href="#type-server_name">server_name()</a>) -&gt; [<a href="#type-cast">cast()</a>]
+header(X1::<a href="inet.md#type-ip_address">inet:ip_address()</a>, Port::<a href="inet.md#type-port_number">inet:port_number()</a>) -&gt; iodata()
 </code></pre>
 <br />
 
-<a name="init-0"></a>
+<a name="new-3"></a>
 
-### init/0 ###
+### new/3 ###
 
 <pre><code>
-init() -&gt; ok
+new(Ip::<a href="inet.md#type-ip_address">inet:ip_address()</a>, Port::<a href="inet.md#type-port_number">inet:port_number()</a>, Options::[<a href="gen_udp.md#type-option">gen_udp:option()</a>]) -&gt; {ok, <a href="inet.md#type-socket">inet:socket()</a>} | {error, term()}
 </code></pre>
 <br />
 
-<a name="remove-1"></a>
+<a name="send-3"></a>
 
-### remove/1 ###
-
-<pre><code>
-remove(RequestId::<a href="#type-request_id">request_id()</a>) -&gt; {ok, <a href="#type-cast">cast()</a>} | {error, not_found}
-</code></pre>
-<br />
-
-<a name="remove-2"></a>
-
-### remove/2 ###
+### send/3 ###
 
 <pre><code>
-remove(ServerName::<a href="#type-server_name">server_name()</a>, ExtRequestId::<a href="#type-external_request_id">external_request_id()</a>) -&gt; {ok, <a href="#type-cast">cast()</a>} | {error, not_found}
+send(Socket::<a href="inet.md#type-socket">inet:socket()</a>, Header::iodata(), Data::iodata()) -&gt; ok | {error, term()}
 </code></pre>
 <br />
 

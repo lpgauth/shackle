@@ -12,13 +12,15 @@
 ]).
 
 %% internal
--spec start_link() -> {ok, pid()}.
+-spec start_link() ->
+    {ok, pid()}.
 
 start_link() ->
     supervisor:start_link({local, ?SUPERVISOR}, ?SUPERVISOR, []).
 
 %% supervisor callbacks
--spec init([]) -> {ok, {{one_for_one, 5, 10}, []}}.
+-spec init([]) ->
+    {ok, {{one_for_one, 5, 10}, []}}.
 
 init([]) ->
     shackle_backlog:init(),

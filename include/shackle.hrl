@@ -1,25 +1,30 @@
 %% records
 -record(cast, {
     client         :: client(),
-    pid            :: pid(),
-    reply          :: term(),
+    pid            :: undefined | pid(),
+    reply          :: undefined | term(),
     request        :: term(),
     request_id     :: request_id(),
-    timestamp      :: erlang:timestamp(),
-    timing    = [] :: [pos_integer()]
+    timestamp      :: erlang:timestamp()
+}).
+
+-record(reconnect_state, {
+    current :: undefined | time(),
+    max     :: time() | infinity,
+    min     :: time()
 }).
 
 %% types
--type backlog_size() :: pos_integer().
+-type backlog_size() :: pos_integer() | infinity.
 -type cast() :: #cast {}.
 -type client() :: module().
--type client_option() :: {connect_options, [gen_tcp:connect_option()]} |
-                         {ip, inet:ip_address() | inet:hostname()} |
+-type client_option() :: {ip, inet:ip_address() | inet:hostname()} |
                          {port, inet:port_number()} |
+                         {protocol, protocol()} |
                          {reconnect, boolean()} |
                          {reconnect_time_max, time()} |
                          {reconnect_time_min, time()} |
-                         {state, term()}.
+                         {socket_options, [gen_tcp:connect_option() | gen_udp:option()]}.
 
 -type client_options() :: [client_option()].
 -type external_request_id() :: term().
@@ -31,9 +36,11 @@
 -type pool_options() :: [pool_option()].
 -type pool_size() :: pos_integer().
 -type pool_strategy() :: random | round_robin.
+-type protocol() :: shackle_tcp | shackle_udp.
+-type reconnect_state() :: #reconnect_state {}.
+-type request_id() :: {server_name(), reference()}.
 -type response() :: {external_request_id(), term()}.
 -type server_name() :: atom().
--type request_id() :: {pool_name(), reference()}.
 -type time() :: pos_integer().
 
 -export_type([
