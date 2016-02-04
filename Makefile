@@ -12,6 +12,10 @@ compile:
 	@echo "Running rebar3 compile..."
 	@$(REBAR) as compile compile
 
+coveralls:
+	@echo "Running rebar3 coveralls send..."
+	@$(REBAR) as test coveralls send
+
 dialyzer:
 	@echo "Running rebar3 dialyze..."
 	@$(REBAR) dialyzer
@@ -42,10 +46,12 @@ shell:
 	@echo "Running rebar3 shell..."
 	@$(REBAR) as test shell
 
-test: dialyzer elvis eunit xref
+test: elvis xref eunit dialyzer
+
+travis: elvis xref eunit coveralls dialyzer
 
 xref:
 	@echo "Running rebar3 xref..."
 	@$(REBAR) xref
 
-.PHONY: edoc test xref
+.PHONY: clean compile coveralls dialyzer edoc elvis profile xref
