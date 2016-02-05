@@ -3,6 +3,7 @@
 Non-blocking Erlang network client framework
 
 [![Build Status](https://travis-ci.org/lpgauth/shackle.svg?branch=master)](https://travis-ci.org/lpgauth/shackle)
+[![Coverage Status](https://coveralls.io/repos/github/lpgauth/shackle/badge.svg?branch=master)](https://coveralls.io/github/lpgauth/shackle?branch=master)
 
 ### Requirements
 
