@@ -1,11 +1,12 @@
 cache:
   directories:
     - $HOME/.cache/rebar3
+install: true
 language: erlang
 notifications:
   email: false
 otp_release:
   - 18.2.1
   - 17.5
-script: "make test"
+script: "make travis"
 sudo: false
