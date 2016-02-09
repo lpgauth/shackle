@@ -42,10 +42,6 @@ profile:
 	@_build/test/lib/fprofx/erlgrindx -p fprofx.analysis
 	@$(CACHEGRIND) fprofx.cgrind
 
-shell:
-	@echo "Running rebar3 shell..."
-	@$(REBAR3) as test shell
-
 test: elvis xref eunit dialyzer
 
 travis: test coveralls
