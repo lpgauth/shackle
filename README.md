@@ -1,15 +1,15 @@
 # shackle
 
-Non-blocking Erlang network client framework
+High Performance Erlang Network Client Framework
 
 [![Build Status](https://travis-ci.org/lpgauth/shackle.svg?branch=master)](https://travis-ci.org/lpgauth/shackle)
 [![Coverage Status](https://coveralls.io/repos/github/lpgauth/shackle/badge.svg?branch=master)](https://coveralls.io/github/lpgauth/shackle?branch=master)
 
-### Requirements
+#### Requirements
 
 * Erlang 16.0 +
 
-### Features
+#### Features
 
 * Backpressure via backlog (OOM protection)
 * Fast pool implementation (random, round_robin)
@@ -19,7 +19,7 @@ Non-blocking Erlang network client framework
 
 ## How-to
 
-#### Implementing a client
+##### Implementing a client
 
 ```erlang
 -behavior(shackle_client).
@@ -101,7 +101,7 @@ handle_data(Data, #state {
 terminate(_State) -> ok.
 ```
 
-#### Client options
+##### Client options
 
 <table width="100%">
   <theader>
@@ -154,13 +154,13 @@ terminate(_State) -> ok.
   </tr>
 </table>
 
-#### Starting client pool
+##### Starting client pool
 
 ```erlang
 shackle_pool:start(pool_name, client, [{pool_size, 32}]).
 ```
 
-#### Pool Options
+##### Pool Options
 
 <table width="100%">
   <theader>
@@ -189,7 +189,7 @@ shackle_pool:start(pool_name, client, [{pool_size, 32}]).
   </tr>
 </table>
 
-#### Calling/Casting client
+##### Calling/Casting client
 
 ```erlang
 1> shackle:call(pool_name, {get, <<"test">>}).
