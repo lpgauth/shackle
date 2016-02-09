@@ -48,10 +48,10 @@ shell:
 
 test: elvis xref eunit dialyzer
 
-travis: elvis xref eunit coveralls dialyzer
+travis: test coveralls
 
 xref:
 	@echo "Running rebar3 xref..."
 	@$(REBAR3) xref
 
-.PHONY: clean compile coveralls dialyzer edoc elvis profile xref
+.PHONY: clean compile coveralls dialyzer edoc elvis eunit profile xref

@@ -1,6 +1,7 @@
 cache:
   directories:
     - $HOME/.cache/rebar3
+    - $TRAVIS_BUILD_DIR/_build
 install: true
 language: erlang
 notifications:
