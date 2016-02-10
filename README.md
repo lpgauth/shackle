@@ -19,7 +19,7 @@ High Performance Erlang Network Client Framework
 
 ## How-to
 
-##### Implementing a client
+#### Implementing a client
 
 ```erlang
 -behavior(shackle_client).
@@ -91,13 +91,13 @@ handle_data(Data, #state {
 terminate(_State) -> ok.
 ```
 
-##### Starting client pool
+#### Starting client pool
 
 ```erlang
-shackle_pool:start(pool_name, client, [{port, 123}], [{pool_size, 32}]).
+shackle_pool:start(pool_name(), client(), client_options(), pool_options())
 ```
 
-##### Client options
+##### client_options()
 
 <table width="100%">
   <theader>
@@ -150,7 +150,7 @@ shackle_pool:start(pool_name, client, [{port, 123}], [{pool_size, 32}]).
   </tr>
 </table>
 
-##### Pool Options
+##### pool_options()
 
 <table width="100%">
   <theader>
@@ -179,7 +179,7 @@ shackle_pool:start(pool_name, client, [{port, 123}], [{pool_size, 32}]).
   </tr>
 </table>
 
-##### Calling/Casting client
+#### Calling / Casting client
 
 ```erlang
 1> shackle:call(pool_name, {get, <<"test">>}).
