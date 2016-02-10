@@ -1,9 +1,6 @@
 -module(shackle_client).
 -include("shackle_internal.hrl").
 
--callback options() ->
-    {ok, Options :: client_options()}.
-
 -callback init() ->
     {ok, State :: term()}.
 

@@ -52,8 +52,8 @@ init(Name, PoolName, Client, Parent) ->
 
     self() ! ?MSG_CONNECT,
     ok = shackle_backlog:new(Name),
-    {ok, Options} = Client:options(),
 
+    {ok, Options} = shackle_pool:client_options(PoolName),
     Ip = ?LOOKUP(ip, Options, ?DEFAULT_IP),
     Port = ?LOOKUP(port, Options),
     Protocol = ?LOOKUP(protocol, Options, ?DEFAULT_PROTOCOL),

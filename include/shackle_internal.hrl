@@ -22,6 +22,7 @@
 
 %% ETS tables
 -define(ETS_TABLE_BACKLOG, shackle_backlog).
+-define(ETS_TABLE_CLIENT_OPTS, shackle_client_opts).
 -define(ETS_TABLE_POOL, shackle_pool).
 -define(ETS_TABLE_POOL_INDEX, shackle_pool_index).
 -define(ETS_TABLE_QUEUE, shackle_queue).

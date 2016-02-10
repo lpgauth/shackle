@@ -124,12 +124,21 @@ time() = pos_integer()
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#init-0">init/0</a></td><td></td></tr><tr><td valign="top"><a href="#server-1">server/1</a></td><td></td></tr><tr><td valign="top"><a href="#start-2">start/2</a></td><td></td></tr><tr><td valign="top"><a href="#start-3">start/3</a></td><td></td></tr><tr><td valign="top"><a href="#stop-1">stop/1</a></td><td></td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#client_options-1">client_options/1</a></td><td></td></tr><tr><td valign="top"><a href="#init-0">init/0</a></td><td></td></tr><tr><td valign="top"><a href="#server-1">server/1</a></td><td></td></tr><tr><td valign="top"><a href="#start-3">start/3</a></td><td></td></tr><tr><td valign="top"><a href="#start-4">start/4</a></td><td></td></tr><tr><td valign="top"><a href="#stop-1">stop/1</a></td><td></td></tr></table>
 
 
 <a name="functions"></a>
 
 ## Function Details ##
+
+<a name="client_options-1"></a>
+
+### client_options/1 ###
+
+<pre><code>
+client_options(Name::<a href="#type-pool_name">pool_name()</a>) -&gt; {ok, <a href="#type-client_options">client_options()</a>} | {error, atom()}
+</code></pre>
+<br />
 
 <a name="init-0"></a>
 
@@ -149,21 +158,21 @@ server(Name::<a href="#type-pool_name">pool_name()</a>) -&gt; {ok, <a href="#typ
 </code></pre>
 <br />
 
-<a name="start-2"></a>
-
-### start/2 ###
-
-<pre><code>
-start(Name::<a href="#type-pool_name">pool_name()</a>, Client::<a href="#type-client">client()</a>) -&gt; ok | {error, shackle_not_started | pool_already_started}
-</code></pre>
-<br />
-
 <a name="start-3"></a>
 
 ### start/3 ###
 
 <pre><code>
-start(Name::<a href="#type-pool_name">pool_name()</a>, Client::<a href="#type-client">client()</a>, Options::<a href="#type-pool_options">pool_options()</a>) -&gt; ok | {error, shackle_not_started | pool_already_started}
+start(Name::<a href="#type-pool_name">pool_name()</a>, Client::<a href="#type-client">client()</a>, ClientOptions::<a href="#type-client_options">client_options()</a>) -&gt; ok | {error, shackle_not_started | pool_already_started}
+</code></pre>
+<br />
+
+<a name="start-4"></a>
+
+### start/4 ###
+
+<pre><code>
+start(Name::<a href="#type-pool_name">pool_name()</a>, Client::<a href="#type-client">client()</a>, ClientOptions::<a href="#type-client_options">client_options()</a>, Options::<a href="#type-pool_options">pool_options()</a>) -&gt; ok | {error, shackle_not_started | pool_already_started}
 </code></pre>
 <br />
 

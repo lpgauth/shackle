@@ -10,7 +10,6 @@
 
 -behavior(shackle_client).
 -export([
-    options/0,
     init/0,
     setup/2,
     handle_request/2,
@@ -42,7 +41,14 @@ multiply(A, B) ->
     ok | {error, shackle_not_started | pool_already_started}.
 
 start() ->
-    shackle_pool:start(?POOL_NAME, ?CLIENT_TCP).
+    shackle_pool:start(?POOL_NAME, ?CLIENT_TCP, [
+        {port, ?PORT},
+        {reconnect, true},
+        {socket_options, [
+            binary,
+            {packet, raw}
+        ]}
+    ]).
 
 -spec stop() ->
     ok | {error, pool_not_started}.
@@ -51,16 +57,6 @@ stop() ->
     shackle_pool:stop(?POOL_NAME).
 
 %% shackle_server callbacks
-options() ->
-    {ok, [
-        {port, ?PORT},
-        {reconnect, true},
-        {socket_options, [
-            binary,
-            {packet, raw}
-        ]}
-    ]}.
-
 init() ->
     {ok, #state {}}.
 
