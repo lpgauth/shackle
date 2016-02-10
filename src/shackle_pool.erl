@@ -12,7 +12,6 @@
 
 %% internal
 -export([
-    client_options/1,
     init/0,
     server/1
 ]).
@@ -43,8 +42,8 @@ start(Name, Client, ClientOptions, Options) ->
             {error, shackle_not_started};
         {error, pool_not_started} ->
             OptionsRec = options_rec(Client, Options),
-            setup(Name, ClientOptions, OptionsRec),
-            start_children(Name, Client, OptionsRec),
+            setup(Name, OptionsRec),
+            start_children(Name, Client, ClientOptions, OptionsRec),
             ok
     end.
 
@@ -69,21 +68,10 @@ stop(Name) ->
     end.
 
 %% internal
--spec client_options(pool_name()) ->
-    {ok, client_options()} | {error, atom()}.
-
-client_options(Name) ->
-    options(?ETS_TABLE_CLIENT_OPTS, Name).
-
 -spec init() ->
     ok.
 
 init() ->
-    ets:new(?ETS_TABLE_CLIENT_OPTS, [
-        named_table,
-        public,
-        {read_concurrency, true}
-    ]),
     ets:new(?ETS_TABLE_POOL, [
         named_table,
         public,
@@ -126,11 +114,9 @@ cleanup(Name, OptionsRec) ->
     compile_pool_utils().
 
 cleanup_ets(Name, #pool_options {pool_strategy = round_robin}) ->
-    ets:delete(?ETS_TABLE_CLIENT_OPTS, Name),
     ets:delete(?ETS_TABLE_POOL, Name),
     ets:delete(?ETS_TABLE_POOL_INDEX, {Name, round_robin});
 cleanup_ets(Name, _) ->
-    ets:delete(?ETS_TABLE_CLIENT_OPTS, Name),
     ets:delete(?ETS_TABLE_POOL, Name).
 
 compile_pool_utils() ->
@@ -173,32 +159,34 @@ server_index(Name, PoolSize, round_robin) ->
     [ServerId] = ets:update_counter(?ETS_TABLE_POOL_INDEX, Key, UpdateOps),
     ServerId.
 
-setup(Name, ClientOptions, OptionsRec) ->
-    setup_ets(Name, ClientOptions, OptionsRec),
+setup(Name, OptionsRec) ->
+    setup_ets(Name, OptionsRec),
     compile_pool_utils().
 
-setup_ets(Name, ClientOptions, #pool_options {
+setup_ets(Name, #pool_options {
         pool_strategy = round_robin
     } = OptionsRec) ->
 
-    ets:insert_new(?ETS_TABLE_CLIENT_OPTS, {Name, ClientOptions}),
     ets:insert_new(?ETS_TABLE_POOL, {Name, OptionsRec}),
     ets:insert_new(?ETS_TABLE_POOL_INDEX, {{Name, round_robin}, 1});
-setup_ets(Name, ClientOptions, OptionsRec) ->
-    ets:insert_new(?ETS_TABLE_CLIENT_OPTS, {Name, ClientOptions}),
+setup_ets(Name, OptionsRec) ->
     ets:insert_new(?ETS_TABLE_POOL, {Name, OptionsRec}).
 
 server_names(Name, PoolSize) ->
     [shackle_pool_utils:server_name(Name, N) ||
         N <- lists:seq(1, PoolSize)].
 
-server_spec(ServerName, Name, Client) ->
-    StartFunc = {?SERVER, start_link, [ServerName, Name, Client]},
+server_spec(ServerName, Name, Client, ClientOptions) ->
+    StartFunc = {?SERVER, start_link,
+        [ServerName, Name, Client, ClientOptions]},
     {ServerName, StartFunc, permanent, 5000, worker, [?SERVER]}.
 
-start_children(Name, Client, #pool_options {pool_size = PoolSize}) ->
+start_children(Name, Client, ClientOptions, #pool_options {
+        pool_size = PoolSize
+    }) ->
+
     ServerNames = server_names(Name, PoolSize),
-    ServerSpecs = [server_spec(ServerName, Name, Client) ||
+    ServerSpecs = [server_spec(ServerName, Name, Client, ClientOptions) ||
         ServerName <- ServerNames],
     [supervisor:start_child(?SUPERVISOR, ServerSpec) ||
         ServerSpec <- ServerSpecs].

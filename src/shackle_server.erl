@@ -6,8 +6,8 @@
 
 %% internal
 -export([
-    init/4,
-    start_link/3
+    init/5,
+    start_link/4
 ]).
 
 %% sys behavior
@@ -36,16 +36,17 @@
 -type state() :: #state {}.
 
 %% public
--spec start_link(server_name(), pool_name(), client()) ->
+-spec start_link(server_name(), pool_name(), client(), client_options()) ->
     {ok, pid()}.
 
-start_link(Name, PoolName, Client) ->
-    proc_lib:start_link(?MODULE, init, [Name, PoolName, Client, self()]).
+start_link(Name, PoolName, Client, ClientOptions) ->
+    proc_lib:start_link(?MODULE, init, [Name, PoolName, Client,
+        ClientOptions, self()]).
 
--spec init(server_name(), pool_name(), client(), pid()) ->
+-spec init(server_name(), pool_name(), client(), client_options(), pid()) ->
     no_return().
 
-init(Name, PoolName, Client, Parent) ->
+init(Name, PoolName, Client, ClientOptions, Parent) ->
     process_flag(trap_exit, true),
     proc_lib:init_ack(Parent, {ok, self()}),
     register(Name, self()),
@@ -53,12 +54,12 @@ init(Name, PoolName, Client, Parent) ->
     self() ! ?MSG_CONNECT,
     ok = shackle_backlog:new(Name),
 
-    {ok, Options} = shackle_pool:client_options(PoolName),
-    Ip = ?LOOKUP(ip, Options, ?DEFAULT_IP),
-    Port = ?LOOKUP(port, Options),
-    Protocol = ?LOOKUP(protocol, Options, ?DEFAULT_PROTOCOL),
-    ReconnectState = reconnect_state(Options),
-    SocketOptions = ?LOOKUP(socket_options, Options, ?DEFAULT_SOCKET_OPTS),
+    Ip = ?LOOKUP(ip, ClientOptions, ?DEFAULT_IP),
+    Port = ?LOOKUP(port, ClientOptions),
+    Protocol = ?LOOKUP(protocol, ClientOptions, ?DEFAULT_PROTOCOL),
+    ReconnectState = reconnect_state(ClientOptions),
+    SocketOptions = ?LOOKUP(socket_options, ClientOptions,
+        ?DEFAULT_SOCKET_OPTS),
 
     {ok, Addrs} = inet:getaddrs(Ip, inet),
     Ip2 = shackle_utils:random_element(Addrs),
