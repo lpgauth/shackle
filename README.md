@@ -24,7 +24,6 @@ High Performance Erlang Network Client Framework
 ```erlang
 -behavior(shackle_client).
 -export([
-    options/0,
     init/0,
     setup/2,
     handle_request/2,
@@ -36,15 +35,6 @@ High Performance Erlang Network Client Framework
     buffer =       <<>> :: binary(),
     request_counter = 0 :: non_neg_integer()
 }).
-
--spec options() -> {ok, Options :: client_options()}.
-
-options() ->
-    {ok, [
-        {port, 123},
-        {protocol, shackle_tcp},
-        {reconnect, true}
-    ]}.
 
 -spec init() -> {ok, State :: term()}.
 
@@ -101,6 +91,12 @@ handle_data(Data, #state {
 terminate(_State) -> ok.
 ```
 
+##### Starting client pool
+
+```erlang
+shackle_pool:start(pool_name, client, [{port, 123}], [{pool_size, 32}]).
+```
+
 ##### Client options
 
 <table width="100%">
@@ -153,12 +149,6 @@ terminate(_State) -> ok.
     <td>options passed to the socket</td>
   </tr>
 </table>
-
-##### Starting client pool
-
-```erlang
-shackle_pool:start(pool_name, client, [{pool_size, 32}]).
-```
 
 ##### Pool Options
 

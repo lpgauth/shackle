@@ -18,7 +18,9 @@ shackle_backlog_test_() ->
 
 shackle_random_tcp_test_() ->
     {setup,
-        fun () -> setup_tcp([]) end,
+        fun () -> setup_tcp([
+            {pool_strategy, random}
+        ]) end,
         fun (_) -> cleanup_tcp() end,
     {inparallel, [
         fun add_tcp_subtest/0,
@@ -27,7 +29,9 @@ shackle_random_tcp_test_() ->
 
 shackle_random_udp_test_() ->
     {setup,
-        fun () -> setup_udp([]) end,
+        fun () -> setup_udp([
+            {pool_strategy, random}
+        ]) end,
         fun (_) -> cleanup_udp() end,
     {inparallel, [
         fun add_udp_subtest/0,
@@ -39,13 +43,17 @@ shackle_reconnect_test_() ->
         fun () ->
             setup(),
             shackle_pool:start(?POOL_NAME, ?CLIENT_TCP, [
-                {pool_size, 1}
-            ])
+                {port, ?PORT},
+                {reconnect, true},
+                {socket_options, [
+                    binary,
+                    {packet, raw}
+                ]}], [{pool_size, 1}])
         end,
         fun (_) -> cleanup_tcp() end,
     [fun reconnect_subtest/0]}.
 
-shackle_round_robin_test_() ->
+shackle_round_robin_tcp_test_() ->
     {setup,
         fun () -> setup_tcp([
             {pool_strategy, round_robin}
@@ -54,6 +62,17 @@ shackle_round_robin_test_() ->
     {inparallel, [
         fun add_tcp_subtest/0,
         fun multiply_tcp_subtest/0
+    ]}}.
+
+shackle_round_robin_udp_test_() ->
+    {setup,
+        fun () -> setup_udp([
+            {pool_strategy, round_robin}
+        ]) end,
+        fun (_) -> cleanup_udp() end,
+    {inparallel, [
+        fun add_udp_subtest/0,
+        fun multiply_udp_subtest/0
     ]}}.
 
 %% tests
@@ -129,9 +148,23 @@ setup() ->
 setup_tcp(Options) ->
     setup(),
     arithmetic_tcp_server:start(),
-    shackle_pool:start(?POOL_NAME, ?CLIENT_TCP, Options).
+    shackle_pool:start(?POOL_NAME, ?CLIENT_TCP, [
+        {port, ?PORT},
+        {reconnect, true},
+        {socket_options, [
+            binary,
+            {packet, raw}
+        ]}
+    ], Options).
 
 setup_udp(Options) ->
     setup(),
     arithmetic_udp_server:start(),
-    shackle_pool:start(?POOL_NAME, ?CLIENT_UDP, Options).
+    shackle_pool:start(?POOL_NAME, ?CLIENT_UDP, [
+        {port, ?PORT},
+        {protocol, shackle_udp},
+        {reconnect, true},
+        {socket_options, [
+            binary
+        ]}
+    ], Options).
