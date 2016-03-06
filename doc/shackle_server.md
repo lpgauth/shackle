@@ -154,28 +154,28 @@ time() = pos_integer()
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#init-4">init/4</a></td><td></td></tr><tr><td valign="top"><a href="#start_link-3">start_link/3</a></td><td></td></tr><tr><td valign="top"><a href="#system_code_change-4">system_code_change/4</a></td><td></td></tr><tr><td valign="top"><a href="#system_continue-3">system_continue/3</a></td><td></td></tr><tr><td valign="top"><a href="#system_terminate-4">system_terminate/4</a></td><td></td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#init-5">init/5</a></td><td></td></tr><tr><td valign="top"><a href="#start_link-4">start_link/4</a></td><td></td></tr><tr><td valign="top"><a href="#system_code_change-4">system_code_change/4</a></td><td></td></tr><tr><td valign="top"><a href="#system_continue-3">system_continue/3</a></td><td></td></tr><tr><td valign="top"><a href="#system_terminate-4">system_terminate/4</a></td><td></td></tr></table>
 
 
 <a name="functions"></a>
 
 ## Function Details ##
 
-<a name="init-4"></a>
+<a name="init-5"></a>
 
-### init/4 ###
+### init/5 ###
 
 <pre><code>
-init(Name::<a href="#type-server_name">server_name()</a>, PoolName::<a href="#type-pool_name">pool_name()</a>, Client::<a href="#type-client">client()</a>, Parent::pid()) -&gt; no_return()
+init(Name::<a href="#type-server_name">server_name()</a>, PoolName::<a href="#type-pool_name">pool_name()</a>, Client::<a href="#type-client">client()</a>, ClientOptions::<a href="#type-client_options">client_options()</a>, Parent::pid()) -&gt; no_return()
 </code></pre>
 <br />
 
-<a name="start_link-3"></a>
+<a name="start_link-4"></a>
 
-### start_link/3 ###
+### start_link/4 ###
 
 <pre><code>
-start_link(Name::<a href="#type-server_name">server_name()</a>, PoolName::<a href="#type-pool_name">pool_name()</a>, Client::<a href="#type-client">client()</a>) -&gt; {ok, pid()}
+start_link(Name::<a href="#type-server_name">server_name()</a>, PoolName::<a href="#type-pool_name">pool_name()</a>, Client::<a href="#type-client">client()</a>, ClientOptions::<a href="#type-client_options">client_options()</a>) -&gt; {ok, pid()}
 </code></pre>
 <br />
 

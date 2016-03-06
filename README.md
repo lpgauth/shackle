@@ -210,11 +210,19 @@ make xref
   </theader>
   <tr>
     <td><a href="https://github.com/lpgauth/anchor">anchor</a></td>
-    <td>Memcached client</td>
+    <td>Memcached Client</td>
+  </tr>
+  <tr>
+    <td><a href="https://github.com/lpgauth/buoy">buoy</a></td>
+    <td>HTTP 1.1 Client (alpha)</td>
+  </tr>
+  <tr>
+    <td><a href="https://github.com/lpgauth/flare">flare</a></td>
+    <td>Kafka Producer (alpha)</td>
   </tr>
   <tr>
     <td><a href="https://github.com/lpgauth/marina">marina</a></td>
-    <td>Cassandra CQL3 client</td>
+    <td>Cassandra CQL Client</td>
   </tr>
 </table>
 
