@@ -12,6 +12,7 @@
 -define(MAX_REQUEST_ID, 256).
 
 -type operation() :: add | multiply.
+-type tiny_int() :: 0..255.
 
 %% public
 -spec opcode(operation()) -> 1..2.
@@ -29,12 +30,12 @@ parse_replies(Data) ->
 parse_requests(Data) ->
     parse_requests(Data, []).
 
--spec request(0..255, operation(), 0..255, 0..255) -> binary().
+-spec request(tiny_int(), operation(), tiny_int(), tiny_int()) -> binary().
 
 request(RequestId, Operation, A, B) ->
     <<RequestId:8/integer, (opcode(Operation)), A:8/integer, B:8/integer>>.
 
--spec request_id(non_neg_integer()) -> 0..255.
+-spec request_id(non_neg_integer()) -> tiny_int().
 
 request_id(RequestCounter) ->
     RequestCounter rem ?MAX_REQUEST_ID.
