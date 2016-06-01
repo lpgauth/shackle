@@ -27,7 +27,7 @@
     pool_name        :: pool_name(),
     port             :: inet:port_number(),
     protocol         :: protocol(),
-    reconnect_state  :: reconnect_state(),
+    reconnect_state  :: undefined | reconnect_state(),
     socket           :: undefined | inet:socket(),
     socket_options   :: [gen_tcp:connect_option() | gen_udp:option()],
     timer_ref        :: undefined | reference()
