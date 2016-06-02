@@ -130,8 +130,24 @@ cleanup_udp() ->
     arithmetic_udp_server:stop(),
     cleanup().
 
+-ifdef(RAND).
+
+rand() ->
+    rand:uniform(255).
+
+rand_seed() ->
+    rand:seed(os:timestamp()).
+
+-else.
+
 rand() ->
     random:uniform(255).
+
+rand_seed() ->
+    random:seed(os:timestamp()).
+
+-endif.
+
 
 receive_loop(0) -> [];
 receive_loop(N) ->
@@ -141,7 +157,7 @@ receive_loop(N) ->
     end.
 
 setup() ->
-    random:seed(os:timestamp()),
+    rand_seed(),
     error_logger:tty(false),
     shackle_app:start().
 
