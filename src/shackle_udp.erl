@@ -11,6 +11,8 @@
     send/3
 ]).
 
+-define(INT16(X), [((X) bsr 8) band 16#ff, (X) band 16#ff]).
+
 %% public
 -spec close(inet:socket()) ->
     ok.
@@ -20,9 +22,8 @@ close(Socket) ->
 
 -spec header(inet:ip_address(), inet:port_number()) -> iodata().
 
-header({A, B, C, D}, Port) ->
-    [[((Port) bsr 8) band 16#ff, (Port) band 16#ff],
-        [A band 16#ff, B band 16#ff, C band 16#ff, D band 16#ff]].
+header(IP, Port) ->
+    [?INT16(Port), ip4_to_bytes(IP)].
 
 -spec new(inet:ip_address(), inet:port_number(), [gen_udp:option()]) ->
     {ok, inet:socket()} | {error, term()}.
@@ -41,3 +42,7 @@ send(Socket, Header, Data) ->
         Error:Reason ->
             {error, {Error, Reason}}
     end.
+
+%% private
+ip4_to_bytes({A, B, C, D}) ->
+    [A band 16#ff, B band 16#ff, C band 16#ff, D band 16#ff].
