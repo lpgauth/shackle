@@ -136,7 +136,7 @@ rand() ->
     rand:uniform(255).
 
 rand_seed() ->
-    rand:seed(os:timestamp()).
+    ok.
 
 -else.
 
