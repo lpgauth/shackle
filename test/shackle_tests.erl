@@ -149,7 +149,8 @@ rand_seed() ->
 -endif.
 
 
-receive_loop(0) -> [];
+receive_loop(0) ->
+    [];
 receive_loop(N) ->
     receive
         {response, X} ->
