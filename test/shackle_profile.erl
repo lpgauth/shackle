@@ -2,20 +2,17 @@
 -include("test.hrl").
 
 -export([
-    fprofx/0
+    run/0
 ]).
 
 -define(N, 1000).
 -define(P, 20).
 
 %% public
--spec fprofx() -> ok.
+-spec run() -> ok.
 
-fprofx() ->
-    Filenames = filelib:wildcard("_build/default/lib/*/ebin/*.beam"),
-    Rootnames = [filename:rootname(Filename, ".beam") || Filename <- Filenames],
-    lists:foreach(fun code:load_abs/1, Rootnames),
-
+run() ->
+    shackle_test_utils:preload_modules(),
     application:start(shackle),
 
     fprofx:start(),

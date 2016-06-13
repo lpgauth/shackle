@@ -201,6 +201,28 @@ make eunit
 make xref
 ```
 
+## Performance testing
+
+To run performance testing targets you must first start the server.
+
+```
+./bin/rebar3 as test shell
+===> Verifying dependencies...
+===> Compiling shackle
+Erlang/OTP 18 [erts-7.3.1] [source] [64-bit] [smp:4:4] [async-threads:0] [hipe] [kernel-poll:false] [dtrace]
+
+Eshell V7.3.1  (abort with ^G)
+1> arithmetic_tcp_server:start().
+ok
+```
+
+Then you can run the bench or profile taget.
+
+```makefile
+make bench
+make profile
+```
+
 ## Clients
 
 <table width="100%">

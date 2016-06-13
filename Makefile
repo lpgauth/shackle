@@ -4,6 +4,14 @@ REBAR3=./bin/rebar3
 
 all: compile
 
+bench:
+	@echo "Benchmarking..."
+	@$(REBAR3) as test compile
+	@erl -noshell \
+	     -pa _build/test/lib/*/ebin \
+	     -eval 'shackle_bench:run()' \
+	     -eval 'init:stop()'
+
 clean:
 	@echo "Running rebar3 clean..."
 	@$(REBAR3) clean -a
@@ -37,8 +45,8 @@ profile:
 	@$(REBAR3) as test compile
 	@erl -noshell \
 	     -pa _build/test/lib/*/ebin \
-		 -eval 'shackle_profile:fprofx()' \
-		 -eval 'init:stop()'
+	     -eval 'shackle_profile:run()' \
+	     -eval 'init:stop()'
 	@_build/test/lib/fprofx/erlgrindx -p fprofx.analysis
 	@$(CACHEGRIND) fprofx.cgrind
 
@@ -50,4 +58,4 @@ xref:
 	@echo "Running rebar3 xref..."
 	@$(REBAR3) xref
 
-.PHONY: clean compile coveralls dialyzer edoc elvis eunit profile xref
+.PHONY: bench clean compile coveralls dialyzer edoc elvis eunit profile xref
