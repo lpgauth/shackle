@@ -7,11 +7,9 @@
 %% public
 -export([
     cancel_timer/1,
-    info_msg/3,
     lookup/3,
     random/1,
     random_element/1,
-    timeout/2,
     warning_msg/3
 ]).
 
@@ -23,12 +21,6 @@ cancel_timer(undefined) ->
     ok;
 cancel_timer(TimerRef) ->
     erlang:cancel_timer(TimerRef).
-
--spec info_msg(pool_name(), string(), [term()]) ->
-    ok.
-
-info_msg(Pool, Format, Data) ->
-    error_logger:info_msg("[~p] " ++ Format, [Pool | Data]).
 
 -spec lookup(atom(), [{atom(), term()}], term()) ->
     term().
@@ -53,13 +45,6 @@ random_element([X]) ->
 random_element([_|_] = List) ->
     T = list_to_tuple(List),
     element(random(tuple_size(T)) + 1, T).
-
--spec timeout(time(), erlang:timestamp()) ->
-    integer().
-
-timeout(Timeout, Timestamp) ->
-    Diff = timer:now_diff(os:timestamp(), Timestamp) div 1000,
-    Timeout - Diff.
 
 -spec warning_msg(pool_name(), string(), [term()]) ->
     ok.
