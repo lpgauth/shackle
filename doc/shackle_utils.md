@@ -114,7 +114,7 @@ time() = pos_integer()
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#cancel_timer-1">cancel_timer/1</a></td><td></td></tr><tr><td valign="top"><a href="#info_msg-3">info_msg/3</a></td><td></td></tr><tr><td valign="top"><a href="#lookup-3">lookup/3</a></td><td></td></tr><tr><td valign="top"><a href="#random-1">random/1</a></td><td></td></tr><tr><td valign="top"><a href="#random_element-1">random_element/1</a></td><td></td></tr><tr><td valign="top"><a href="#timeout-2">timeout/2</a></td><td></td></tr><tr><td valign="top"><a href="#warning_msg-3">warning_msg/3</a></td><td></td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#cancel_timer-1">cancel_timer/1</a></td><td></td></tr><tr><td valign="top"><a href="#lookup-3">lookup/3</a></td><td></td></tr><tr><td valign="top"><a href="#random-1">random/1</a></td><td></td></tr><tr><td valign="top"><a href="#random_element-1">random_element/1</a></td><td></td></tr><tr><td valign="top"><a href="#warning_msg-3">warning_msg/3</a></td><td></td></tr></table>
 
 
 <a name="functions"></a>
@@ -127,15 +127,6 @@ time() = pos_integer()
 
 <pre><code>
 cancel_timer(TimerRef::undefined | reference()) -&gt; ok
-</code></pre>
-<br />
-
-<a name="info_msg-3"></a>
-
-### info_msg/3 ###
-
-<pre><code>
-info_msg(Pool::<a href="#type-pool_name">pool_name()</a>, Format::string(), Data::[term()]) -&gt; ok
 </code></pre>
 <br />
 
@@ -163,15 +154,6 @@ random(N::pos_integer()) -&gt; non_neg_integer()
 
 <pre><code>
 random_element(List::[term()]) -&gt; term()
-</code></pre>
-<br />
-
-<a name="timeout-2"></a>
-
-### timeout/2 ###
-
-<pre><code>
-timeout(Timeout::<a href="#type-time">time()</a>, Timestamp::<a href="erlang.md#type-timestamp">erlang:timestamp()</a>) -&gt; integer()
 </code></pre>
 <br />
 
