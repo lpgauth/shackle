@@ -56,7 +56,7 @@ start() ->
 stop() ->
     shackle_pool:stop(?POOL_NAME).
 
-%% shackle_server callbacks
+%% shackle_client callbacks
 init() ->
     {ok, #state {}}.
 

@@ -125,7 +125,7 @@ close(Socket::<a href="inet.md#type-socket">inet:socket()</a>) -&gt; ok
 ### header/2 ###
 
 <pre><code>
-header(X1::<a href="inet.md#type-ip_address">inet:ip_address()</a>, Port::<a href="inet.md#type-port_number">inet:port_number()</a>) -&gt; iodata()
+header(IP::<a href="inet.md#type-ip_address">inet:ip_address()</a>, Port::<a href="inet.md#type-port_number">inet:port_number()</a>) -&gt; iodata()
 </code></pre>
 <br />
 
