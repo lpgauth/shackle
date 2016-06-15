@@ -45,6 +45,7 @@ shackle_reconnect_test_() ->
             shackle_pool:start(?POOL_NAME, ?CLIENT_TCP, [
                 {port, ?PORT},
                 {reconnect, true},
+                {reconnect_time_min, 1},
                 {socket_options, [
                     binary,
                     {packet, raw}
@@ -103,7 +104,12 @@ multiply_udp_subtest() ->
 reconnect_subtest() ->
     ?assertEqual({error, no_socket}, arithmetic_tcp_client:add(1, 1)),
     arithmetic_tcp_server:start(),
-    timer:sleep(3000),
+    timer:sleep(200),
+    ?assertEqual(2, arithmetic_tcp_client:add(1, 1)),
+    arithmetic_tcp_server:stop(),
+    ?assertEqual({error, socket_closed}, arithmetic_tcp_client:add(1, 1)),
+    arithmetic_tcp_server:start(),
+    timer:sleep(200),
     ?assertEqual(2, arithmetic_tcp_client:add(1, 1)).
 
 %% utils
