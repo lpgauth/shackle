@@ -5,7 +5,7 @@
     run/0
 ]).
 
--define(N, 1000).
+-define(N, 100000).
 -define(P, 20).
 
 %% public

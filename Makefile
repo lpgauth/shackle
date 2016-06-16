@@ -9,6 +9,7 @@ bench:
 	@$(REBAR3) as test compile
 	@erl -noshell \
 	     -pa _build/test/lib/*/ebin \
+	     -pa _build/test/lib/*/test \
 	     -eval 'shackle_bench:run()' \
 	     -eval 'init:stop()'
 
