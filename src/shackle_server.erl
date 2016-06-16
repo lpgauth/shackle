@@ -17,23 +17,21 @@
     system_terminate/4
 ]).
 
--record(state, {
-    client           :: client(),
-    client_state     :: term(),
-    header           :: iodata(),
-    ip               :: inet:ip_address() | inet:hostname(),
-    name             :: server_name(),
-    parent           :: pid(),
-    pool_name        :: pool_name(),
-    port             :: inet:port_number(),
-    protocol         :: protocol(),
-    reconnect_state  :: undefined | reconnect_state(),
-    socket           :: undefined | inet:socket(),
-    socket_options   :: [gen_tcp:connect_option() | gen_udp:option()],
-    timer_ref        :: undefined | reference()
-}).
-
--type state() :: #state {}.
+-type state() :: #{
+    client           => client(),
+    client_state     => term(),
+    header           => iodata(),
+    ip               => inet:ip_address() | inet:hostname(),
+    name             => server_name(),
+    parent           => pid(),
+    pool_name        => pool_name(),
+    port             => inet:port_number(),
+    protocol         => protocol(),
+    reconnect_state  => undefined | reconnect_state(),
+    socket           => undefined | inet:socket(),
+    socket_options   => [gen_tcp:connect_option() | gen_udp:option()],
+    timer_ref        => undefined | reference()
+}.
 
 %% public
 -spec start_link(server_name(), pool_name(), client(), client_options()) ->
@@ -65,17 +63,20 @@ init(Name, PoolName, Client, ClientOptions, Parent) ->
     Ip2 = shackle_utils:random_element(Addrs),
     Header = shackle_udp:header(Ip2, Port),
 
-    loop(#state {
-        client = Client,
-        header = Header,
-        ip = Ip2,
-        name = Name,
-        parent = Parent,
-        pool_name = PoolName,
-        port = Port,
-        protocol = Protocol,
-        reconnect_state = ReconnectState,
-        socket_options = SocketOptions
+    loop(#{
+        client => Client,
+        client_state => undefined,
+        header => Header,
+        ip => Ip2,
+        name => Name,
+        parent => Parent,
+        pool_name => PoolName,
+        port => Port,
+        protocol => Protocol,
+        reconnect_state => ReconnectState,
+        socket => undefined,
+        socket_options => SocketOptions,
+        timer_ref => undefined
     }).
 
 %% sys callbacks
@@ -98,20 +99,20 @@ system_terminate(Reason, _Parent, _Debug, _State) ->
     exit(Reason).
 
 %% private
-close(#state {name = Name} = State) ->
+close(#{name := Name} = State) ->
     reply_all(Name, {error, socket_closed}),
     reconnect(State).
 
-handle_msg(?MSG_CONNECT, #state {
-        client = Client,
-        ip = Ip,
-        pool_name = PoolName,
-        port = Port,
-        protocol = Protocol,
-        reconnect_state = #reconnect_state {
+handle_msg(?MSG_CONNECT, #{
+        client := Client,
+        ip := Ip,
+        pool_name := PoolName,
+        port := Port,
+        protocol := Protocol,
+        reconnect_state := #reconnect_state {
             min = Min
         } = ReconnectState,
-        socket_options = SocketOptions
+        socket_options := SocketOptions
     } = State) ->
 
     case Protocol:new(Ip, Port, SocketOptions) of
@@ -123,19 +124,19 @@ handle_msg(?MSG_CONNECT, #state {
                 {ok, ClientState2} ->
                     inet:setopts(Socket, [{active, true}]),
 
-                    {ok, State#state {
-                        client_state = ClientState2,
-                        reconnect_state = ReconnectState#reconnect_state {
+                    {ok, State#{
+                        client_state := ClientState2,
+                        reconnect_state := ReconnectState#reconnect_state {
                             current = Min
                         },
-                        socket = Socket
+                        socket := Socket
                     }};
                 {error, Reason, ClientState2} ->
                     shackle_utils:warning_msg(PoolName,
                         "setup error: ~p", [Reason]),
 
-                    reconnect(State#state {
-                        client_state = ClientState2
+                    reconnect(State#{
+                        client_state := ClientState2
                     })
             end;
         {error, Reason} ->
@@ -143,20 +144,20 @@ handle_msg(?MSG_CONNECT, #state {
                 "~p connect error: ~p", [Protocol, Reason]),
             reconnect(State)
     end;
-handle_msg(#cast {} = Cast, #state {
-        socket = undefined,
-        name = Name
+handle_msg(#cast {} = Cast, #{
+        socket := undefined,
+        name := Name
     } = State) ->
 
     reply(Name, {error, no_socket}, Cast),
     {ok, State};
-handle_msg(#cast {request = Request} = Cast, #state {
-        client = Client,
-        client_state = ClientState,
-        header = Header,
-        pool_name = PoolName,
-        protocol = Protocol,
-        socket = Socket
+handle_msg(#cast {request = Request} = Cast, #{
+        client := Client,
+        client_state := ClientState,
+        header := Header,
+        pool_name := PoolName,
+        protocol := Protocol,
+        socket := Socket
     } = State) ->
 
     {ok, ExtRequestId, Data, ClientState2} =
@@ -166,8 +167,8 @@ handle_msg(#cast {request = Request} = Cast, #state {
         ok ->
             shackle_queue:add(ExtRequestId, Cast),
 
-            {ok, State#state {
-                client_state = ClientState2
+            {ok, State#{
+                client_state := ClientState2
             }};
         {error, Reason} ->
             shackle_utils:warning_msg(PoolName, "tcp send error: ~p", [Reason]),
@@ -176,24 +177,24 @@ handle_msg(#cast {request = Request} = Cast, #state {
     end;
 handle_msg({inet_reply, _Socket, ok}, State) ->
     {ok, State};
-handle_msg({inet_reply, _Socket, {error, Reason}}, #state {
-        pool_name = PoolName
+handle_msg({inet_reply, _Socket, {error, Reason}}, #{
+        pool_name := PoolName
     } = State) ->
 
     shackle_utils:warning_msg(PoolName, "udp send error: ~p", [Reason]),
     {ok, State};
 handle_msg({tcp, _Port, Data}, State) ->
     handle_msg_data(Data, State);
-handle_msg({tcp_closed, Socket}, #state {
-        socket = Socket,
-        pool_name = PoolName
+handle_msg({tcp_closed, Socket}, #{
+        socket := Socket,
+        pool_name := PoolName
     } = State) ->
 
     shackle_utils:warning_msg(PoolName, "tcp connection closed", []),
     close(State);
-handle_msg({tcp_error, Socket, Reason}, #state {
-        socket = Socket,
-        pool_name = PoolName
+handle_msg({tcp_error, Socket, Reason}, #{
+        socket := Socket,
+        pool_name := PoolName
     } = State) ->
 
     shackle_utils:warning_msg(PoolName, "tcp connection error: ~p", [Reason]),
@@ -202,19 +203,19 @@ handle_msg({tcp_error, Socket, Reason}, #state {
 handle_msg({udp, _Socket, _Ip, _InPortNo, Data}, State) ->
     handle_msg_data(Data, State).
 
-handle_msg_data(Data, #state {
-        client = Client,
-        client_state = ClientState
+handle_msg_data(Data, #{
+        client := Client,
+        client_state := ClientState
     } = State) ->
 
     {ok, Replies, ClientState2} = Client:handle_data(Data, ClientState),
     ok = process_replies(Replies, State),
 
-    {ok, State#state {
-        client_state = ClientState2
+    {ok, State#{
+        client_state := ClientState2
     }}.
 
-loop(#state {parent = Parent} = State) ->
+loop(#{parent := Parent} = State) ->
     receive
         {'EXIT', Parent, Reason} ->
             terminate(Reason, State);
@@ -227,7 +228,7 @@ loop(#state {parent = Parent} = State) ->
 
 process_replies([], _State) ->
     ok;
-process_replies([{ExtRequestId, Reply} | T], #state {name = Name} = State) ->
+process_replies([{ExtRequestId, Reply} | T], #{name := Name} = State) ->
     case shackle_queue:remove(Name, ExtRequestId) of
         {ok, Cast} ->
             reply(Name, Reply, Cast);
@@ -236,11 +237,11 @@ process_replies([{ExtRequestId, Reply} | T], #state {name = Name} = State) ->
     end,
     process_replies(T, State).
 
-reconnect(#state {client_state = undefined} = State) ->
+reconnect(#{client_state := undefined} = State) ->
     reconnect_timer(State);
-reconnect(#state {
-        client = Client,
-        client_state = ClientState
+reconnect(#{
+        client := Client,
+        client_state := ClientState
     } = State) ->
 
     ok = Client:terminate(ClientState),
@@ -263,12 +264,12 @@ reconnect_state(Options) ->
             undefined
     end.
 
-reconnect_timer(#state {reconnect_state = undefined} = State) ->
-    {ok, State#state {
-        socket = undefined
+reconnect_timer(#{reconnect_state := undefined} = State) ->
+    {ok, State#{
+        socket := undefined
     }};
-reconnect_timer(#state {
-        reconnect_state = ReconnectState
+reconnect_timer(#{
+        reconnect_state := ReconnectState
     } = State) ->
 
     #reconnect_state {
@@ -276,10 +277,10 @@ reconnect_timer(#state {
     } = ReconnectState2 = shackle_backoff:timeout(ReconnectState),
     TimerRef = erlang:send_after(Current, self(), ?MSG_CONNECT),
 
-    {ok, State#state {
-        reconnect_state = ReconnectState2,
-        socket = undefined,
-        timer_ref = TimerRef
+    {ok, State#{
+        reconnect_state := ReconnectState2,
+        socket := undefined,
+        timer_ref := TimerRef
     }}.
 
 reply(Name, _Reply, #cast {pid = undefined}) ->
@@ -294,11 +295,11 @@ reply_all(Name, Reply) ->
     Requests = shackle_queue:clear(Name),
     [reply(Name, Reply, Request) || Request <- Requests].
 
-terminate(Reason, #state {
-        client = Client,
-        client_state = ClientState,
-        name = Name,
-        timer_ref = TimerRef
+terminate(Reason, #{
+        client := Client,
+        client_state := ClientState,
+        name := Name,
+        timer_ref := TimerRef
     }) ->
 
     shackle_utils:cancel_timer(TimerRef),
