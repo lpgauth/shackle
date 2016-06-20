@@ -108,9 +108,7 @@ handle_msg(?MSG_CONNECT, #state {
         pool_name = PoolName,
         port = Port,
         protocol = Protocol,
-        reconnect_state = #reconnect_state {
-            min = Min
-        } = ReconnectState,
+        reconnect_state = ReconnectState,
         socket_options = SocketOptions
     } = State) ->
 
@@ -125,9 +123,7 @@ handle_msg(?MSG_CONNECT, #state {
 
                     {ok, State#state {
                         client_state = ClientState2,
-                        reconnect_state = ReconnectState#reconnect_state {
-                            current = Min
-                        },
+                        reconnect_state = reconnect_state_reset(ReconnectState),
                         socket = Socket
                     }};
                 {error, Reason, ClientState2} ->
@@ -262,6 +258,13 @@ reconnect_state(Options) ->
         false ->
             undefined
     end.
+
+reconnect_state_reset(undefined) ->
+    undefined;
+reconnect_state_reset(#reconnect_state {min = Min}) ->
+    #reconnect_state {
+        min = Min
+    }.
 
 reconnect_timer(#state {reconnect_state = undefined} = State) ->
     {ok, State#state {
