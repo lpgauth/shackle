@@ -216,7 +216,7 @@ Eshell V7.3.1  (abort with ^G)
 ok
 ```
 
-Then you can run the bench or profile taget.
+Then you can run the bench or profile target.
 
 ```makefile
 make bench
