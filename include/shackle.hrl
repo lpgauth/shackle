@@ -11,7 +11,7 @@
 -record(reconnect_state, {
     current :: undefined | time(),
     max     :: time() | infinity,
-    min     :: time()
+    min     :: time() | none
 }).
 
 %% types

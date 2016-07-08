@@ -268,15 +268,33 @@ reconnect_state(Options) ->
 
 reconnect_state_reset(undefined) ->
     undefined;
-reconnect_state_reset(#reconnect_state {min = Min}) ->
-    #reconnect_state {
-        min = Min
+reconnect_state_reset(#reconnect_state {} = ReconnectState) ->
+    ReconnectState#reconnect_state {
+        current = undefined
     }.
 
-reconnect_timer(#state {reconnect_state = undefined} = State) ->
+reconnect_timer(#state {
+        reconnect_state = undefined
+    } = State) ->
+
     {ok, State#state {
         socket = undefined
     }};
+reconnect_timer(#state {
+        reconnect_state = #reconnect_state {
+            current = undefined,
+            min = none
+        } = ReconnectState
+    } = State) ->
+
+    {ok, State2} = handle_msg(?MSG_CONNECT, State#state {
+        reconnect_state = ReconnectState#reconnect_state {
+            current = ?DEFAULT_RECONNECT_MIN
+        },
+        socket = undefined
+    }),
+
+    {ok, State2};
 reconnect_timer(#state {
         reconnect_state = ReconnectState
     } = State) ->
