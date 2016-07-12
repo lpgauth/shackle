@@ -16,7 +16,7 @@
 -define(DEFAULT_PROTOCOL, shackle_tcp).
 -define(DEFAULT_RECONNECT, true).
 -define(DEFAULT_RECONNECT_MAX, timer:minutes(2)).
--define(DEFAULT_RECONNECT_MIN, timer:seconds(1)).
+-define(DEFAULT_RECONNECT_MIN, 10).
 -define(DEFAULT_SOCKET_OPTS, []).
 -define(DEFAULT_TIMEOUT, 1000).
 
