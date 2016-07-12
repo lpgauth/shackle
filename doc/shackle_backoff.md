@@ -96,7 +96,7 @@ protocol() = shackle_tcp | shackle_udp
 
 
 <pre><code>
-reconnect_state() = #reconnect_state{current = undefined | <a href="#type-time">time()</a>, max = undefined | <a href="#type-time">time()</a> | infinity, min = undefined | <a href="#type-time">time()</a>}
+reconnect_state() = #reconnect_state{current = undefined | <a href="#type-time">time()</a>, max = <a href="#type-time">time()</a> | infinity, min = none | <a href="#type-time">time()</a>}
 </code></pre>
 
 
