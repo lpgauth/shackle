@@ -116,7 +116,7 @@ protocol() = shackle_tcp | shackle_udp
 
 
 <pre><code>
-reconnect_state() = #reconnect_state{current = undefined | <a href="#type-time">time()</a>, max = undefined | <a href="#type-time">time()</a> | infinity, min = undefined | <a href="#type-time">time()</a>}
+reconnect_state() = #reconnect_state{current = undefined | <a href="#type-time">time()</a>, max = <a href="#type-time">time()</a> | infinity, min = none | <a href="#type-time">time()</a>}
 </code></pre>
 
 
@@ -136,7 +136,7 @@ server_name() = atom()
 
 
 <pre><code>
-state() = #state{client = undefined | <a href="#type-client">client()</a>, client_state = undefined | term(), header = undefined | iodata(), ip = undefined | <a href="inet.md#type-ip_address">inet:ip_address()</a> | <a href="inet.md#type-hostname">inet:hostname()</a>, name = undefined | <a href="#type-server_name">server_name()</a>, parent = undefined | pid(), pool_name = undefined | <a href="#type-pool_name">pool_name()</a>, port = undefined | <a href="inet.md#type-port_number">inet:port_number()</a>, protocol = undefined | <a href="#type-protocol">protocol()</a>, reconnect_state = undefined | <a href="#type-reconnect_state">reconnect_state()</a>, socket = undefined | <a href="inet.md#type-socket">inet:socket()</a>, socket_options = undefined | [<a href="gen_tcp.md#type-connect_option">gen_tcp:connect_option()</a> | <a href="gen_udp.md#type-option">gen_udp:option()</a>], timer_ref = undefined | reference()}
+state() = #state{client = <a href="#type-client">client()</a>, client_state = term(), header = iodata(), ip = <a href="inet.md#type-ip_address">inet:ip_address()</a> | <a href="inet.md#type-hostname">inet:hostname()</a>, name = <a href="#type-server_name">server_name()</a>, parent = pid(), pool_name = <a href="#type-pool_name">pool_name()</a>, port = <a href="inet.md#type-port_number">inet:port_number()</a>, protocol = <a href="#type-protocol">protocol()</a>, reconnect_state = undefined | <a href="#type-reconnect_state">reconnect_state()</a>, socket = undefined | <a href="inet.md#type-socket">inet:socket()</a>, socket_options = [<a href="gen_tcp.md#type-connect_option">gen_tcp:connect_option()</a> | <a href="gen_udp.md#type-option">gen_udp:option()</a>], timer_ref = undefined | reference()}
 </code></pre>
 
 
@@ -154,7 +154,7 @@ time() = pos_integer()
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#init-5">init/5</a></td><td></td></tr><tr><td valign="top"><a href="#start_link-4">start_link/4</a></td><td></td></tr><tr><td valign="top"><a href="#system_code_change-4">system_code_change/4</a></td><td></td></tr><tr><td valign="top"><a href="#system_continue-3">system_continue/3</a></td><td></td></tr><tr><td valign="top"><a href="#system_terminate-4">system_terminate/4</a></td><td></td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#init-5">init/5</a></td><td></td></tr><tr><td valign="top"><a href="#start_link-4">start_link/4</a></td><td></td></tr><tr><td valign="top"><a href="#system_code_change-4">system_code_change/4</a></td><td></td></tr><tr><td valign="top"><a href="#system_continue-3">system_continue/3</a></td><td></td></tr><tr><td valign="top"><a href="#system_get_state-1">system_get_state/1</a></td><td></td></tr><tr><td valign="top"><a href="#system_terminate-4">system_terminate/4</a></td><td></td></tr></table>
 
 
 <a name="functions"></a>
@@ -194,6 +194,15 @@ system_code_change(State::<a href="#type-state">state()</a>, Module::module(), O
 
 <pre><code>
 system_continue(Parent::pid(), Debug::[], State::<a href="#type-state">state()</a>) -&gt; ok
+</code></pre>
+<br />
+
+<a name="system_get_state-1"></a>
+
+### system_get_state/1 ###
+
+<pre><code>
+system_get_state(State::<a href="#type-state">state()</a>) -&gt; {ok, <a href="#type-state">state()</a>}
 </code></pre>
 <br />
 

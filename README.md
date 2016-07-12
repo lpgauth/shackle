@@ -138,7 +138,7 @@ shackle_pool:start(pool_name(), client(), client_options(), pool_options())
   </tr>
   <tr>
     <td>reconnect_time_min</td>
-    <td>pos_integer()</td>
+    <td>none | pos_integer()</td>
     <td>1000</td>
     <td>minimum reconnect time in milliseconds</td>
   </tr>

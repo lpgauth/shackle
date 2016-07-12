@@ -26,7 +26,7 @@ backlog_size() = pos_integer() | infinity
 
 
 <pre><code>
-cast() = #cast{client = undefined | <a href="#type-client">client()</a>, pid = undefined | pid(), reply = undefined | term(), request = undefined | term(), request_id = undefined | <a href="#type-request_id">request_id()</a>, timestamp = undefined | <a href="erlang.md#type-timestamp">erlang:timestamp()</a>}
+cast() = #cast{client = <a href="#type-client">client()</a>, pid = undefined | pid(), reply = undefined | term(), request = term(), request_id = <a href="#type-request_id">request_id()</a>, timestamp = <a href="erlang.md#type-timestamp">erlang:timestamp()</a>}
 </code></pre>
 
 

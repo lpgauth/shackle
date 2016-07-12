@@ -14,6 +14,7 @@
 -export([
     system_code_change/4,
     system_continue/3,
+    system_get_state/1,
     system_terminate/4
 ]).
 
@@ -90,6 +91,12 @@ system_code_change(State, _Module, _OldVsn, _Extra) ->
 
 system_continue(_Parent, _Debug, State) ->
     loop(State).
+
+-spec system_get_state(state()) ->
+    {ok, state()}.
+
+system_get_state(State) ->
+    {ok, State}.
 
 -spec system_terminate(term(), pid(), [], state()) ->
     none().
@@ -261,15 +268,33 @@ reconnect_state(Options) ->
 
 reconnect_state_reset(undefined) ->
     undefined;
-reconnect_state_reset(#reconnect_state {min = Min}) ->
-    #reconnect_state {
-        min = Min
+reconnect_state_reset(#reconnect_state {} = ReconnectState) ->
+    ReconnectState#reconnect_state {
+        current = undefined
     }.
 
-reconnect_timer(#state {reconnect_state = undefined} = State) ->
+reconnect_timer(#state {
+        reconnect_state = undefined
+    } = State) ->
+
     {ok, State#state {
         socket = undefined
     }};
+reconnect_timer(#state {
+        reconnect_state = #reconnect_state {
+            current = undefined,
+            min = none
+        } = ReconnectState
+    } = State) ->
+
+    {ok, State2} = handle_msg(?MSG_CONNECT, State#state {
+        reconnect_state = ReconnectState#reconnect_state {
+            current = ?DEFAULT_RECONNECT_MIN
+        },
+        socket = undefined
+    }),
+
+    {ok, State2};
 reconnect_timer(#state {
         reconnect_state = ReconnectState
     } = State) ->
@@ -277,6 +302,7 @@ reconnect_timer(#state {
     #reconnect_state {
         current = Current
     } = ReconnectState2 = shackle_backoff:timeout(ReconnectState),
+
     TimerRef = erlang:send_after(Current, self(), ?MSG_CONNECT),
 
     {ok, State#state {
