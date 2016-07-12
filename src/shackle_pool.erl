@@ -152,7 +152,7 @@ options_rec(Client, Options) ->
     }.
 
 server_index(_Name, PoolSize, random) ->
-    shackle_utils:random(PoolSize) + 1;
+    shackle_utils:random(PoolSize);
 server_index(Name, PoolSize, round_robin) ->
     UpdateOps = [{2, 1, PoolSize, 1}],
     Key = {Name, round_robin},
