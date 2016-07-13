@@ -35,7 +35,7 @@ lookup(Key, List, Default) ->
     non_neg_integer().
 
 random(N) ->
-    erlang:phash2({self(), os:timestamp()}, N).
+    granderl:uniform(N).
 
 -spec random_element([term()]) ->
     term().
