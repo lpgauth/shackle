@@ -17,6 +17,13 @@ High Performance Erlang Network Client Framework
 * Performance optimized
 * Request pipelining
 
+#### Framework goals
+
+* reusability
+* speed
+* concurrency
+* safety
+
 ## How-to
 
 #### Implementing a client
