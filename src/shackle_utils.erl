@@ -44,7 +44,7 @@ random_element([X]) ->
     X;
 random_element([_|_] = List) ->
     T = list_to_tuple(List),
-    element(random(tuple_size(T)) + 1, T).
+    element(random(tuple_size(T)), T).
 
 -spec warning_msg(pool_name(), string(), [term()]) ->
     ok.
