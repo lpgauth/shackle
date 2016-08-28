@@ -247,7 +247,7 @@ make profile
   </tr>
   <tr>
     <td><a href="https://github.com/lpgauth/flare">flare</a></td>
-    <td>Kafka Producer (alpha)</td>
+    <td>Kafka Producer</td>
   </tr>
   <tr>
     <td><a href="https://github.com/lpgauth/marina">marina</a></td>
