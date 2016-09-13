@@ -22,6 +22,16 @@ backlog_size() = pos_integer() | infinity
 
 
 
+### <a name="type-client">client()</a> ###
+
+
+<pre><code>
+client() = module()
+</code></pre>
+
+
+
+
 ### <a name="type-client_option">client_option()</a> ###
 
 
@@ -67,6 +77,16 @@ pool_option() = {backlog_size, <a href="#type-backlog_size">backlog_size()</a>} 
 
 <pre><code>
 pool_options() = [<a href="#type-pool_option">pool_option()</a>]
+</code></pre>
+
+
+
+
+### <a name="type-pool_options_rec">pool_options_rec()</a> ###
+
+
+<pre><code>
+pool_options_rec() = #pool_options{backlog_size = <a href="#type-backlog_size">backlog_size()</a>, client = <a href="#type-client">client()</a>, pool_size = <a href="#type-pool_size">pool_size()</a>, pool_strategy = <a href="#type-pool_strategy">pool_strategy()</a>}
 </code></pre>
 
 
@@ -126,7 +146,7 @@ time() = pos_integer()
 ### pool_utils/1 ###
 
 <pre><code>
-pool_utils(Pools::[{<a href="#type-pool_name">pool_name()</a>, <a href="#type-pool_size">pool_size()</a>}]) -&gt; ok
+pool_utils(Pools::[{<a href="#type-pool_name">pool_name()</a>, <a href="#type-pool_options_rec">pool_options_rec()</a>}]) -&gt; ok
 </code></pre>
 <br />
 
