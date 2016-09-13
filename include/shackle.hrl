@@ -8,6 +8,13 @@
     timestamp      :: erlang:timestamp()
 }).
 
+-record(pool_options, {
+    backlog_size  :: backlog_size(),
+    client        :: client(),
+    pool_size     :: pool_size(),
+    pool_strategy :: pool_strategy()
+}).
+
 -record(reconnect_state, {
     current :: undefined | time(),
     max     :: time() | infinity,
@@ -34,6 +41,7 @@
                        {pool_strategy, pool_strategy()}.
 
 -type pool_options() :: [pool_option()].
+-type pool_options_rec() :: #pool_options {}.
 -type pool_size() :: pos_integer().
 -type pool_strategy() :: random | round_robin.
 -type protocol() :: shackle_tcp | shackle_udp.

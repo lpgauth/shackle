@@ -1,7 +1,10 @@
 -module(shackle_pool).
 -include("shackle_internal.hrl").
 
--ignore_xref([{shackle_pool_utils, server_name, 2}]).
+-ignore_xref([
+    {shackle_pool_utils, options, 1},
+    {shackle_pool_utils, server_name, 2}
+]).
 
 %% public
 -export([
@@ -16,14 +19,6 @@
     server/1
 ]).
 
-%% records
--record(pool_options, {
-    backlog_size  :: backlog_size(),
-    client        :: client(),
-    pool_size     :: pool_size(),
-    pool_strategy :: pool_strategy()
-}).
-
 %% public
 -spec start(pool_name(), client(), client_options()) ->
     ok | {error, shackle_not_started | pool_already_started}.
@@ -35,7 +30,7 @@ start(Name, Client, ClientOptions) ->
     ok | {error, shackle_not_started | pool_already_started}.
 
 start(Name, Client, ClientOptions, Options) ->
-    case options(?ETS_TABLE_POOL, Name) of
+    case options(Name) of
         {ok, _OptionsRec} ->
             {error, pool_already_started};
         {error, shackle_not_started} ->
@@ -51,7 +46,7 @@ start(Name, Client, ClientOptions, Options) ->
     ok | {error, shackle_not_started | pool_not_started}.
 
 stop(Name) ->
-    case options(?ETS_TABLE_POOL, Name) of
+    case options(Name) of
         {ok, #pool_options {
                 pool_size = PoolSize
             } = OptionsRec} ->
@@ -82,13 +77,13 @@ init() ->
         public,
         {write_concurrency, true}
     ]),
-    ok.
+    compile_pool_utils().
 
 -spec server(pool_name()) ->
     {ok, client(), pid()} | {error, atom()}.
 
 server(Name) ->
-    case options(?ETS_TABLE_POOL, Name) of
+    case options(Name) of
         {ok, #pool_options {
                 backlog_size = BacklogSize,
                 client = Client,
@@ -120,23 +115,17 @@ cleanup_ets(Name, _) ->
     ets:delete(?ETS_TABLE_POOL, Name).
 
 compile_pool_utils() ->
-    Pools = [{Name, PoolSize} ||
-        {Name, #pool_options {
-            pool_size = PoolSize
-        }} <- ets:tab2list(?ETS_TABLE_POOL)],
-    shackle_compiler:pool_utils(Pools).
+    shackle_compiler:pool_utils(ets:tab2list(?ETS_TABLE_POOL)).
 
-options(Table, Name) ->
-    try
-        {ok, ets:lookup_element(Table, Name, 2)}
+options(Name) ->
+    try shackle_pool_utils:options(Name) of
+        undefined ->
+            {error, pool_not_started};
+        Options ->
+            {ok, Options}
     catch
-        error:badarg ->
-            case ets:info(Table) of
-                undefined ->
-                    {error, shackle_not_started};
-                _ ->
-                    {error, pool_not_started}
-            end
+        _:_ ->
+            {error, shackle_not_started}
     end.
 
 options_rec(Client, Options) ->
