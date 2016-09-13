@@ -299,9 +299,7 @@ reply(Name, _Reply, #cast {pid = undefined}) ->
     shackle_backlog:decrement(Name);
 reply(Name, Reply, #cast {pid = Pid} = Cast) ->
     shackle_backlog:decrement(Name),
-    Pid ! Cast#cast {
-        reply = Reply
-    }.
+    Pid ! {Cast, Reply}.
 
 reply_all(Name, Reply) ->
     Requests = shackle_queue:clear(Name),

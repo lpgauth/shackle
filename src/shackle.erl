@@ -69,7 +69,7 @@ receive_response(RequestId) ->
 
 receive_response(RequestId, Timeout) ->
     receive
-        #cast {request_id = RequestId, reply = Reply} ->
+        {#cast {request_id = RequestId}, Reply} ->
             Reply
     after Timeout ->
         shackle_queue:remove(RequestId),
