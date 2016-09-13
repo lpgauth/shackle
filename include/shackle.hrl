@@ -2,7 +2,6 @@
 -record(cast, {
     client         :: client(),
     pid            :: undefined | pid(),
-    reply          :: undefined | term(),
     request        :: term(),
     request_id     :: request_id(),
     timestamp      :: erlang:timestamp()
