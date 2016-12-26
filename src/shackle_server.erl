@@ -164,7 +164,6 @@ handle_msg(#cast {request = Request} = Cast, #state {
     case Protocol:send(Socket, Header, Data) of
         ok ->
             shackle_queue:add(ExtRequestId, Cast),
-
             {ok, State, ClientState2};
         {error, Reason} ->
             shackle_utils:warning_msg(PoolName, "tcp send error: ~p", [Reason]),
