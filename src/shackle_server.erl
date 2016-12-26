@@ -109,39 +109,21 @@ close(#state {name = Name} = State, ClientState) ->
     reply_all(Name, {error, socket_closed}),
     reconnect(State, ClientState).
 
-handle_msg(?MSG_CONNECT, #state {
-        client = Client,
-        ip = Ip,
-        pool_name = PoolName,
-        port = Port,
-        protocol = Protocol,
-        reconnect_state = ReconnectState,
-        socket_options = SocketOptions
+handle_msg(#cast {} = Cast, #state {
+        socket = undefined,
+        reconnect_state = on_request,
+        name = Name
     } = State, ClientState) ->
 
-    case Protocol:new(Ip, Port, SocketOptions) of
-        {ok, Socket} ->
-            {ok, ClientState2} = Client:init(),
-            inet:setopts(Socket, [{active, false}]),
+    {ok, #state {socket = Socket} = State2, ClientState2} =
+        handle_msg(?MSG_CONNECT, State, ClientState),
 
-            case Client:setup(Socket, ClientState2) of
-                {ok, ClientState3} ->
-                    inet:setopts(Socket, [{active, true}]),
-
-                    {ok, State#state {
-                        reconnect_state = reconnect_state_reset(ReconnectState),
-                        socket = Socket
-                    }, ClientState3};
-                {error, Reason, ClientState3} ->
-                    shackle_utils:warning_msg(PoolName,
-                        "setup error: ~p", [Reason]),
-
-                    reconnect(State, ClientState3)
-            end;
-        {error, Reason} ->
-            shackle_utils:warning_msg(PoolName,
-                "~p connect error: ~p", [Protocol, Reason]),
-            reconnect(State, ClientState)
+    case Socket of
+        undefined ->
+            reply(Name, {error, no_socket}, Cast),
+            {ok, State2, ClientState2};
+        _ ->
+            handle_msg(Cast, State2, ClientState2)
     end;
 handle_msg(#cast {} = Cast, #state {
         socket = undefined,
@@ -196,7 +178,41 @@ handle_msg({tcp_error, Socket, Reason}, #state {
     shackle_tcp:close(Socket),
     close(State, ClientState);
 handle_msg({udp, _Socket, _Ip, _InPortNo, Data}, State, ClientState) ->
-    handle_msg_data(Data, State, ClientState).
+    handle_msg_data(Data, State, ClientState);
+handle_msg(?MSG_CONNECT, #state {
+        client = Client,
+        ip = Ip,
+        pool_name = PoolName,
+        port = Port,
+        protocol = Protocol,
+        reconnect_state = ReconnectState,
+        socket_options = SocketOptions
+    } = State, ClientState) ->
+
+    case Protocol:new(Ip, Port, SocketOptions) of
+        {ok, Socket} ->
+            {ok, ClientState2} = Client:init(),
+            inet:setopts(Socket, [{active, false}]),
+
+            case Client:setup(Socket, ClientState2) of
+                {ok, ClientState3} ->
+                    inet:setopts(Socket, [{active, true}]),
+
+                    {ok, State#state {
+                        reconnect_state = reconnect_state_reset(ReconnectState),
+                        socket = Socket
+                    }, ClientState3};
+                {error, Reason, ClientState3} ->
+                    shackle_utils:warning_msg(PoolName,
+                        "setup error: ~p", [Reason]),
+
+                    reconnect(State, ClientState3)
+            end;
+        {error, Reason} ->
+            shackle_utils:warning_msg(PoolName,
+                "~p connect error: ~p", [Protocol, Reason]),
+            reconnect(State, ClientState)
+    end.
 
 handle_msg_data(Data, #state {client = Client} = State, ClientState) ->
     {ok, Replies, ClientState2} = Client:handle_data(Data, ClientState),
@@ -246,7 +262,9 @@ reconnect_state(Options) ->
                 max = Max
             };
         false ->
-            undefined
+            undefined;
+        on_request ->
+            on_request
     end.
 
 reconnect_state_reset(undefined) ->
@@ -258,6 +276,13 @@ reconnect_state_reset(#reconnect_state {} = ReconnectState) ->
 
 reconnect_timer(#state {
         reconnect_state = undefined
+    } = State, ClientState) ->
+
+    {ok, State#state {
+        socket = undefined
+    }, ClientState};
+reconnect_timer(#state {
+        reconnect_state = on_request
     } = State, ClientState) ->
 
     {ok, State#state {
