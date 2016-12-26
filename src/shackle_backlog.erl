@@ -7,20 +7,29 @@
 %% internal
 -export([
     check/2,
+    check/3,
     decrement/1,
     delete/1,
     init/0,
     new/1
 ]).
 
+-define(DEFAULT_INCREMENT, 1).
+
 %% internal
 -spec check(server_name(), backlog_size()) ->
     boolean().
 
-check(_ServerName, infinity) ->
-    true;
 check(ServerName, BacklogSize) ->
-    case increment(ServerName, BacklogSize) of
+    check(ServerName, BacklogSize, ?DEFAULT_INCREMENT).
+
+-spec check(server_name(), backlog_size(), pos_integer()) ->
+    boolean().
+
+check(_ServerName, infinity, _Increment) ->
+    true;
+check(ServerName, BacklogSize, Increment) ->
+    case increment(ServerName, BacklogSize, Increment) of
         [BacklogSize, BacklogSize] ->
             false;
         [_, Value] when Value =< BacklogSize ->
@@ -61,6 +70,6 @@ new(ServerName) ->
     ok.
 
 %% private
-increment(ServerName, BacklogSize) ->
-    UpdateOps = [{2, 0}, {2, 1, BacklogSize, BacklogSize}],
+increment(ServerName, BacklogSize, Increment) ->
+    UpdateOps = [{2, 0}, {2, Increment, BacklogSize, BacklogSize}],
     ets:update_counter(?ETS_TABLE_BACKLOG, ServerName, UpdateOps).
