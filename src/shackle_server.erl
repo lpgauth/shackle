@@ -269,6 +269,8 @@ reconnect_state(Options) ->
 
 reconnect_state_reset(undefined) ->
     undefined;
+reconnect_state_reset(on_request) ->
+    on_request;
 reconnect_state_reset(#reconnect_state {} = ReconnectState) ->
     ReconnectState#reconnect_state {
         current = undefined
