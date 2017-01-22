@@ -1,4 +1,1 @@
-[{<<"granderl">>,
-  {git,"https://github.com/tokenrove/granderl.git",
-       {ref,"cbc9f0cc66e2da706fff37bfd0000f3f3f2bab80"}},
-  0}].
+[{<<"granderl">>,{pkg,<<"granderl">>,<<"0.1.5">>},0}].
