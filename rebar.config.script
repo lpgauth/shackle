@@ -1,7 +1,17 @@
+Config = case erlang:function_exported(rebar3, main, 1) of
+    true ->
+        CONFIG;
+    false ->
+        [{deps, [
+            {granderl, ".*",
+                {git, "https://github.com/tokenrove/granderl.git", {tag, "v0.1.5"}}}
+        ]} | lists:keydelete(deps, 1, CONFIG)]
+end,
+
 case os:getenv("TRAVIS") of
     "true" ->
         JobId = os:getenv("TRAVIS_JOB_ID"),
-        lists:keystore(coveralls_service_job_id, 1, CONFIG, {coveralls_service_job_id, JobId});
+        lists:keystore(coveralls_service_job_id, 1, Config, {coveralls_service_job_id, JobId});
     _ ->
-        CONFIG
+        Config
 end.
