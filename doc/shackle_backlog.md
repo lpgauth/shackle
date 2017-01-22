@@ -124,7 +124,7 @@ time() = pos_integer()
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#check-2">check/2</a></td><td></td></tr><tr><td valign="top"><a href="#decrement-1">decrement/1</a></td><td></td></tr><tr><td valign="top"><a href="#delete-1">delete/1</a></td><td></td></tr><tr><td valign="top"><a href="#init-0">init/0</a></td><td></td></tr><tr><td valign="top"><a href="#new-1">new/1</a></td><td></td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#check-2">check/2</a></td><td></td></tr><tr><td valign="top"><a href="#check-3">check/3</a></td><td></td></tr><tr><td valign="top"><a href="#decrement-1">decrement/1</a></td><td></td></tr><tr><td valign="top"><a href="#delete-1">delete/1</a></td><td></td></tr><tr><td valign="top"><a href="#init-0">init/0</a></td><td></td></tr><tr><td valign="top"><a href="#new-1">new/1</a></td><td></td></tr></table>
 
 
 <a name="functions"></a>
@@ -137,6 +137,15 @@ time() = pos_integer()
 
 <pre><code>
 check(ServerName::<a href="#type-server_name">server_name()</a>, BacklogSize::<a href="#type-backlog_size">backlog_size()</a>) -&gt; boolean()
+</code></pre>
+<br />
+
+<a name="check-3"></a>
+
+### check/3 ###
+
+<pre><code>
+check(ServerName::<a href="#type-server_name">server_name()</a>, BacklogSize::<a href="#type-backlog_size">backlog_size()</a>, Increment::pos_integer()) -&gt; boolean()
 </code></pre>
 <br />
 
