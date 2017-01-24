@@ -1,1 +1,6 @@
-[{<<"granderl">>,{pkg,<<"granderl">>,<<"0.1.5">>},0}].
+{"1.1.0",
+[{<<"granderl">>,{pkg,<<"granderl">>,<<"0.1.5">>},0}]}.
+[
+{pkg_hash,[
+ {<<"granderl">>, <<"F20077A68BD80B8D8783BD15A052813C6483771DEC1A5B837D307CBE92F14122">>}]}
+].
