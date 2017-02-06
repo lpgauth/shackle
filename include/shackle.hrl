@@ -27,7 +27,7 @@
 -type client_option() :: {ip, inet:ip_address() | inet:hostname()} |
                          {port, inet:port_number()} |
                          {protocol, protocol()} |
-                         {reconnect, boolean()} |
+                         {reconnect, boolean() | on_request} |
                          {reconnect_time_max, time()} |
                          {reconnect_time_min, time()} |
                          {socket_options, [gen_tcp:connect_option() | gen_udp:option()]}.

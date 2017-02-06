@@ -109,6 +109,76 @@ close(#state {name = Name} = State, ClientState) ->
     reply_all(Name, {error, socket_closed}),
     reconnect(State, ClientState).
 
+handle_msg(#cast {} = Cast, #state {
+        socket = undefined,
+        reconnect_state = on_request,
+        name = Name
+    } = State, ClientState) ->
+
+    {ok, #state {socket = Socket} = State2, ClientState2} =
+        handle_msg(?MSG_CONNECT, State, ClientState),
+
+    case Socket of
+        undefined ->
+            reply(Name, {error, no_socket}, Cast),
+            {ok, State2, ClientState2};
+        _ ->
+            handle_msg(Cast, State2, ClientState2)
+    end;
+handle_msg(#cast {} = Cast, #state {
+        socket = undefined,
+        name = Name
+    } = State, ClientState) ->
+
+    reply(Name, {error, no_socket}, Cast),
+    {ok, State, ClientState};
+handle_msg(#cast {request = Request} = Cast, #state {
+        client = Client,
+        header = Header,
+        pool_name = PoolName,
+        protocol = Protocol,
+        socket = Socket
+    } = State, ClientState) ->
+
+    {ok, ExtRequestId, Data, ClientState2} =
+        Client:handle_request(Request, ClientState),
+
+    case Protocol:send(Socket, Header, Data) of
+        ok ->
+            shackle_queue:add(ExtRequestId, Cast),
+            {ok, State, ClientState2};
+        {error, Reason} ->
+            shackle_utils:warning_msg(PoolName, "tcp send error: ~p", [Reason]),
+            Protocol:close(Socket),
+            close(State, ClientState2)
+    end;
+handle_msg({inet_reply, _Socket, ok}, State, ClientState) ->
+    {ok, State, ClientState};
+handle_msg({inet_reply, _Socket, {error, Reason}}, #state {
+        pool_name = PoolName
+    } = State, ClientState) ->
+
+    shackle_utils:warning_msg(PoolName, "udp send error: ~p", [Reason]),
+    {ok, State, ClientState};
+handle_msg({tcp, _Port, Data}, State, ClientState) ->
+    handle_msg_data(Data, State, ClientState);
+handle_msg({tcp_closed, Socket}, #state {
+        socket = Socket,
+        pool_name = PoolName
+    } = State, ClientState) ->
+
+    shackle_utils:warning_msg(PoolName, "tcp connection closed", []),
+    close(State, ClientState);
+handle_msg({tcp_error, Socket, Reason}, #state {
+        socket = Socket,
+        pool_name = PoolName
+    } = State, ClientState) ->
+
+    shackle_utils:warning_msg(PoolName, "tcp connection error: ~p", [Reason]),
+    shackle_tcp:close(Socket),
+    close(State, ClientState);
+handle_msg({udp, _Socket, _Ip, _InPortNo, Data}, State, ClientState) ->
+    handle_msg_data(Data, State, ClientState);
 handle_msg(?MSG_CONNECT, #state {
         client = Client,
         ip = Ip,
@@ -142,62 +212,7 @@ handle_msg(?MSG_CONNECT, #state {
             shackle_utils:warning_msg(PoolName,
                 "~p connect error: ~p", [Protocol, Reason]),
             reconnect(State, ClientState)
-    end;
-handle_msg(#cast {} = Cast, #state {
-        socket = undefined,
-        name = Name
-    } = State, ClientState) ->
-
-    reply(Name, {error, no_socket}, Cast),
-    {ok, State, ClientState};
-handle_msg(#cast {request = Request} = Cast, #state {
-        client = Client,
-        header = Header,
-        pool_name = PoolName,
-        protocol = Protocol,
-        socket = Socket
-    } = State, ClientState) ->
-
-    {ok, ExtRequestId, Data, ClientState2} =
-        Client:handle_request(Request, ClientState),
-
-    case Protocol:send(Socket, Header, Data) of
-        ok ->
-            shackle_queue:add(ExtRequestId, Cast),
-
-            {ok, State, ClientState2};
-        {error, Reason} ->
-            shackle_utils:warning_msg(PoolName, "tcp send error: ~p", [Reason]),
-            Protocol:close(Socket),
-            close(State, ClientState2)
-    end;
-handle_msg({inet_reply, _Socket, ok}, State, ClientState) ->
-    {ok, State, ClientState};
-handle_msg({inet_reply, _Socket, {error, Reason}}, #state {
-        pool_name = PoolName
-    } = State, ClientState) ->
-
-    shackle_utils:warning_msg(PoolName, "udp send error: ~p", [Reason]),
-    {ok, State, ClientState};
-handle_msg({tcp, _Port, Data}, State, ClientState) ->
-    handle_msg_data(Data, State, ClientState);
-handle_msg({tcp_closed, Socket}, #state {
-        socket = Socket,
-        pool_name = PoolName
-    } = State, ClientState) ->
-
-    shackle_utils:warning_msg(PoolName, "tcp connection closed", []),
-    close(State, ClientState);
-handle_msg({tcp_error, Socket, Reason}, #state {
-        socket = Socket,
-        pool_name = PoolName
-    } = State, ClientState) ->
-
-    shackle_utils:warning_msg(PoolName, "tcp connection error: ~p", [Reason]),
-    shackle_tcp:close(Socket),
-    close(State, ClientState);
-handle_msg({udp, _Socket, _Ip, _InPortNo, Data}, State, ClientState) ->
-    handle_msg_data(Data, State, ClientState).
+    end.
 
 handle_msg_data(Data, #state {client = Client} = State, ClientState) ->
     {ok, Replies, ClientState2} = Client:handle_data(Data, ClientState),
@@ -247,11 +262,15 @@ reconnect_state(Options) ->
                 max = Max
             };
         false ->
-            undefined
+            undefined;
+        on_request ->
+            on_request
     end.
 
 reconnect_state_reset(undefined) ->
     undefined;
+reconnect_state_reset(on_request) ->
+    on_request;
 reconnect_state_reset(#reconnect_state {} = ReconnectState) ->
     ReconnectState#reconnect_state {
         current = undefined
@@ -259,6 +278,13 @@ reconnect_state_reset(#reconnect_state {} = ReconnectState) ->
 
 reconnect_timer(#state {
         reconnect_state = undefined
+    } = State, ClientState) ->
+
+    {ok, State#state {
+        socket = undefined
+    }, ClientState};
+reconnect_timer(#state {
+        reconnect_state = on_request
     } = State, ClientState) ->
 
     {ok, State#state {
