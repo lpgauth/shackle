@@ -20,7 +20,7 @@
 
 -record(state, {
     client           :: client(),
-    header           :: iodata(),
+    header           :: undefined | iodata(),
     ip               :: inet:ip_address() | inet:hostname(),
     name             :: server_name(),
     parent           :: pid(),
@@ -62,14 +62,9 @@ init(Name, PoolName, Client, ClientOptions, Parent) ->
     SocketOptions = ?LOOKUP(socket_options, ClientOptions,
         ?DEFAULT_SOCKET_OPTS),
 
-    {ok, Addrs} = inet:getaddrs(Ip, inet),
-    Ip2 = shackle_utils:random_element(Addrs),
-    Header = shackle_udp:header(Ip2, Port),
-
     loop(#state {
         client = Client,
-        header = Header,
-        ip = Ip2,
+        ip = Ip,
         name = Name,
         parent = Parent,
         pool_name = PoolName,
@@ -119,28 +114,40 @@ handle_msg(?MSG_CONNECT, #state {
         socket_options = SocketOptions
     } = State, ClientState) ->
 
-    case Protocol:new(Ip, Port, SocketOptions) of
-        {ok, Socket} ->
-            {ok, ClientState2} = Client:init(),
-            inet:setopts(Socket, [{active, false}]),
+    case inet:getaddrs(Ip, inet) of
+        {ok, Addrs} ->
+            Ip2 = shackle_utils:random_element(Addrs),
+            Headers = shackle_udp:header(Ip2, Port),
+            case Protocol:new(Ip2, Port, SocketOptions) of
+                {ok, Socket} ->
+                    {ok, ClientState2} = Client:init(),
+                    inet:setopts(Socket, [{active, false}]),
 
-            case Client:setup(Socket, ClientState2) of
-                {ok, ClientState3} ->
-                    inet:setopts(Socket, [{active, true}]),
+                    case Client:setup(Socket, ClientState2) of
+                        {ok, ClientState3} ->
+                            inet:setopts(Socket, [{active, true}]),
 
-                    {ok, State#state {
-                        reconnect_state = reconnect_state_reset(ReconnectState),
-                        socket = Socket
-                    }, ClientState3};
-                {error, Reason, ClientState3} ->
+                            {ok, State#state {
+                                header = Headers,
+                                reconnect_state =
+                                    reconnect_state_reset(ReconnectState),
+                                socket = Socket
+                            }, ClientState3};
+                        {error, Reason, ClientState3} ->
+                            shackle_utils:warning_msg(PoolName,
+                                "setup error: ~p", [Reason]),
+
+                            reconnect(State, ClientState3)
+                    end;
+                {error, Reason} ->
                     shackle_utils:warning_msg(PoolName,
-                        "setup error: ~p", [Reason]),
-
-                    reconnect(State, ClientState3)
+                        "~p connect error: ~p", [Protocol, Reason]),
+                    reconnect(State, ClientState)
             end;
+
         {error, Reason} ->
             shackle_utils:warning_msg(PoolName,
-                "~p connect error: ~p", [Protocol, Reason]),
+                "~p getaddrs error: ~p", [Protocol, Reason]),
             reconnect(State, ClientState)
     end;
 handle_msg(#cast {} = Cast, #state {
