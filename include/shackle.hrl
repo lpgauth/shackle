@@ -3,8 +3,7 @@
     client         :: client(),
     pid            :: undefined | pid(),
     request        :: term(),
-    request_id     :: request_id(),
-    timestamp      :: erlang:timestamp()
+    request_id     :: request_id()
 }).
 
 -record(pool_options, {

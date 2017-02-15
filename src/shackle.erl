@@ -42,7 +42,6 @@ cast(PoolName, Request) ->
     {ok, request_id()} | {error, atom()}.
 
 cast(PoolName, Request, Pid) ->
-    Timestamp = os:timestamp(),
     case shackle_pool:server(PoolName) of
         {ok, Client, Server} ->
             RequestId = {Server, make_ref()},
@@ -50,8 +49,7 @@ cast(PoolName, Request, Pid) ->
                 client = Client,
                 pid = Pid,
                 request = Request,
-                request_id = RequestId,
-                timestamp = Timestamp
+                request_id = RequestId
             },
             {ok, RequestId};
         {error, Reason} ->
