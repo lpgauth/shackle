@@ -13,6 +13,8 @@
     remove/2
 ]).
 
+-define(MATCH(ServerName), {{ServerName, '_'}, '_'}).
+
 %% internal
 -spec add(external_request_id(), cast()) ->
     ok.
@@ -22,24 +24,19 @@ add(ExtRequestId, #cast {
     } = Cast) ->
 
     Object = {{ServerName, ExtRequestId}, Cast},
-    ets:insert(?ETS_TABLE_QUEUE, Object),
-
     Object2 = {RequestId, ExtRequestId},
-    ets:insert(?ETS_TABLE_QUEUE_REVERSE, Object2),
-
+    ets:insert(?ETS_TABLE_QUEUE, [Object, Object2]),
     ok.
 
 -spec clear(server_name()) ->
     [cast()].
 
 clear(ServerName) ->
-    Match = {{ServerName, '_'}, '_'},
-    case ets_match_take(?ETS_TABLE_QUEUE, Match) of
+    case ets_match_take(?ETS_TABLE_QUEUE, ?MATCH(ServerName)) of
         [] ->
             [];
         Objects ->
-            ets:match_delete(?ETS_TABLE_QUEUE_REVERSE, Match),
-            [Cast || {_, Cast} <- Objects]
+            map_objects(Objects)
     end.
 
 -spec init() ->
@@ -47,14 +44,13 @@ clear(ServerName) ->
 
 init() ->
     ets_new(?ETS_TABLE_QUEUE),
-    ets_new(?ETS_TABLE_QUEUE_REVERSE),
     ok.
 
 -spec remove(request_id()) ->
     {ok, cast()} | {error, not_found}.
 
 remove({ServerName, _} = RequestId) ->
-    case ets_take(?ETS_TABLE_QUEUE_REVERSE, RequestId) of
+    case ets_take(?ETS_TABLE_QUEUE, RequestId) of
         [] ->
             {error, not_found};
         [{_, ExtRequestId}] ->
@@ -74,7 +70,7 @@ remove(ServerName, ExtRequestId) ->
         [] ->
             {error, not_found};
         [{_, #cast {request_id = RequestId} = Cast}] ->
-            ets:delete(?ETS_TABLE_QUEUE_REVERSE, RequestId),
+            ets:delete(?ETS_TABLE_QUEUE, RequestId),
             {ok, Cast}
     end.
 
@@ -113,3 +109,13 @@ ets_take(Tid, Key) ->
     end.
 
 -endif.
+
+map_objects(Objects) ->
+    map_objects(Objects, []).
+
+map_objects([], Acc) ->
+    Acc;
+map_objects([{_, #cast {} = Cast} | T], Acc) ->
+    map_objects(T, [Cast | Acc]);
+map_objects([_ | T], Acc) ->
+    map_objects(T, Acc).
