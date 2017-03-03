@@ -95,8 +95,8 @@ server(Name) ->
                 false ->
                     {error, backlog_full}
             end;
-        {error, Reson} ->
-            {error, Reson}
+        {error, Reason} ->
+            {error, Reason}
     end.
 
 %% private
