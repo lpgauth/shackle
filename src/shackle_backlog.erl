@@ -26,7 +26,7 @@ check(ServerName, BacklogSize) ->
     check(ServerName, BacklogSize, ?DEFAULT_INCREMENT).
 
 -spec check(server_name(), backlog_size(), pos_integer()) ->
-    boolean().
+    pos_integer() | false.
 
 check(_ServerName, infinity, _Increment) ->
     true;
@@ -35,7 +35,7 @@ check(ServerName, BacklogSize, Increment) ->
         [BacklogSize, BacklogSize] ->
             false;
         [_, Value] when Value =< BacklogSize ->
-            true
+            Value
     end.
 
 -spec decrement(server_name()) ->
