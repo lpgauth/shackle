@@ -10,8 +10,8 @@
     call/3,
     cast/2,
     cast/3,
-    receive_response/1,
-    receive_response/2
+    cast/4,
+    receive_response/1
 ]).
 
 %% public
@@ -25,15 +25,15 @@ call(PoolName, Request) ->
     term() | {error, term()}.
 
 call(PoolName, Request, Timeout) ->
-    case cast(PoolName, Request) of
+    case cast(PoolName, Request, self(), Timeout) of
         {ok, RequestId} ->
-            receive_response(RequestId, Timeout);
+            receive_response(RequestId);
         {error, Reason} ->
             {error, Reason}
     end.
 
 -spec cast(pool_name(), term()) ->
-    {ok, request_id()} | {error, backlog_full}.
+    {ok, request_id()} | {error, atom()}.
 
 cast(PoolName, Request) ->
     cast(PoolName, Request, self()).
@@ -42,6 +42,12 @@ cast(PoolName, Request) ->
     {ok, request_id()} | {error, atom()}.
 
 cast(PoolName, Request, Pid) ->
+    cast(PoolName, Request, Pid, ?DEFAULT_TIMEOUT).
+
+-spec cast(pool_name(), term(), pid(), timeout()) ->
+    {ok, request_id()} | {error, atom()}.
+
+cast(PoolName, Request, Pid, Timeout) ->
     Timestamp = os:timestamp(),
     case shackle_pool:server(PoolName) of
         {ok, Client, Server} ->
@@ -51,6 +57,7 @@ cast(PoolName, Request, Pid) ->
                 pid = Pid,
                 request = Request,
                 request_id = RequestId,
+                timeout = Timeout,
                 timestamp = Timestamp
             },
             {ok, RequestId};
@@ -62,17 +69,7 @@ cast(PoolName, Request, Pid) ->
     term() | {error, term()}.
 
 receive_response(RequestId) ->
-    receive_response(RequestId, ?DEFAULT_TIMEOUT).
-
--spec receive_response(request_id(), timeout()) ->
-    term() | {error, term()}.
-
-receive_response(RequestId, Timeout) ->
     receive
         {#cast {request_id = RequestId}, Reply} ->
             Reply
-    after Timeout ->
-        shackle_queue:remove(RequestId),
-        shackle_backlog:decrement(RequestId),
-        {error, timeout}
     end.

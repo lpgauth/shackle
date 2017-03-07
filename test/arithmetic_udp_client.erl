@@ -48,7 +48,7 @@ start() ->
         {socket_options, [
             binary
         ]}
-    ], [{backlog_size, infinity}]).
+    ]).
 
 -spec stop() ->
     ok | {error, pool_not_started}.
