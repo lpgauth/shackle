@@ -181,7 +181,7 @@ shackle_pool:start(pool_name(), client(), client_options(), pool_options())
   <tr>
     <td>pool_strategy</td>
     <td>random | round_robin</td>
-    <td>round_robin</td>
+    <td>random</td>
     <td>connection selection strategy</td>
   </tr>
 </table>
