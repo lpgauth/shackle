@@ -4,18 +4,11 @@
 -compile(inline).
 -compile({inline_size, 512}).
 
-%% internal
 -export([
-    init/5,
-    start_link/4
-]).
-
-%% sys behavior
--export([
-    system_code_change/4,
-    system_continue/3,
-    system_get_state/1,
-    system_terminate/4
+    start_link/4,
+    init/3,
+    handle_msg/2,
+    terminate/2
 ]).
 
 -record(state, {
@@ -33,25 +26,23 @@
     timer_ref        :: undefined | reference()
 }).
 
--type client_state() :: term().
--type state() :: #state {}.
+% -type client_state() :: term().
+% -type state() :: #state {}.
 
 %% public
 -spec start_link(server_name(), pool_name(), client(), client_options()) ->
     {ok, pid()}.
 
 start_link(Name, PoolName, Client, ClientOptions) ->
-    proc_lib:start_link(?MODULE, init, [Name, PoolName, Client,
-        ClientOptions, self()]).
+    Args = [PoolName, Client, ClientOptions],
+    metal:start_link(?MODULE, Name, Args).
 
--spec init(server_name(), pool_name(), client(), client_options(), pid()) ->
+% TODO: fix specs
+-spec init(server_name(), pid(), list()) ->
     no_return().
 
-init(Name, PoolName, Client, ClientOptions, Parent) ->
-    process_flag(trap_exit, true),
-    proc_lib:init_ack(Parent, {ok, self()}),
-    register(Name, self()),
-
+init(Name, Parent, Opts) ->
+    [PoolName, Client, ClientOptions] = Opts,
     self() ! ?MSG_CONNECT,
     ok = shackle_backlog:new(Name),
 
@@ -62,7 +53,7 @@ init(Name, PoolName, Client, ClientOptions, Parent) ->
     SocketOptions = ?LOOKUP(socket_options, ClientOptions,
         ?DEFAULT_SOCKET_OPTS),
 
-    loop(#state {
+    {ok, [#state {
         client = Client,
         ip = Ip,
         name = Name,
@@ -72,39 +63,12 @@ init(Name, PoolName, Client, ClientOptions, Parent) ->
         protocol = Protocol,
         reconnect_state = ReconnectState,
         socket_options = SocketOptions
-    }, undefined).
+    }, undefined]}.
 
-%% sys callbacks
--spec system_code_change(state(), module(), undefined | term(), term()) ->
-    {ok, state()}.
+-spec handle_msg(term(), term()) ->
+    {ok, term()}.
 
-system_code_change(State, _Module, _OldVsn, _Extra) ->
-    {ok, State}.
-
--spec system_continue(pid(), [], {state(), client_state()}) ->
-    ok.
-
-system_continue(_Parent, _Debug, {State, ClientState}) ->
-    loop(State, ClientState).
-
--spec system_get_state(state()) ->
-    {ok, state()}.
-
-system_get_state(State) ->
-    {ok, State}.
-
--spec system_terminate(term(), pid(), [], state()) ->
-    none().
-
-system_terminate(Reason, _Parent, _Debug, _State) ->
-    exit(Reason).
-
-%% private
-close(#state {name = Name} = State, ClientState) ->
-    reply_all(Name, {error, socket_closed}),
-    reconnect(State, ClientState).
-
-handle_msg(?MSG_CONNECT, #state {
+handle_msg(?MSG_CONNECT, [#state {
         client = Client,
         ip = Ip,
         pool_name = PoolName,
@@ -112,7 +76,7 @@ handle_msg(?MSG_CONNECT, #state {
         protocol = Protocol,
         reconnect_state = ReconnectState,
         socket_options = SocketOptions
-    } = State, ClientState) ->
+    } = State, ClientState]) ->
 
     case inet:getaddrs(Ip, inet) of
         {ok, Addrs} ->
@@ -127,12 +91,12 @@ handle_msg(?MSG_CONNECT, #state {
                         {ok, ClientState3} ->
                             inet:setopts(Socket, [{active, true}]),
 
-                            {ok, State#state {
+                            {ok, [State#state {
                                 header = Headers,
                                 reconnect_state =
                                     reconnect_state_reset(ReconnectState),
                                 socket = Socket
-                            }, ClientState3};
+                            }, ClientState3]};
                         {error, Reason, ClientState3} ->
                             shackle_utils:warning_msg(PoolName,
                                 "setup error: ~p", [Reason]),
@@ -150,23 +114,23 @@ handle_msg(?MSG_CONNECT, #state {
                 "~p getaddrs error: ~p", [Protocol, Reason]),
             reconnect(State, ClientState)
     end;
-handle_msg(#cast {} = Cast, #state {
+handle_msg(#cast {} = Cast, [#state {
         socket = undefined,
         name = Name
-    } = State, ClientState) ->
+    } = State, ClientState]) ->
 
     reply(Name, {error, no_socket}, Cast),
-    {ok, State, ClientState};
+    {ok, [State, ClientState]};
 handle_msg(#cast {
         request = Request,
         timeout = Timeout
-    } = Cast, #state {
+    } = Cast, [#state {
         client = Client,
         header = Header,
         pool_name = PoolName,
         protocol = Protocol,
         socket = Socket
-    } = State, ClientState) ->
+    } = State, ClientState]) ->
 
     {ok, ExtRequestId, Data, ClientState2} =
         Client:handle_request(Request, ClientState),
@@ -176,40 +140,40 @@ handle_msg(#cast {
             TimerRef = erlang:send_after(Timeout, self(),
                 {timeout, ExtRequestId}),
             shackle_queue:add(ExtRequestId, Cast, TimerRef),
-            {ok, State, ClientState2};
+            {ok, [State, ClientState2]};
         {error, Reason} ->
             shackle_utils:warning_msg(PoolName, "tcp send error: ~p", [Reason]),
             Protocol:close(Socket),
             close(State, ClientState2)
     end;
-handle_msg({inet_reply, _Socket, ok}, State, ClientState) ->
-    {ok, State, ClientState};
-handle_msg({inet_reply, _Socket, {error, Reason}}, #state {
+handle_msg({inet_reply, _Socket, ok}, [State, ClientState]) ->
+    {ok, [State, ClientState]};
+handle_msg({inet_reply, _Socket, {error, Reason}}, [#state {
         pool_name = PoolName
-    } = State, ClientState) ->
+    } = State, ClientState]) ->
 
     shackle_utils:warning_msg(PoolName, "udp send error: ~p", [Reason]),
-    {ok, State, ClientState};
-handle_msg({tcp, _Port, Data}, State, ClientState) ->
+    {ok, [State, ClientState]};
+handle_msg({tcp, _Port, Data}, [State, ClientState]) ->
     handle_msg_data(Data, State, ClientState);
-handle_msg({tcp_closed, Socket}, #state {
+handle_msg({tcp_closed, Socket}, [#state {
         socket = Socket,
         pool_name = PoolName
-    } = State, ClientState) ->
+    } = State, ClientState]) ->
 
     shackle_utils:warning_msg(PoolName, "tcp connection closed", []),
     close(State, ClientState);
-handle_msg({tcp_error, Socket, Reason}, #state {
+handle_msg({tcp_error, Socket, Reason}, [#state {
         socket = Socket,
         pool_name = PoolName
-    } = State, ClientState) ->
+    } = State, ClientState]) ->
 
     shackle_utils:warning_msg(PoolName, "tcp connection error: ~p", [Reason]),
     shackle_tcp:close(Socket),
     close(State, ClientState);
-handle_msg({timeout, ExtRequestId}, #state {
+handle_msg({timeout, ExtRequestId}, [#state {
         name = Name
-    } = State, ClientState) ->
+    } = State, ClientState]) ->
 
     case shackle_queue:remove(Name, ExtRequestId) of
         {ok, Cast, _TimerRef} ->
@@ -217,9 +181,28 @@ handle_msg({timeout, ExtRequestId}, #state {
         {error, not_found} ->
             ok
     end,
-    {ok, State, ClientState};
-handle_msg({udp, _Socket, _Ip, _InPortNo, Data}, State, ClientState) ->
+    {ok, [State, ClientState]};
+handle_msg({udp, _Socket, _Ip, _InPortNo, Data}, [State, ClientState]) ->
     handle_msg_data(Data, State, ClientState).
+
+-spec terminate(term(), term()) ->
+    ok.
+
+terminate(_Reason, [#state {
+        client = Client,
+        name = Name,
+        timer_ref = TimerRef
+    }, ClientState]) ->
+
+    shackle_utils:cancel_timer(TimerRef),
+    ok = Client:terminate(ClientState),
+    reply_all(Name, {error, shutdown}),
+    shackle_backlog:delete(Name).
+
+%% private
+close(#state {name = Name} = State, ClientState) ->
+    reply_all(Name, {error, socket_closed}),
+    reconnect(State, ClientState).
 
 handle_msg_data(Data, #state {
         client = Client,
@@ -230,25 +213,13 @@ handle_msg_data(Data, #state {
 
     case Client:handle_data(Data, ClientState) of
         {ok, Replies, ClientState2} ->
-            process_replies(Replies, State),
-            {ok, State, ClientState2};
+            ok = process_replies(Replies, State),
+            {ok, [State, ClientState2]};
         {error, Reason, ClientState2} ->
             shackle_utils:warning_msg(PoolName,
                 "handle_data error: ~p", [Reason]),
             Protocol:close(Socket),
             close(State, ClientState2)
-    end.
-
-loop(#state {parent = Parent} = State, ClientState) ->
-    receive
-        {'EXIT', Parent, Reason} ->
-            terminate(Reason, State, ClientState);
-        {system, From, Request} ->
-            sys:handle_system_msg(Request, From, Parent, ?MODULE, [],
-                {State, ClientState});
-        Msg ->
-            {ok, State2, ClientState2} = handle_msg(Msg, State, ClientState),
-            loop(State2, ClientState2)
     end.
 
 process_replies([], _State) ->
@@ -297,9 +268,9 @@ reconnect_timer(#state {
         reconnect_state = undefined
     } = State, ClientState) ->
 
-    {ok, State#state {
+    {ok, [State#state {
         socket = undefined
-    }, ClientState};
+    }, ClientState]};
 reconnect_timer(#state {
         reconnect_state = #reconnect_state {
             current = undefined,
@@ -307,14 +278,14 @@ reconnect_timer(#state {
         } = ReconnectState
     } = State, ClientState) ->
 
-    {ok, State2, ClientState2} = handle_msg(?MSG_CONNECT, State#state {
+    {ok, [State2, ClientState2]} = handle_msg(?MSG_CONNECT, [State#state {
         reconnect_state = ReconnectState#reconnect_state {
             current = ?DEFAULT_RECONNECT_MIN
         },
         socket = undefined
-    }, ClientState),
+    }, ClientState]),
 
-    {ok, State2, ClientState2};
+    {ok, [State2, ClientState2]};
 reconnect_timer(#state {
         reconnect_state = ReconnectState
     } = State, ClientState)  ->
@@ -325,11 +296,11 @@ reconnect_timer(#state {
 
     TimerRef = erlang:send_after(Current, self(), ?MSG_CONNECT),
 
-    {ok, State#state {
+    {ok, [State#state {
         reconnect_state = ReconnectState2,
         socket = undefined,
         timer_ref = TimerRef
-    }, ClientState}.
+    }, ClientState]}.
 
 reply(Name, _Reply, #cast {pid = undefined}) ->
     shackle_backlog:decrement(Name);
@@ -340,15 +311,3 @@ reply(Name, Reply, #cast {pid = Pid} = Cast) ->
 reply_all(Name, Reply) ->
     Requests = shackle_queue:clear(Name),
     [reply(Name, Reply, Request) || Request <- Requests].
-
-terminate(Reason, #state {
-        client = Client,
-        name = Name,
-        timer_ref = TimerRef
-    }, ClientState) ->
-
-    shackle_utils:cancel_timer(TimerRef),
-    ok = Client:terminate(ClientState),
-    reply_all(Name, {error, shutdown}),
-    ok = shackle_backlog:delete(Name),
-    exit(Reason).

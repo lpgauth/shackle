@@ -1,6 +1,8 @@
 {"1.1.0",
-[{<<"granderl">>,{pkg,<<"granderl">>,<<"0.1.5">>},0}]}.
+[{<<"granderl">>,{pkg,<<"granderl">>,<<"0.1.5">>},0},
+ {<<"metal">>,{pkg,<<"metal">>,<<"0.1.0">>},0}]}.
 [
 {pkg_hash,[
- {<<"granderl">>, <<"F20077A68BD80B8D8783BD15A052813C6483771DEC1A5B837D307CBE92F14122">>}]}
+ {<<"granderl">>, <<"F20077A68BD80B8D8783BD15A052813C6483771DEC1A5B837D307CBE92F14122">>},
+ {<<"metal">>, <<"168E0AB553E3B8144547E353085CEDAA43C8769E0B7E43C0146C99C2C33507AC">>}]}
 ].
