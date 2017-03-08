@@ -5,6 +5,7 @@
     run/0
 ]).
 
+-define(CLIENT, arithmetic_tcp_client).
 -define(N, 1000).
 -define(P, 20).
 
@@ -12,6 +13,7 @@
 -spec run() -> ok.
 
 run() ->
+    error_logger:tty(false),
     shackle_test_utils:preload_modules(),
     shackle_app:start(),
 
@@ -19,10 +21,10 @@ run() ->
     {ok, Tracer} = fprofx:profile(start),
     fprofx:trace([start, {procs, new}, {tracer, Tracer}]),
 
-    arithmetic_tcp_client:start(),
+    ?CLIENT:start(),
     Self = self(),
     [spawn(fun () ->
-        [arithmetic_tcp_client:add(10, 10) || _ <- lists:seq(1, ?N)],
+        [20 = ?CLIENT:add(10, 10) || _ <- lists:seq(1, ?N)],
         Self ! exit
     end) || _ <- lists:seq(1, ?P)],
     wait(),
@@ -31,7 +33,7 @@ run() ->
     fprofx:analyse([totals, {dest, ""}]),
     fprofx:stop(),
 
-    arithmetic_tcp_client:stop(),
+    ?CLIENT:stop(),
     application:stop(shackle),
 
     ok.

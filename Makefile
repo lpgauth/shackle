@@ -7,11 +7,7 @@ all: compile
 bench:
 	@echo "Benchmarking..."
 	@$(REBAR3) as test compile
-	@erl -noshell \
-	     -pa _build/test/lib/*/ebin \
-	     -pa _build/test/lib/*/test \
-	     -eval 'shackle_bench:run()' \
-	     -eval 'init:stop()'
+	@./bin/bench.sh
 
 clean:
 	@echo "Running rebar3 clean..."
@@ -44,11 +40,7 @@ eunit:
 profile:
 	@echo "Profiling..."
 	@$(REBAR3) as test compile
-	@erl -noshell \
-	     -pa _build/test/lib/*/ebin \
-	     -pa _build/test/lib/*/test \
-	     -eval 'shackle_profile:run()' \
-	     -eval 'init:stop()'
+	@./bin/profile.sh
 	@_build/test/lib/fprofx/erlgrindx -p fprofx.analysis
 	@$(CACHEGRIND) fprofx.cgrind
 

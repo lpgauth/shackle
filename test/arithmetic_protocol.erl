@@ -9,8 +9,9 @@
     request_id/1
 ]).
 
--define(MAX_REQUEST_ID, 256).
+-define(MAX_REQUEST_ID, 4294967296).
 
+-type int() :: 9..4294967295.
 -type operation() :: add | multiply.
 -type tiny_int() :: 0..255.
 
@@ -30,10 +31,10 @@ parse_replies(Data) ->
 parse_requests(Data) ->
     parse_requests(Data, []).
 
--spec request(tiny_int(), operation(), tiny_int(), tiny_int()) -> binary().
+-spec request(int(), operation(), tiny_int(), tiny_int()) -> binary().
 
-request(RequestId, Operation, A, B) ->
-    <<RequestId:8/integer, (opcode(Operation)), A:8/integer, B:8/integer>>.
+request(ReqId, Operation, A, B) ->
+    <<ReqId:32/integer, (opcode(Operation)), A:8/integer, B:8/integer>>.
 
 -spec request_id(non_neg_integer()) -> tiny_int().
 
@@ -41,20 +42,20 @@ request_id(RequestCounter) ->
     RequestCounter rem ?MAX_REQUEST_ID.
 
 %% private
-parse_replies(<<ReqId:8/integer, A:16/integer, Rest/binary>>, Acc) ->
+parse_replies(<<ReqId:32/integer, A:16/integer, Rest/binary>>, Acc) ->
     parse_replies(Rest, [{ReqId, A} | Acc]);
 parse_replies(Buffer, Acc) ->
     {Acc, Buffer}.
 
 parse_requests(<<"INIT", Rest/binary>>, Acc) ->
     parse_requests(Rest, [<<"OK">> | Acc]);
-parse_requests(<<ReqId:8/integer, 1, A:8/integer, B:8/integer,
+parse_requests(<<ReqId:32/integer, 1, A:8/integer, B:8/integer,
     Rest/binary>>, Acc) ->
 
-    parse_requests(Rest, [<<ReqId:8/integer, (A + B):16/integer>> | Acc]);
-parse_requests(<<ReqId:8/integer, 2, A:8/integer, B:8/integer,
+    parse_requests(Rest, [<<ReqId:32/integer, (A + B):16/integer>> | Acc]);
+parse_requests(<<ReqId:32/integer, 2, A:8/integer, B:8/integer,
     Rest/binary>>, Acc) ->
 
-    parse_requests(Rest, [<<ReqId:8/integer, (A * B):16/integer>> | Acc]);
+    parse_requests(Rest, [<<ReqId:32/integer, (A * B):16/integer>> | Acc]);
 parse_requests(Buffer, Acc) ->
     {Acc, Buffer}.
