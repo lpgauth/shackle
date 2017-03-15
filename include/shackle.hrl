@@ -4,6 +4,7 @@
     pid            :: undefined | pid(),
     request        :: term(),
     request_id     :: request_id(),
+    timeout        :: timeout(),
     timestamp      :: erlang:timestamp()
 }).
 

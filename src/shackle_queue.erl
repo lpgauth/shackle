@@ -6,26 +6,22 @@
 
 %% internal
 -export([
-    add/2,
+    add/3,
     clear/1,
     init/0,
-    remove/1,
     remove/2
 ]).
 
 %% internal
--spec add(external_request_id(), cast()) ->
+-spec add(external_request_id(), cast(), reference()) ->
     ok.
 
 add(ExtRequestId, #cast {
-        request_id = {ServerName, _} = RequestId
-    } = Cast) ->
+        request_id = {ServerName, _}
+    } = Cast, TimerRef) ->
 
-    Object = {{ServerName, ExtRequestId}, Cast},
+    Object = {{ServerName, ExtRequestId}, {Cast, TimerRef}},
     ets:insert(?ETS_TABLE_QUEUE, Object),
-
-    Object2 = {RequestId, ExtRequestId},
-    ets:insert(?ETS_TABLE_QUEUE_REVERSE, Object2),
 
     ok.
 
@@ -38,8 +34,7 @@ clear(ServerName) ->
         [] ->
             [];
         Objects ->
-            ets:match_delete(?ETS_TABLE_QUEUE_REVERSE, Match),
-            [Cast || {_, Cast} <- Objects]
+            [Cast || {_, {Cast, _TimerRef}} <- Objects]
     end.
 
 -spec init() ->
@@ -47,35 +42,17 @@ clear(ServerName) ->
 
 init() ->
     ets_new(?ETS_TABLE_QUEUE),
-    ets_new(?ETS_TABLE_QUEUE_REVERSE),
     ok.
 
--spec remove(request_id()) ->
-    {ok, cast()} | {error, not_found}.
-
-remove({ServerName, _} = RequestId) ->
-    case ets_take(?ETS_TABLE_QUEUE_REVERSE, RequestId) of
-        [] ->
-            {error, not_found};
-        [{_, ExtRequestId}] ->
-            case ets_take(?ETS_TABLE_QUEUE, {ServerName, ExtRequestId}) of
-                [] ->
-                    {error, not_found};
-                [{_, Cast}] ->
-                    {ok, Cast}
-            end
-    end.
-
 -spec remove(server_name(), external_request_id()) ->
-    {ok, cast()} | {error, not_found}.
+    {ok, cast(), reference()} | {error, not_found}.
 
 remove(ServerName, ExtRequestId) ->
     case ets_take(?ETS_TABLE_QUEUE, {ServerName, ExtRequestId}) of
         [] ->
             {error, not_found};
-        [{_, #cast {request_id = RequestId} = Cast}] ->
-            ets:delete(?ETS_TABLE_QUEUE_REVERSE, RequestId),
-            {ok, Cast}
+        [{_, {Cast, TimerRef}}] ->
+            {ok, Cast, TimerRef}
     end.
 
 %% private

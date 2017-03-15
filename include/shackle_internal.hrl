@@ -14,4 +14,3 @@
 -define(ETS_TABLE_POOL, shackle_pool).
 -define(ETS_TABLE_POOL_INDEX, shackle_pool_index).
 -define(ETS_TABLE_QUEUE, shackle_queue).
--define(ETS_TABLE_QUEUE_REVERSE, shackle_queue_reverse).

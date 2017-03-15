@@ -157,7 +157,10 @@ handle_msg(#cast {} = Cast, #state {
 
     reply(Name, {error, no_socket}, Cast),
     {ok, State, ClientState};
-handle_msg(#cast {request = Request} = Cast, #state {
+handle_msg(#cast {
+        request = Request,
+        timeout = Timeout
+    } = Cast, #state {
         client = Client,
         header = Header,
         pool_name = PoolName,
@@ -170,8 +173,9 @@ handle_msg(#cast {request = Request} = Cast, #state {
 
     case Protocol:send(Socket, Header, Data) of
         ok ->
-            shackle_queue:add(ExtRequestId, Cast),
-
+            TimerRef = erlang:send_after(Timeout, self(),
+                {timeout, ExtRequestId}),
+            shackle_queue:add(ExtRequestId, Cast, TimerRef),
             {ok, State, ClientState2};
         {error, Reason} ->
             shackle_utils:warning_msg(PoolName, "tcp send error: ~p", [Reason]),
@@ -203,6 +207,17 @@ handle_msg({tcp_error, Socket, Reason}, #state {
     shackle_utils:warning_msg(PoolName, "tcp connection error: ~p", [Reason]),
     shackle_tcp:close(Socket),
     close(State, ClientState);
+handle_msg({timeout, ExtRequestId}, #state {
+        name = Name
+    } = State, ClientState) ->
+
+    case shackle_queue:remove(Name, ExtRequestId) of
+        {ok, Cast, _TimerRef} ->
+            reply(Name, {error, timeout}, Cast);
+        {error, not_found} ->
+            ok
+    end,
+    {ok, State, ClientState};
 handle_msg({udp, _Socket, _Ip, _InPortNo, Data}, State, ClientState) ->
     handle_msg_data(Data, State, ClientState).
 
@@ -227,7 +242,8 @@ process_replies([], _State) ->
     ok;
 process_replies([{ExtRequestId, Reply} | T], #state {name = Name} = State) ->
     case shackle_queue:remove(Name, ExtRequestId) of
-        {ok, Cast} ->
+        {ok, Cast, TimerRef} ->
+            erlang:cancel_timer(TimerRef),
             reply(Name, Reply, Cast);
         {error, not_found} ->
             ok

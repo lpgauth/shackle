@@ -13,7 +13,7 @@
 
 run() ->
     shackle_test_utils:preload_modules(),
-    application:start(shackle),
+    shackle_app:start(),
 
     fprofx:start(),
     {ok, Tracer} = fprofx:profile(start),
