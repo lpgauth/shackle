@@ -26,7 +26,7 @@ backlog_size() = pos_integer() | infinity
 
 
 <pre><code>
-cast() = #cast{client = <a href="#type-client">client()</a>, pid = undefined | pid(), request = term(), request_id = <a href="#type-request_id">request_id()</a>, timestamp = <a href="erlang.md#type-timestamp">erlang:timestamp()</a>}
+cast() = #cast{client = <a href="#type-client">client()</a>, pid = undefined | pid(), request = term(), request_id = <a href="#type-request_id">request_id()</a>, timeout = timeout(), timestamp = <a href="erlang.md#type-timestamp">erlang:timestamp()</a>}
 </code></pre>
 
 
@@ -154,19 +154,19 @@ time() = pos_integer()
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#add-2">add/2</a></td><td></td></tr><tr><td valign="top"><a href="#clear-1">clear/1</a></td><td></td></tr><tr><td valign="top"><a href="#init-0">init/0</a></td><td></td></tr><tr><td valign="top"><a href="#remove-1">remove/1</a></td><td></td></tr><tr><td valign="top"><a href="#remove-2">remove/2</a></td><td></td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#add-3">add/3</a></td><td></td></tr><tr><td valign="top"><a href="#clear-1">clear/1</a></td><td></td></tr><tr><td valign="top"><a href="#init-0">init/0</a></td><td></td></tr><tr><td valign="top"><a href="#remove-2">remove/2</a></td><td></td></tr></table>
 
 
 <a name="functions"></a>
 
 ## Function Details ##
 
-<a name="add-2"></a>
+<a name="add-3"></a>
 
-### add/2 ###
+### add/3 ###
 
 <pre><code>
-add(ExtRequestId::<a href="#type-external_request_id">external_request_id()</a>, Cast::<a href="#type-cast">cast()</a>) -&gt; ok
+add(ExtRequestId::<a href="#type-external_request_id">external_request_id()</a>, Cast::<a href="#type-cast">cast()</a>, TimerRef::reference()) -&gt; ok
 </code></pre>
 <br />
 
@@ -188,21 +188,12 @@ init() -&gt; ok
 </code></pre>
 <br />
 
-<a name="remove-1"></a>
-
-### remove/1 ###
-
-<pre><code>
-remove(RequestId::<a href="#type-request_id">request_id()</a>) -&gt; {ok, <a href="#type-cast">cast()</a>} | {error, not_found}
-</code></pre>
-<br />
-
 <a name="remove-2"></a>
 
 ### remove/2 ###
 
 <pre><code>
-remove(ServerName::<a href="#type-server_name">server_name()</a>, ExtRequestId::<a href="#type-external_request_id">external_request_id()</a>) -&gt; {ok, <a href="#type-cast">cast()</a>} | {error, not_found}
+remove(ServerName::<a href="#type-server_name">server_name()</a>, ExtRequestId::<a href="#type-external_request_id">external_request_id()</a>) -&gt; {ok, <a href="#type-cast">cast()</a>, reference()} | {error, not_found}
 </code></pre>
 <br />
 
