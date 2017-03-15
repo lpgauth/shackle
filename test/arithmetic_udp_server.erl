@@ -11,11 +11,9 @@
     ok | {error, already_started}.
 
 start() ->
-    case get(?MODULE) of
+    case whereis(?MODULE) of
         undefined ->
-            {ok, Socket} = open(),
-            put(?MODULE, Socket),
-            spawn(fun () -> loop(Socket, <<>>) end),
+            spawn(fun () -> loop(open(), <<>>) end),
             ok;
         _Socket ->
             {error, already_started}
@@ -28,9 +26,8 @@ stop() ->
     case whereis(?MODULE) of
         undefined ->
             {error, not_started};
-        Socket ->
-            gen_udp:close(Socket),
-            put(?MODULE, undefined),
+        Pid ->
+            Pid ! kill,
             ok
     end.
 
@@ -47,5 +44,19 @@ loop(Socket, Buffer) ->
     end.
 
 open() ->
-    Options = [binary, {active, false}, {reuseaddr, true}],
-    gen_udp:open(?PORT, Options).
+    Self = self(),
+    spawn(fun () ->
+        register(?MODULE, self()),
+        Options = [binary, {active, false}, {reuseaddr, true}],
+        {ok, Socket} = gen_udp:open(?PORT, Options),
+        Self ! Socket,
+        receive
+            kill ->
+                gen_udp:close(Socket),
+                ok
+        end
+    end),
+    receive
+        Socket ->
+            Socket
+    end.

@@ -11,13 +11,11 @@
     ok | {error, already_started}.
 
 start() ->
-    case get(?MODULE) of
+    case whereis(?MODULE) of
         undefined ->
-            {ok, LSocket} = listen(),
-            put(?MODULE, LSocket),
-            spawn(fun () -> accept(LSocket) end),
+            spawn(fun () -> accept(listen()) end),
             ok;
-        _LSocket ->
+        _Pid ->
             {error, already_started}
     end.
 
@@ -25,12 +23,11 @@ start() ->
     ok | {error, not_started}.
 
 stop() ->
-    case get(?MODULE) of
+    case whereis(?MODULE) of
         undefined ->
             {error, not_started};
-        LSocket ->
-            gen_tcp:close(LSocket),
-            put(?MODULE, undefined),
+        Pid ->
+            Pid ! kill,
             ok
     end.
 
@@ -45,8 +42,22 @@ accept(LSocket) ->
     end.
 
 listen() ->
-    Options = [binary, {backlog, 4096}, {active, false}, {reuseaddr, true}],
-    gen_tcp:listen(?PORT, Options).
+    Self = self(),
+    spawn(fun () ->
+        register(?MODULE, self()),
+        Options = [binary, {backlog, 4096}, {active, false}, {reuseaddr, true}],
+        {ok, LSocket} = gen_tcp:listen(?PORT, Options),
+        Self ! LSocket,
+        receive
+            kill ->
+                gen_tcp:close(LSocket),
+                ok
+        end
+    end),
+    receive
+        LSocket ->
+            LSocket
+    end.
 
 loop(Socket, Buffer) ->
     case gen_tcp:recv(Socket, 0) of

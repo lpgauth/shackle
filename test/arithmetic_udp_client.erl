@@ -5,6 +5,7 @@
     add/2,
     multiply/2,
     start/0,
+    start/1,
     stop/0
 ]).
 
@@ -29,18 +30,24 @@
     pos_integer().
 
 add(A, B) ->
-    shackle:call(?POOL_NAME, {add, A, B}).
+    shackle:call(?POOL_NAME, {add, A, B}, ?TIMEOUT).
 
 -spec multiply(tiny_int(), tiny_int()) ->
     pos_integer().
 
 multiply(A, B) ->
-    shackle:call(?POOL_NAME, {multiply, A, B}).
+    shackle:call(?POOL_NAME, {multiply, A, B}, ?TIMEOUT).
 
 -spec start() ->
     ok | {error, shackle_not_started | pool_already_started}.
 
 start() ->
+    start(?POOL_SIZE).
+
+-spec start(pos_integer()) ->
+    ok | {error, shackle_not_started | pool_already_started}.
+
+start(PoolSize) ->
     shackle_pool:start(?POOL_NAME, ?CLIENT_UDP, [
         {port, ?PORT},
         {protocol, shackle_udp},
@@ -48,6 +55,9 @@ start() ->
         {socket_options, [
             binary
         ]}
+    ], [
+        {backlog_size, ?BACKLOG_SIZE},
+        {pool_size, PoolSize}
     ]).
 
 -spec stop() ->
