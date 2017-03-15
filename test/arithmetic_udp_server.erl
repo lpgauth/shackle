@@ -27,8 +27,11 @@ stop() ->
         undefined ->
             {error, not_started};
         Pid ->
-            Pid ! kill,
-            ok
+            Pid ! {kill, self()},
+            receive
+                dead ->
+                    ok
+            end
     end.
 
 %% private
@@ -51,9 +54,10 @@ open() ->
         {ok, Socket} = gen_udp:open(?PORT, Options),
         Self ! Socket,
         receive
-            kill ->
+            {kill, Pid} ->
                 gen_udp:close(Socket),
-                ok
+                unregister(?MODULE),
+                Pid ! dead
         end
     end),
     receive

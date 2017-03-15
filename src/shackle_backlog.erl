@@ -36,11 +36,9 @@ check(ServerName, BacklogSize, Increment) ->
             true
     end.
 
--spec decrement(server_name() | request_id()) ->
+-spec decrement(server_name()) ->
     non_neg_integer().
 
-decrement({ServerName, _}) ->
-    decrement(ServerName);
 decrement(ServerName) ->
     ets:update_counter(?ETS_TABLE_BACKLOG, ServerName, {2, -1, 0, 0}).
 

@@ -18,7 +18,7 @@
 -record(reconnect_state, {
     current :: undefined | time(),
     max     :: time() | infinity,
-    min     :: none | time()
+    min     :: time()
 }).
 
 %% types
@@ -29,11 +29,12 @@
                          {port, inet:port_number()} |
                          {protocol, protocol()} |
                          {reconnect, boolean()} |
-                         {reconnect_time_max, time()} |
+                         {reconnect_time_max, time() | infinity} |
                          {reconnect_time_min, time()} |
                          {socket_options, [gen_tcp:connect_option() | gen_udp:option()]}.
 
 -type client_options() :: [client_option()].
+-type client_state() :: term().
 -type external_request_id() :: term().
 -type pool_name() :: atom().
 -type pool_option() :: {backlog_size, backlog_size()} |

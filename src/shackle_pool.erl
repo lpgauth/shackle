@@ -165,17 +165,24 @@ server_names(Name, PoolSize) ->
     [shackle_pool_utils:server_name(Name, N) ||
         N <- lists:seq(1, PoolSize)].
 
-server_spec(ServerName, Name, Client, ClientOptions) ->
-    StartFunc = {?SERVER, start_link,
+server_mod(shackle_tcp) ->
+    shackle_tcp_server;
+server_mod(shackle_udp) ->
+    shackle_udp_server.
+
+server_spec(ServerMod, ServerName, Name, Client, ClientOptions) ->
+    StartFunc = {ServerMod, start_link,
         [ServerName, Name, Client, ClientOptions]},
-    {ServerName, StartFunc, permanent, 5000, worker, [?SERVER]}.
+    {ServerName, StartFunc, permanent, 5000, worker, [ServerMod]}.
 
 start_children(Name, Client, ClientOptions, #pool_options {
         pool_size = PoolSize
     }) ->
 
+    Protocol = ?LOOKUP(protocol, ClientOptions, ?DEFAULT_PROTOCOL),
+    ServerMod = server_mod(Protocol),
     ServerNames = server_names(Name, PoolSize),
-    ServerSpecs = [server_spec(ServerName, Name, Client, ClientOptions) ||
-        ServerName <- ServerNames],
+    ServerSpecs = [server_spec(ServerMod, ServerName, Name,
+        Client, ClientOptions) || ServerName <- ServerNames],
     [supervisor:start_child(?SUPERVISOR, ServerSpec) ||
         ServerSpec <- ServerSpecs].
