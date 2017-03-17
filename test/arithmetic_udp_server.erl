@@ -50,7 +50,11 @@ open() ->
     Self = self(),
     spawn(fun () ->
         register(?MODULE, self()),
-        Options = [binary, {active, false}, {reuseaddr, true}],
+        Options = [
+            binary,
+            {active, false},
+            {reuseaddr, true}
+        ],
         {ok, Socket} = gen_udp:open(?PORT, Options),
         Self ! Socket,
         receive

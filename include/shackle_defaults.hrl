@@ -1,5 +1,6 @@
 %% defaults
 -define(DEFAULT_BACKLOG_SIZE, 1024).
+-define(DEFAULT_CONNECT_TIMEOUT, 500).
 -define(DEFAULT_IP, "127.0.0.1").
 -define(DEFAULT_POOL_SIZE, 16).
 -define(DEFAULT_POOL_STRATEGY, random).
