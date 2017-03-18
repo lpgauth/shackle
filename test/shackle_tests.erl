@@ -16,6 +16,17 @@ shackle_backlog_test_() ->
         fun (_) -> cleanup_tcp() end,
     [fun backlog_full_subtest/0]}.
 
+shackle_backlog_infinity_test_() ->
+    {setup,
+        fun () ->
+            setup_tcp([
+                {backlog_size, infinity},
+                {pool_size, 1}
+            ])
+        end,
+        fun (_) -> cleanup_tcp() end,
+    [fun add_tcp_subtest/0]}.
+
 shackle_random_tcp_test_() ->
     {setup,
         fun () -> setup_tcp([
@@ -38,36 +49,34 @@ shackle_random_udp_test_() ->
         fun multiply_udp_subtest/0
     ]}}.
 
-shackle_reconnect_test_() ->
+shackle_reconnect_tcp_test_() ->
     {setup,
         fun () ->
             setup(),
             shackle_pool:start(?POOL_NAME, ?CLIENT_TCP, [
                 {port, ?PORT},
                 {reconnect, true},
-                {socket_options, [
-                    binary,
-                    {packet, raw}
-                ]}], [{pool_size, 1}])
+                {reconnect_time_min, 1},
+                {socket_options, [binary, {packet, raw}]}
+            ], [{pool_size, 1}])
         end,
         fun (_) -> cleanup_tcp() end,
-    [fun reconnect_subtest/0]}.
+    [fun reconnect_tcp_subtest/0]}.
 
-shackle_reconnect2_test_() ->
+shackle_reconnect_udp_test_() ->
     {setup,
         fun () ->
             setup(),
-            shackle_pool:start(?POOL_NAME, ?CLIENT_TCP, [
+            shackle_pool:start(?POOL_NAME, ?CLIENT_UDP, [
                 {port, ?PORT},
+                {protocol, shackle_udp},
                 {reconnect, true},
-                {reconnect_time_min, none},
-                {socket_options, [
-                    binary,
-                    {packet, raw}
-                ]}], [{pool_size, 1}])
+                {reconnect_time_min, 1},
+                {socket_options, [binary]
+            }], [{pool_size, 1}])
         end,
         fun (_) -> cleanup_tcp() end,
-    [fun reconnect_subtest/0]}.
+    [fun reconnect_udp_subtest/0]}.
 
 shackle_round_robin_tcp_test_() ->
     {setup,
@@ -116,16 +125,29 @@ multiply_tcp_subtest() ->
 multiply_udp_subtest() ->
     [assert_random_multiply(?CLIENT_UDP) || _ <- lists:seq(1, ?N)].
 
-reconnect_subtest() ->
+reconnect_tcp_subtest() ->
     ?assertEqual({error, no_socket}, arithmetic_tcp_client:add(1, 1)),
-    arithmetic_tcp_server:start(),
+    ok = arithmetic_tcp_server:start(),
     timer:sleep(200),
     ?assertEqual(2, arithmetic_tcp_client:add(1, 1)),
-    arithmetic_tcp_server:stop(),
-    ?assertEqual({error, socket_closed}, arithmetic_tcp_client:add(1, 1)),
-    arithmetic_tcp_server:start(),
+    ok = arithmetic_tcp_server:stop(),
+    timer:sleep(200),
+    ?assertEqual({error, no_socket}, arithmetic_tcp_client:add(1, 1)),
+    ok = arithmetic_tcp_server:start(),
     timer:sleep(200),
     ?assertEqual(2, arithmetic_tcp_client:add(1, 1)).
+
+reconnect_udp_subtest() ->
+    ?assertEqual({error, no_socket}, arithmetic_udp_client:add(1, 1)),
+    ok = arithmetic_udp_server:start(),
+    timer:sleep(200),
+    ?assertEqual(2, arithmetic_udp_client:add(1, 1)),
+    ok = arithmetic_udp_server:stop(),
+    timer:sleep(200),
+    ?assertEqual({error, timeout}, arithmetic_udp_client:add(1, 1)),
+    ok = arithmetic_udp_server:start(),
+    timer:sleep(200),
+    ?assertEqual(2, arithmetic_udp_client:add(1, 1)).
 
 %% utils
 assert_random_add(Client) ->

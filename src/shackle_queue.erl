@@ -26,7 +26,7 @@ add(ExtRequestId, #cast {
     ok.
 
 -spec clear(server_name()) ->
-    [cast()].
+    [{cast(), reference()}].
 
 clear(ServerName) ->
     Match = {{ServerName, '_'}, '_'},
@@ -34,7 +34,7 @@ clear(ServerName) ->
         [] ->
             [];
         Objects ->
-            [Cast || {_, {Cast, _TimerRef}} <- Objects]
+            [{Cast, TimerRef} || {_, {Cast, TimerRef}} <- Objects]
     end.
 
 -spec init() ->

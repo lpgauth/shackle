@@ -4,7 +4,9 @@ Config = case erlang:function_exported(rebar3, main, 1) of
     false ->
         [{deps, [
             {granderl, ".*",
-                {git, "https://github.com/tokenrove/granderl.git", {tag, "v0.1.5"}}}
+                {git, "https://github.com/tokenrove/granderl.git", {tag, "v0.1.5"}}},
+            {metal, ".*",
+                {git, "https://github.com/lpgauth/metal.git", {tag, "v0.1.0"}}}
         ]} | lists:keydelete(deps, 1, CONFIG)]
 end,
 

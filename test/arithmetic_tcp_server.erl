@@ -27,8 +27,11 @@ stop() ->
         undefined ->
             {error, not_started};
         Pid ->
-            Pid ! kill,
-            ok
+            Pid ! {kill, self()},
+            receive
+                dead ->
+                    ok
+            end
     end.
 
 %% private
@@ -49,9 +52,10 @@ listen() ->
         {ok, LSocket} = gen_tcp:listen(?PORT, Options),
         Self ! LSocket,
         receive
-            kill ->
+            {kill, Pid} ->
                 gen_tcp:close(LSocket),
-                ok
+                unregister(?MODULE),
+                Pid ! dead
         end
     end),
     receive
