@@ -221,10 +221,23 @@ handle_msg({timeout, ExtRequestId}, #state {
 handle_msg({udp, _Socket, _Ip, _InPortNo, Data}, State, ClientState) ->
     handle_msg_data(Data, State, ClientState).
 
-handle_msg_data(Data, #state {client = Client} = State, ClientState) ->
-    {ok, Replies, ClientState2} = Client:handle_data(Data, ClientState),
-    ok = process_replies(Replies, State),
-    {ok, State, ClientState2}.
+handle_msg_data(Data, #state {
+        client = Client,
+        pool_name = PoolName,
+        protocol = Protocol,
+        socket = Socket
+    } = State, ClientState) ->
+
+    case Client:handle_data(Data, ClientState) of
+        {ok, Replies, ClientState2} ->
+            process_replies(Replies, State),
+            {ok, State, ClientState2};
+        {error, Reason, ClientState2} ->
+            shackle_utils:warning_msg(PoolName,
+                "handle_data error: ~p", [Reason]),
+            Protocol:close(Socket),
+            close(State, ClientState2)
+    end.
 
 loop(#state {parent = Parent} = State, ClientState) ->
     receive
