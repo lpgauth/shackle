@@ -137,7 +137,7 @@ handle_msg(?MSG_CONNECT, #state {
                             shackle_utils:warning_msg(PoolName,
                                 "setup error: ~p", [Reason]),
                             Protocol:close(Socket),
-                            reconnect(State, ClientState3)
+                            close(State, ClientState3)
                     end;
                 {error, Reason} ->
                     shackle_utils:warning_msg(PoolName,
