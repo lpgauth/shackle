@@ -46,7 +46,7 @@ client() = module()
 
 
 <pre><code>
-client_option() = {ip, <a href="inet.md#type-ip_address">inet:ip_address()</a> | <a href="inet.md#type-hostname">inet:hostname()</a>} | {port, <a href="inet.md#type-port_number">inet:port_number()</a>} | {protocol, <a href="#type-protocol">protocol()</a>} | {reconnect, boolean()} | {reconnect_time_max, <a href="#type-time">time()</a>} | {reconnect_time_min, <a href="#type-time">time()</a>} | {socket_options, [<a href="gen_tcp.md#type-connect_option">gen_tcp:connect_option()</a> | <a href="gen_udp.md#type-option">gen_udp:option()</a>]}
+client_option() = {ip, <a href="inet.md#type-ip_address">inet:ip_address()</a> | <a href="inet.md#type-hostname">inet:hostname()</a>} | {port, <a href="inet.md#type-port_number">inet:port_number()</a>} | {protocol, <a href="#type-protocol">protocol()</a>} | {reconnect, boolean()} | {reconnect_time_max, <a href="#type-time">time()</a> | infinity} | {reconnect_time_min, <a href="#type-time">time()</a>} | {socket_options, [<a href="gen_tcp.md#type-connect_option">gen_tcp:connect_option()</a> | <a href="gen_udp.md#type-option">gen_udp:option()</a>]}
 </code></pre>
 
 
@@ -116,7 +116,7 @@ pool_strategy() = random | round_robin
 
 
 <pre><code>
-protocol() = shackle_tcp | shackle_udp
+protocol() = shackle_ssl | shackle_tcp | shackle_udp
 </code></pre>
 
 
@@ -175,7 +175,7 @@ add(ExtRequestId::<a href="#type-external_request_id">external_request_id()</a>,
 ### clear/1 ###
 
 <pre><code>
-clear(ServerName::<a href="#type-server_name">server_name()</a>) -&gt; [<a href="#type-cast">cast()</a>]
+clear(ServerName::<a href="#type-server_name">server_name()</a>) -&gt; [{<a href="#type-cast">cast()</a>, reference()}]
 </code></pre>
 <br />
 

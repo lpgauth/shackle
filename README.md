@@ -13,7 +13,8 @@ High Performance Erlang Network Client Framework
 
 * Backpressure via backlog (OOM protection)
 * Fast pool implementation (random, round_robin)
-* Multi-protocol support (TCP / UDP)
+* Managed timeouts
+* Multi-protocol support (SSL / TCP / UDP)
 * Performance optimized
 * Request pipelining
 
@@ -192,7 +193,7 @@ shackle_pool:start(pool_name(), client(), client_options(), pool_options())
 1> shackle:call(pool_name, {get, <<"test">>}).
 {ok, <<"bar">>}
 
-2> {ok, ReqId} = shackle:cast(pool_name, {get, <<"foo">>}).
+2> {ok, ReqId} = shackle:cast(pool_name, {get, <<"foo">>}, 500).
 {ok, {anchor, anchor_client, #Ref<0.0.0.2407>}}
 
 3> shackle:receive_response(ReqId).
@@ -243,7 +244,7 @@ make profile
   </tr>
   <tr>
     <td><a href="https://github.com/lpgauth/buoy">buoy</a></td>
-    <td>HTTP 1.1 Client (alpha)</td>
+    <td>HTTP 1.1 Client</td>
   </tr>
   <tr>
     <td><a href="https://github.com/lpgauth/flare">flare</a></td>
