@@ -1,5 +1,6 @@
--module(arithmetic_tcp_server).
+-module(arithmetic_ssl_server).
 -include("test.hrl").
+-include_lib("eunit/include/eunit.hrl").
 
 -export([
     start/0,
@@ -36,8 +37,9 @@ stop() ->
 
 %% private
 accept(LSocket) ->
-    case gen_tcp:accept(LSocket) of
+    case ssl:transport_accept(LSocket) of
         {ok, Socket} ->
+            ok = ssl:ssl_accept(Socket),
             spawn(fun() -> loop(Socket, <<>>) end),
             accept(LSocket);
         {error, closed} ->
@@ -50,15 +52,17 @@ listen() ->
         register(?MODULE, self()),
         Options = [
             binary,
-            {active, false},
             {backlog, 4096},
-            {reuseaddr, true}
+            {active, false},
+            {reuseaddr, true},
+            {certfile, <<"./test/cert.pem">>},
+            {keyfile, <<"./test/key.pem">>}
         ],
-        {ok, LSocket} = gen_tcp:listen(?PORT, Options),
+        {ok, LSocket} = ssl:listen(?PORT, Options),
         Self ! LSocket,
         receive
             {kill, Pid} ->
-                gen_tcp:close(LSocket),
+                ssl:close(LSocket),
                 unregister(?MODULE),
                 Pid ! dead
         end
@@ -69,11 +73,11 @@ listen() ->
     end.
 
 loop(Socket, Buffer) ->
-    case gen_tcp:recv(Socket, 0) of
+    case ssl:recv(Socket, 0) of
         {ok, Requests} ->
             Requests2 = <<Buffer/binary, Requests/binary>>,
             {Replies, Buffer2} = arithmetic_protocol:parse_requests(Requests2),
-            ok = gen_tcp:send(Socket, Replies),
+            ok = ssl:send(Socket, Replies),
             loop(Socket, Buffer2);
         {error, closed} ->
             ok

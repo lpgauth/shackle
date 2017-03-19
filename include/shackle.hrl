@@ -45,7 +45,7 @@
 -type pool_options_rec() :: #pool_options {}.
 -type pool_size() :: pos_integer().
 -type pool_strategy() :: random | round_robin.
--type protocol() :: shackle_tcp | shackle_udp.
+-type protocol() :: shackle_ssl| shackle_tcp | shackle_udp.
 -type reconnect_state() :: #reconnect_state {}.
 -type request_id() :: {server_name(), reference()}.
 -type response() :: {external_request_id(), term()}.

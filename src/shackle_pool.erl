@@ -165,6 +165,8 @@ server_names(Name, PoolSize) ->
     [shackle_pool_utils:server_name(Name, N) ||
         N <- lists:seq(1, PoolSize)].
 
+server_mod(shackle_ssl) ->
+    shackle_ssl_server;
 server_mod(shackle_tcp) ->
     shackle_tcp_server;
 server_mod(shackle_udp) ->
