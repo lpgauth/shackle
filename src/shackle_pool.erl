@@ -108,8 +108,10 @@ choose_server(Name,
         {false, false} ->
             {error, backlog_full};
         {A, B} when B =:= false orelse A =< B ->
+            shackle_backlog:decrement(ServerB),
             {ok, Client, ServerA};
         {_, _} ->
+            shackle_backlog:decrement(ServerA),
             {ok, Client, ServerB}
     end;
 
