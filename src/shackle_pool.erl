@@ -51,11 +51,7 @@ stop(Name) ->
                 pool_size = PoolSize
             } = OptionsRec} ->
 
-            ServerNames = server_names(Name, PoolSize),
-            lists:foreach(fun (ServerName) ->
-                supervisor:terminate_child(?SUPERVISOR, ServerName),
-                supervisor:delete_child(?SUPERVISOR, ServerName)
-            end, ServerNames),
+            stop_children(server_names(Name, PoolSize)),
             cleanup(Name, OptionsRec),
             ok;
         {error, Reason} ->
@@ -188,3 +184,10 @@ start_children(Name, Client, ClientOptions, #pool_options {
         Client, ClientOptions) || ServerName <- ServerNames],
     [supervisor:start_child(?SUPERVISOR, ServerSpec) ||
         ServerSpec <- ServerSpecs].
+
+stop_children([]) ->
+    ok;
+stop_children([ServerName | T]) ->
+    supervisor:terminate_child(?SUPERVISOR, ServerName),
+    supervisor:delete_child(?SUPERVISOR, ServerName),
+    stop_children(T).
