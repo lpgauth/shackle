@@ -17,6 +17,7 @@ High Performance Erlang Network Client Framework
 * Multi-protocol support (SSL / TCP / UDP)
 * Performance optimized
 * Request pipelining
+* Smart reconnect mechanism (exp. backoff)
 
 #### Framework goals
 
