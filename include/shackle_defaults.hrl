@@ -9,4 +9,5 @@
 -define(DEFAULT_RECONNECT_MAX, timer:minutes(2)).
 -define(DEFAULT_RECONNECT_MIN, 500).
 -define(DEFAULT_SOCKET_OPTS, []).
+-define(DEFAULT_CLIENT_INIT_OPTS, undefined).
 -define(DEFAULT_TIMEOUT, 1000).

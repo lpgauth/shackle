@@ -21,6 +21,7 @@
     reconnect_state  :: undefined | reconnect_state(),
     socket           :: undefined | inet:socket(),
     socket_options   :: [gen_tcp:connect_option()],
+    init_options     :: client_init_options(),
     timer_ref        :: undefined | reference()
 }).
 
@@ -48,6 +49,8 @@ init(Name, Parent, Opts) ->
     ReconnectState = shackle_utils:reconnect_state(ClientOptions),
     SocketOptions = ?LOOKUP(socket_options, ClientOptions,
         ?DEFAULT_SOCKET_OPTS),
+    ClientInitOptions = ?LOOKUP(init_options, ClientOptions,
+        ?DEFAULT_CLIENT_INIT_OPTS),
 
     {ok, {#state {
         client = Client,
@@ -57,7 +60,8 @@ init(Name, Parent, Opts) ->
         pool_name = PoolName,
         port = Port,
         reconnect_state = ReconnectState,
-        socket_options = SocketOptions
+        socket_options = SocketOptions,
+        init_options = ClientInitOptions
     }, undefined}}.
 
 -spec handle_msg(term(), {state(), client_state()}) ->
@@ -142,12 +146,14 @@ handle_msg(?MSG_CONNECT, {#state {
         pool_name = PoolName,
         port = Port,
         reconnect_state = ReconnectState,
-        socket_options = SocketOptions
+        socket_options = SocketOptions,
+        init_options = ClientInitOptions
     } = State, ClientState}) ->
 
     case connect(PoolName, Ip, Port, SocketOptions) of
         {ok, Socket} ->
-            case shackle_utils:client_setup(Client, PoolName, Socket) of
+            case shackle_utils:client_setup(Client, PoolName, Socket,
+                ClientInitOptions) of
                 {ok, ClientState2} ->
                     ReconnectState2 =
                         shackle_utils:reconnect_state_reset(ReconnectState),

@@ -52,7 +52,10 @@
 -type server_name() :: atom().
 -type time() :: pos_integer().
 
+-type client_init_options() :: term().
+
 -export_type([
     client_options/0,
+    client_init_options/0,
     pool_options/0
 ]).

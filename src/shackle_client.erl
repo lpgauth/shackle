@@ -1,7 +1,7 @@
 -module(shackle_client).
 -include("shackle_internal.hrl").
 
--callback init() ->
+-callback init(Options :: term()) ->
     {ok, State :: term()}.
 
 -callback setup(Socket :: inet:socket(), State :: term()) ->
