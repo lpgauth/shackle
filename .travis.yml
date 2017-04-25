@@ -7,7 +7,6 @@ addons:
 cache:
   directories:
     - $HOME/.cache/rebar3
-    - $TRAVIS_BUILD_DIR/_build
 env:
   - CC=gcc-5
 install: true
