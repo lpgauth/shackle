@@ -1,5 +1,5 @@
 {application, shackle, [
-  {applications, [kernel, stdlib, granderl]},
+  {applications, [kernel, stdlib, granderl, metal]},
   {description, "High Performance Erlang Network Client Framework"},
   {env, []},
   {licenses, ["MIT"]},
