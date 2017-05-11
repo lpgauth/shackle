@@ -17,7 +17,7 @@ pool_utils(Pools) ->
 %% private
 compile_and_load_forms(Forms) ->
     {ok, Module, Bin} = compile:forms(Forms, [debug_info]),
-    code:purge(Module),
+    code:soft_purge(Module),
     Filename = atom_to_list(Module) ++ ".erl",
     {module, Module} = code:load_binary(Module, Filename, Bin),
     ok.
