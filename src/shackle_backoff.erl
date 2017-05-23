@@ -31,8 +31,7 @@ timeout(#reconnect_state {
         max = Max
     } = ReconnectState) ->
 
-    Width = Current bsl 1,
-    Current2 = Current + shackle_utils:random(Width + 1) - 1,
+    Current2 = Current + shackle_utils:random(trunc(Current / 2) + 1) - 1,
 
     ReconnectState#reconnect_state {
         current = min(Current2, Max)

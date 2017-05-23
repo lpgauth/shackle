@@ -56,16 +56,17 @@ lookup(Key, List, Default) ->
 -spec process_responses([response()], server_name()) ->
     ok.
 
-process_responses(Responses, Name) ->
-    lists:foreach(fun ({ExtRequestId, Reply}) ->
-        case shackle_queue:remove(Name, ExtRequestId) of
-            {ok, Cast, TimerRef} ->
-                erlang:cancel_timer(TimerRef),
-                reply(Name, Reply, Cast);
-            {error, not_found} ->
-                ok
-        end
-    end, Responses).
+process_responses([], _Name) ->
+    ok;
+process_responses([{ExtRequestId, Reply} | T], Name) ->
+    case shackle_queue:remove(Name, ExtRequestId) of
+        {ok, Cast, TimerRef} ->
+            erlang:cancel_timer(TimerRef),
+            reply(Name, Reply, Cast);
+        {error, not_found} ->
+            ok
+    end,
+    process_responses(T, Name).
 
 -spec random(pos_integer()) ->
     non_neg_integer().
@@ -127,13 +128,18 @@ reply(Name, Reply, #cast {pid = Pid} = Cast) ->
     ok.
 
 reply_all(Name, Reply) ->
-    lists:foreach(fun ({Cast, TimerRef}) ->
-        erlang:cancel_timer(TimerRef),
-        reply(Name, Reply, Cast)
-    end, shackle_queue:clear(Name)).
+    reply_all(Name, Reply, shackle_queue:clear(Name)).
 
 -spec warning_msg(pool_name(), string(), [term()]) ->
     ok.
 
 warning_msg(Pool, Format, Data) ->
     error_logger:warning_msg("[~p] " ++ Format, [Pool | Data]).
+
+%% private
+reply_all(_Name, _Reply, []) ->
+    ok;
+reply_all(Name, Reply, [{Cast, TimerRef} | T]) ->
+    erlang:cancel_timer(TimerRef),
+    reply(Name, Reply, Cast),
+    reply_all(Name, Reply, T).
