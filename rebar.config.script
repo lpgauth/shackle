@@ -8,7 +8,9 @@ Config = case erlang:function_exported(rebar3, main, 1) of
             {granderl, ".*",
                 {git, "https://github.com/tokenrove/granderl.git", {tag, "v0.1.5"}}},
             {metal, ".*",
-                {git, "https://github.com/lpgauth/metal.git", {tag, "0.1.1"}}}
+                {git, "https://github.com/lpgauth/metal.git", {tag, "0.1.1"}}},
+            {statsderl, ".*",
+                {git, "https://github.com/lpgauth/statsderl.git", {tag, "0.5.2"}}}
         ]} | lists:keydelete(deps, 1, CONFIG)]
 end,
 
