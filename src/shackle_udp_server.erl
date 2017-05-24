@@ -17,6 +17,7 @@
 
 -record(state, {
     client           :: client(),
+    client_bin       :: binary(),
     header           :: undefined | iodata(),
     init_options     :: init_options(),
     ip               :: inet:ip_address() | inet:hostname(),
@@ -64,6 +65,7 @@ init(Name, Parent, Opts) ->
     {ok, {#state {
         client = Client,
         init_options = InitOptions,
+        client_bin = atom_to_binary(Client, latin1),
         ip = Ip,
         name = Name,
         parent = Parent,
@@ -87,6 +89,7 @@ handle_msg({Request, #cast {
         timeout = Timeout
     } = Cast}, {#state {
         client = Client,
+        client_bin = ClientBin,
         header = Header,
         name = Name,
         pool_name = PoolName,
@@ -97,6 +100,7 @@ handle_msg({Request, #cast {
         {ok, ExtRequestId, Data, ClientState2} ->
             case send(Socket, Header, Data) of
                 ok ->
+                    ?STATS_INCR(["shackle.", ClientBin, ".send"]),
                     Msg = {timeout, ExtRequestId},
                     TimerRef = erlang:send_after(Timeout, self(), Msg),
                     shackle_queue:add(ExtRequestId, Cast, TimerRef),
@@ -118,14 +122,16 @@ handle_msg({inet_reply, _Socket, ok}, {State, ClientState}) ->
     {ok, {State, ClientState}};
 handle_msg({udp, Socket, _Ip, _InPortNo, Data}, {#state {
         client = Client,
+        client_bin = ClientBin,
         name = Name,
         pool_name = PoolName,
         socket = Socket
     } = State, ClientState}) ->
 
+    ?STATS_INCR(["shackle.", ClientBin, ".recv"]),
     try Client:handle_data(Data, ClientState) of
         {ok, Replies, ClientState2} ->
-            ?SERVER_UTILS:process_responses(Replies, Name),
+            ?SERVER_UTILS:process_responses(Replies, Name, ClientBin),
             {ok, {State, ClientState2}};
         {error, Reason, ClientState2} ->
             ?WARN(PoolName, "handle_data error: ~p", [Reason]),
@@ -140,6 +146,7 @@ handle_msg({udp, Socket, _Ip, _InPortNo, Data}, {#state {
     end;
 handle_msg({timeout, ExtRequestId}, {#state {
         client = Client,
+        client_bin = ClientBin,
         name = Name,
         pool_name = PoolName,
         socket = Socket
@@ -149,7 +156,8 @@ handle_msg({timeout, ExtRequestId}, {#state {
         true ->
             try Client:handle_timeout(ExtRequestId, ClientState) of
                 {ok, Reply, ClientState2} ->
-                    ?SERVER_UTILS:process_responses([Reply], Name),
+                    ?STATS_INCR(["shackle.", ClientBin, ".handled_timeout"]),
+                    ?SERVER_UTILS:process_responses([Reply], Name, ClientBin),
                     {ok, {State, ClientState2}};
                 {error, Reason, ClientState2} ->
                     ?WARN(PoolName, "handle_timeout error: ~p", [Reason]),
@@ -165,6 +173,7 @@ handle_msg({timeout, ExtRequestId}, {#state {
         false ->
             case shackle_queue:remove(Name, ExtRequestId) of
                 {ok, Cast, _TimerRef} ->
+                    ?STATS_INCR(["shackle.", ClientBin, ".timeout"]),
                     ?SERVER_UTILS:reply(Name, {error, timeout}, Cast);
                 {error, not_found} ->
                     ok
