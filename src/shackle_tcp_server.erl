@@ -13,6 +13,7 @@
 
 -record(state, {
     client           :: client(),
+    client_bin       :: binary(),
     ip               :: inet:ip_address() | inet:hostname(),
     name             :: server_name(),
     parent           :: pid(),
@@ -51,6 +52,7 @@ init(Name, Parent, Opts) ->
 
     {ok, {#state {
         client = Client,
+        client_bin = atom_to_binary(Client, latin1),
         ip = Ip,
         name = Name,
         parent = Parent,
@@ -75,6 +77,7 @@ handle_msg(#cast {
         timeout = Timeout
     } = Cast, {#state {
         client = Client,
+        client_bin = ClientBin,
         name = Name,
         pool_name = PoolName,
         socket = Socket
@@ -85,6 +88,7 @@ handle_msg(#cast {
 
     case gen_tcp:send(Socket, Data) of
         ok ->
+            statsderl:increment(["shackle.", ClientBin, ".send"], 1, ?SR),
             Msg = {timeout, ExtRequestId},
             TimerRef = erlang:send_after(Timeout, self(), Msg),
             shackle_queue:add(ExtRequestId, Cast, TimerRef),
@@ -97,14 +101,16 @@ handle_msg(#cast {
     end;
 handle_msg({tcp, Socket, Data}, {#state {
         client = Client,
+        client_bin = ClientBin,
         name = Name,
         pool_name = PoolName,
         socket = Socket
     } = State, ClientState}) ->
 
+    statsderl:increment(["shackle.", ClientBin, ".recv"], 1, ?SR),
     case Client:handle_data(Data, ClientState) of
         {ok, Replies, ClientState2} ->
-            shackle_utils:process_responses(Replies, Name),
+            shackle_utils:process_responses(Replies, Name, ClientBin),
             {ok, {State, ClientState2}};
         {error, Reason, ClientState2} ->
             shackle_utils:warning_msg(PoolName,
@@ -113,11 +119,13 @@ handle_msg({tcp, Socket, Data}, {#state {
             close(State, ClientState2)
     end;
 handle_msg({timeout, ExtRequestId}, {#state {
+        client_bin = ClientBin,
         name = Name
     } = State, ClientState}) ->
 
     case shackle_queue:remove(Name, ExtRequestId) of
         {ok, Cast, _TimerRef} ->
+            statsderl:increment(["shackle.", ClientBin, ".timeout"], 1, ?SR),
             shackle_utils:reply(Name, {error, timeout}, Cast);
         {error, not_found} ->
             ok
