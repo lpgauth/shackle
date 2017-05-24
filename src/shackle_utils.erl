@@ -9,7 +9,7 @@
     cancel_timer/1,
     client_setup/3,
     lookup/3,
-    process_responses/2,
+    process_responses/3,
     random/1,
     random_element/1,
     warning_msg/3,
@@ -53,20 +53,25 @@ lookup(Key, List, Default) ->
         {_, Value} -> Value
     end.
 
--spec process_responses([response()], server_name()) ->
+-spec process_responses([response()], server_name(), binary()) ->
     ok.
 
-process_responses([], _Name) ->
+process_responses([], _Name, _ClientBin) ->
     ok;
-process_responses([{ExtRequestId, Reply} | T], Name) ->
+process_responses([{ExtRequestId, Reply} | T], Name, ClientBin) ->
+    statsderl:increment(["shackle.", ClientBin, ".replies"], 1, ?SR),
     case shackle_queue:remove(Name, ExtRequestId) of
-        {ok, Cast, TimerRef} ->
+        {ok, #cast {timestamp = Timestamp} = Cast, TimerRef} ->
+            statsderl:increment(["shackle.", ClientBin, ".found"], 1, ?SR),
+            Diff = timer:now_diff(os:timestamp(), Timestamp),
+            statsderl:timing(["shackle.", ClientBin, ".reply"], Diff, ?SR),
             erlang:cancel_timer(TimerRef),
             reply(Name, Reply, Cast);
         {error, not_found} ->
+            statsderl:increment(["shackle.", ClientBin, ".not_found"], 1, ?SR),
             ok
     end,
-    process_responses(T, Name).
+    process_responses(T, Name, ClientBin).
 
 -spec random(pos_integer()) ->
     non_neg_integer().
