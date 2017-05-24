@@ -7,6 +7,7 @@
 -define(LOOKUP(Key, List, Default), shackle_utils:lookup(Key, List, Default)).
 -define(MSG_CONNECT, connect).
 -define(SERVER, shackle_server).
+-define(SR, 0.005).
 -define(SUPERVISOR, shackle_sup).
 
 %% ETS tables
