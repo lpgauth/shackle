@@ -90,6 +90,8 @@ server(Name) ->
                 true ->
                     {ok, Client, Server};
                 false ->
+                    Key2 = ["shackle.", client_bin(Client), ".backlog_full"],
+                    ?STATS_INCR(Key2),
                     {error, backlog_full}
             end;
         {error, Reson} ->
@@ -116,6 +118,27 @@ cleanup_foil(Name, #pool_options {pool_size = PoolSize}) ->
     foil:delete(?MODULE, Name),
     [foil:delete(?MODULE, {Name, N}) || N <- lists:seq(1, PoolSize)],
     foil:load(?MODULE).
+
+client_bin(acr_historical_client) ->
+    <<"acr_historical_client">>;
+client_bin(acr_instant_client) ->
+    <<"acr_instant_client">>;
+client_bin(anchor_client) ->
+    <<"anchor_client">>;
+client_bin(buoy_client) ->
+    <<"buoy_client">>;
+client_bin(flare_client) ->
+    <<"flare_client">>;
+client_bin(identifyd_client) ->
+    <<"identifyd_client">>;
+client_bin(iplists_client) ->
+    <<"iplists_client">>;
+client_bin(marina_client) ->
+    <<"marina_client">>;
+client_bin(pacingderl_client) ->
+    <<"pacingderl_client">>;
+client_bin(Atom) ->
+    atom_to_binary(Atom, latin1).
 
 options(Name) ->
     try shackle_pool_foil:lookup(Name) of

@@ -1,10 +1,14 @@
 {"1.1.0",
 [{<<"foil">>,{pkg,<<"foil">>,<<"0.1.1">>},0},
  {<<"granderl">>,{pkg,<<"granderl">>,<<"0.1.5">>},0},
- {<<"metal">>,{pkg,<<"metal">>,<<"0.1.1">>},0}]}.
+ {<<"metal">>,{pkg,<<"metal">>,<<"0.1.1">>},0},
+ {<<"parse_trans">>,{pkg,<<"parse_trans">>,<<"3.0.0">>},1},
+ {<<"statsderl">>,{pkg,<<"statsderl">>,<<"0.5.2">>},0}]}.
 [
 {pkg_hash,[
  {<<"foil">>, <<"4D07B62C114636BBC3EEBD5CEE04B23A7AAB1262B0F68AA79005A6FBC3790472">>},
  {<<"granderl">>, <<"F20077A68BD80B8D8783BD15A052813C6483771DEC1A5B837D307CBE92F14122">>},
- {<<"metal">>, <<"5D3D1322DA7BCD34B94FED5486F577973685298883954F7A3E517EF5EF6953F5">>}]}
+ {<<"metal">>, <<"5D3D1322DA7BCD34B94FED5486F577973685298883954F7A3E517EF5EF6953F5">>},
+ {<<"parse_trans">>, <<"9E96B1C9C3A0DF54E7B76F8F685D38BFA1EB21B31E042B1D1A5A70258E4DB1E3">>},
+ {<<"statsderl">>, <<"9FBE68445DA83A86E2509D007823E94CB8A71561F0428058BD5ABE9B62386A32">>}]}
 ].
