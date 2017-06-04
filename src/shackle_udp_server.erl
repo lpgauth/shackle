@@ -80,6 +80,7 @@ handle_msg(#cast {
     } = Cast, {#state {
         client = Client,
         header = Header,
+        name = Name,
         pool_name = PoolName,
         socket = Socket
     } = State, ClientState}) ->
@@ -96,6 +97,7 @@ handle_msg(#cast {
         {error, Reason} ->
             shackle_utils:warning_msg(PoolName, "send error: ~p", [Reason]),
             gen_udp:close(Socket),
+            shackle_utils:reply(Name, {error, socket_closed}, Cast),
             close(State, ClientState2)
     end;
 handle_msg({inet_reply, _Socket, ok}, {State, ClientState}) ->
