@@ -75,6 +75,7 @@ handle_msg(#cast {
         timeout = Timeout
     } = Cast, {#state {
         client = Client,
+        name = Name,
         pool_name = PoolName,
         socket = Socket
     } = State, ClientState}) ->
@@ -91,6 +92,7 @@ handle_msg(#cast {
         {error, Reason} ->
             shackle_utils:warning_msg(PoolName, "send error: ~p", [Reason]),
             gen_tcp:close(Socket),
+            shackle_utils:reply(Name, {error, socket_closed}, Cast),
             close(State, ClientState2)
     end;
 handle_msg({tcp, _Socket, Data}, {#state {
