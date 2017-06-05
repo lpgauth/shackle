@@ -9,11 +9,13 @@
     check/2,
     check/3,
     decrement/1,
+    decrement/2,
     delete/1,
     init/0,
     new/1
 ]).
 
+-define(DEFAULT_DECREMENT, -1).
 -define(DEFAULT_INCREMENT, 1).
 
 %% internal
@@ -40,7 +42,13 @@ check(ServerName, BacklogSize, Increment) ->
     non_neg_integer().
 
 decrement(ServerName) ->
-    ets:update_counter(?ETS_TABLE_BACKLOG, ServerName, {2, -1, 0, 0}).
+    decrement(ServerName, ?DEFAULT_DECREMENT).
+
+-spec decrement(server_name(), neg_integer()) ->
+    non_neg_integer().
+
+decrement(ServerName, Decrement) ->
+    ets:update_counter(?ETS_TABLE_BACKLOG, ServerName, {2, Decrement, 0, 0}).
 
 -spec delete(server_name()) ->
     ok.
