@@ -88,29 +88,44 @@ server(Name) ->
 
 %% private
 choose_server(Name,
+              Opts = #pool_options {
+                  pool_size = 1,
+                  pool_strategy = two_choice
+                }) ->
+    choose_server(Name, Opts#pool_options{pool_strategy = random});
+choose_server(Name,
+              Opts = #pool_options {
+                 backlog_size = infinity,
+                 pool_strategy = two_choice
+                }) ->
+    choose_server(Name, Opts#pool_options{pool_strategy = random});
+choose_server(Name,
               #pool_options {
                  backlog_size = BacklogSize,
                  client = Client,
                  pool_size = PoolSize,
                  pool_strategy = two_choice
                 }) ->
-    {IndexA, IndexB} =
-        {server_index(Name, PoolSize, random),
-         server_index(Name, PoolSize, random)},
+    Rand = shackle_utils:random(PoolSize * (PoolSize - 1)) - 1,
+    {A, B} = {(Rand rem PoolSize) + 1, (Rand div PoolSize) + 1},
+    {IndexA, IndexB} = case A =< B of
+                           true -> {A, B + 1};
+                           _ -> {A, B}
+                       end,
     {ServerA, ServerB} =
         {shackle_pool_utils:server_name(Name, IndexA),
          shackle_pool_utils:server_name(Name, IndexB)},
     Backlogs =
-        {shackle_backlog:check(ServerA, BacklogSize),
-         shackle_backlog:check(ServerB, BacklogSize)},
+        {shackle_backlog:increment(ServerA, BacklogSize),
+         shackle_backlog:increment(ServerB, BacklogSize)},
 
     case Backlogs of
-        {false, false} ->
+        {[BacklogSize, BacklogSize], [BacklogSize, BacklogSize]} ->
             {error, backlog_full};
-        {A, B} when B =:= false orelse A =< B ->
+        {[_, ValA], [_, ValB]} when ValA =< ValB ->
             shackle_backlog:decrement(ServerB),
             {ok, Client, ServerA};
-        {_, _} ->
+        _ ->
             shackle_backlog:decrement(ServerA),
             {ok, Client, ServerB}
     end;
@@ -167,9 +182,9 @@ options_rec(Client, Options) ->
         pool_strategy = PoolStrategy
     }.
 
+server_index(Name, 1, random) ->
+    1;
 server_index(_Name, PoolSize, random) ->
-    shackle_utils:random(PoolSize);
-server_index(_Name, PoolSize, two_choice) ->
     shackle_utils:random(PoolSize);
 server_index(Name, PoolSize, round_robin) ->
     UpdateOps = [{2, 1, PoolSize, 1}],
