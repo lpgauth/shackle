@@ -72,6 +72,7 @@ handle_msg(#cast {} = Cast, {#state {
     {ok, {State, ClientState}};
 handle_msg(#cast {
         request = Request,
+        pid     = Pid,
         timeout = Timeout
     } = Cast, {#state {
         client = Client,
@@ -85,9 +86,14 @@ handle_msg(#cast {
 
     case gen_tcp:send(Socket, Data) of
         ok ->
-            Msg = {timeout, ExtRequestId},
-            TimerRef = erlang:send_after(Timeout, self(), Msg),
-            shackle_queue:add(ExtRequestId, Cast, TimerRef),
+            case Pid of
+                undefined ->
+                    ok;
+                _ ->
+                    Msg = {timeout, ExtRequestId},
+                    TimerRef = erlang:send_after(Timeout, self(), Msg),
+                    shackle_queue:add(ExtRequestId, Cast, TimerRef)
+            end,
             {ok, {State, ClientState2}};
         {error, Reason} ->
             shackle_utils:warning_msg(PoolName, "send error: ~p", [Reason]),
