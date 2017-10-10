@@ -2,8 +2,7 @@
 -include("shackle_internal.hrl").
 
 -ignore_xref([
-    {shackle_pool_utils, options, 1},
-    {shackle_pool_utils, server_name, 2}
+    {shackle_pool_foil, lookup, 1}
 ]).
 
 %% public
@@ -63,17 +62,13 @@ stop(Name) ->
     ok.
 
 init() ->
-    ets:new(?ETS_TABLE_POOL, [
-        named_table,
-        public,
-        {read_concurrency, true}
-    ]),
     ets:new(?ETS_TABLE_POOL_INDEX, [
         named_table,
         public,
         {write_concurrency, true}
     ]),
-    compile_pool_utils().
+    foil:new(?MODULE),
+    foil:load(?MODULE).
 
 -spec server(pool_name()) ->
     {ok, client(), pid()} | {error, atom()}.
@@ -88,7 +83,7 @@ server(Name) ->
             }} ->
 
             ServerIndex = server_index(Name, PoolSize, PoolStrategy),
-            Server = shackle_pool_utils:server_name(Name, ServerIndex),
+            {ok, Server} = shackle_pool_foil:lookup({Name, ServerIndex}),
             case shackle_backlog:check(Server, BacklogSize) of
                 true ->
                     {ok, Client, Server};
@@ -102,25 +97,25 @@ server(Name) ->
 %% private
 cleanup(Name, OptionsRec) ->
     cleanup_ets(Name, OptionsRec),
-    compile_pool_utils().
+    cleanup_foil(Name, OptionsRec).
 
 cleanup_ets(Name, #pool_options {pool_strategy = round_robin}) ->
-    ets:delete(?ETS_TABLE_POOL, Name),
     ets:delete(?ETS_TABLE_POOL_INDEX, {Name, round_robin});
-cleanup_ets(Name, _) ->
-    ets:delete(?ETS_TABLE_POOL, Name).
+cleanup_ets(_Name, _OptionsRec) ->
+    ok.
 
-compile_pool_utils() ->
-    shackle_compiler:pool_utils(ets:tab2list(?ETS_TABLE_POOL)).
+cleanup_foil(Name, #pool_options {pool_size = PoolSize}) ->
+    foil:delete(?MODULE, Name),
+    [foil:delete(?MODULE, {Name, N}) || N <- lists:seq(1, PoolSize)],
+    foil:load(?MODULE).
 
 options(Name) ->
-    try shackle_pool_utils:options(Name) of
-        undefined ->
+    case shackle_pool_foil:lookup(Name) of
+        {ok, Options} ->
+            {ok, Options};
+        {error, key_not_found} ->
             {error, pool_not_started};
-        Options ->
-            {ok, Options}
-    catch
-        _:_ ->
+        {error, module_not_found} ->
             {error, shackle_not_started}
     end.
 
@@ -146,20 +141,24 @@ server_index(Name, PoolSize, round_robin) ->
 
 setup(Name, OptionsRec) ->
     setup_ets(Name, OptionsRec),
-    compile_pool_utils().
+    setup_foil(Name, OptionsRec).
 
-setup_ets(Name, #pool_options {
-        pool_strategy = round_robin
-    } = OptionsRec) ->
-
-    ets:insert_new(?ETS_TABLE_POOL, {Name, OptionsRec}),
+setup_ets(Name, #pool_options {pool_strategy = round_robin}) ->
     ets:insert_new(?ETS_TABLE_POOL_INDEX, {{Name, round_robin}, 1});
-setup_ets(Name, OptionsRec) ->
-    ets:insert_new(?ETS_TABLE_POOL, {Name, OptionsRec}).
+setup_ets(_Name, _OptionsRec) ->
+    ok.
+
+setup_foil(Name, #pool_options {pool_size = PoolSize} = OptionsRec) ->
+    foil:insert(?MODULE, Name, OptionsRec),
+    [foil:insert(?MODULE, {Name, N}, server_name(Name, N)) ||
+        N <- lists:seq(1, PoolSize)],
+    foil:load(?MODULE).
+
+server_name(Name, Index) ->
+    list_to_atom(atom_to_list(Name) ++ "_" ++ integer_to_list(Index)).
 
 server_names(Name, PoolSize) ->
-    [shackle_pool_utils:server_name(Name, N) ||
-        N <- lists:seq(1, PoolSize)].
+    [server_name(Name, N) || N <- lists:seq(1, PoolSize)].
 
 server_mod(shackle_ssl) ->
     shackle_ssl_server;
