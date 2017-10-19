@@ -80,20 +80,28 @@ handle_msg(#cast {
         socket = Socket
     } = State, ClientState}) ->
 
-    {ok, ExtRequestId, Data, ClientState2} =
-        Client:handle_request(Request, ClientState),
-
-    case gen_tcp:send(Socket, Data) of
-        ok ->
-            Msg = {timeout, ExtRequestId},
-            TimerRef = erlang:send_after(Timeout, self(), Msg),
-            shackle_queue:add(ExtRequestId, Cast, TimerRef),
-            {ok, {State, ClientState2}};
-        {error, Reason} ->
-            shackle_utils:warning_msg(PoolName, "send error: ~p", [Reason]),
-            gen_tcp:close(Socket),
-            shackle_utils:reply(Name, {error, socket_closed}, Cast),
-            close(State, ClientState2)
+    try Client:handle_request(Request, ClientState) of
+        {ok, ExtRequestId, Data, ClientState2} ->
+            case gen_tcp:send(Socket, Data) of
+                ok ->
+                    Msg = {timeout, ExtRequestId},
+                    TimerRef = erlang:send_after(Timeout, self(), Msg),
+                    shackle_queue:add(ExtRequestId, Cast, TimerRef),
+                    {ok, {State, ClientState2}};
+                {error, Reason} ->
+                    shackle_utils:warning_msg(PoolName, "send error: ~p",
+                        [Reason]),
+                    gen_tcp:close(Socket),
+                    shackle_utils:reply(Name, {error, socket_closed}, Cast),
+                    close(State, ClientState2)
+            end
+    catch
+        Error:Reason2 ->
+            shackle_utils:warning_msg(PoolName,
+                "handle_request error: ~p:~p~n~p",
+                [Error, Reason2, erlang:get_stacktrace()]),
+            shackle_utils:reply(Name, {error, invalid_request}, Cast),
+            {ok, {State, ClientState}}
     end;
 handle_msg({tcp, _Socket, Data}, {#state {
         client = Client,
@@ -205,13 +213,16 @@ connect(PoolName, Ip, Port, SocketOptions) ->
             {error, Reason}
     end.
 
-reconnect(State, undefined) ->
+reconnect(#state {name = Name} = State, undefined) ->
+    ok = shackle_backlog:new(Name),
     reconnect_timer(State, undefined);
 reconnect(#state {
-        client = Client
+        client = Client,
+        name = Name
     } = State, ClientState) ->
 
     ok = Client:terminate(ClientState),
+    ok = shackle_backlog:new(Name),
     reconnect_timer(State, ClientState).
 
 reconnect_timer(#state {
