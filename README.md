@@ -1,13 +1,13 @@
 # shackle
 
-High Performance Erlang Network Client Framework
+High-Performance Erlang Network Client Framework
 
 [![Build Status](https://travis-ci.org/lpgauth/shackle.svg?branch=master)](https://travis-ci.org/lpgauth/shackle)
 [![Coverage Status](https://coveralls.io/repos/github/lpgauth/shackle/badge.svg?branch=master)](https://coveralls.io/github/lpgauth/shackle?branch=master)
 
 #### Requirements
 
-* Erlang 16.0 +
+* Erlang 16.0+
 
 #### Features
 
@@ -15,16 +15,16 @@ High Performance Erlang Network Client Framework
 * Fast pool implementation (random, round_robin)
 * Managed timeouts
 * Multi-protocol support (SSL / TCP / UDP)
-* Performance optimized
+* Performance-optimized
 * Request pipelining
-* Smart reconnect mechanism (exp. backoff)
+* Smart reconnect mechanism (exponential backoff)
 
 #### Framework goals
 
-* reusability
-* speed
-* concurrency
-* safety
+* Reusability
+* Speed
+* Concurrency
+* Safety
 
 ## How-to
 
@@ -170,7 +170,7 @@ shackle_pool:start(pool_name(), client(), client_options(), pool_options())
   </theader>
   <tr>
     <td>backlog_size</td>
-    <td>pos_integer() | infinty</td>
+    <td>pos_integer() | infinity</td>
     <td>1024</td>
     <td>maximum number of concurrent requests per connection</td>
   </tr>
@@ -212,7 +212,7 @@ make xref
 
 ## Performance testing
 
-To run performance testing targets you must first start the server.
+To run performance testing targets you must first start the server:
 
 ```
 ./bin/rebar3 as test shell
@@ -225,7 +225,7 @@ Eshell V7.3.1  (abort with ^G)
 ok
 ```
 
-Then you can run the bench or profile target.
+Then you can run the `bench` or `profile` target:
 
 ```makefile
 make bench
