@@ -102,7 +102,7 @@ handle_msg(#cast {
     end;
 handle_msg({inet_reply, _Socket, ok}, {State, ClientState}) ->
     {ok, {State, ClientState}};
-handle_msg({udp, _Socket, _Ip, _InPortNo, Data}, {#state {
+handle_msg({udp, Socket, _Ip, _InPortNo, Data}, {#state {
         client = Client,
         name = Name,
         pool_name = PoolName,
@@ -130,8 +130,9 @@ handle_msg({timeout, ExtRequestId}, {#state {
             ok
     end,
     {ok, {State, ClientState}};
-handle_msg({inet_reply, _Socket, {error, Reason}}, {#state {
-        pool_name = PoolName
+handle_msg({inet_reply, Socket, {error, Reason}}, {#state {
+        pool_name = PoolName,
+        socket = Socket
     } = State, ClientState}) ->
 
     shackle_utils:warning_msg(PoolName, "send error: ~p", [Reason]),
@@ -163,7 +164,13 @@ handle_msg(?MSG_CONNECT, {#state {
             end;
         {error, _Reason} ->
             reconnect(State, ClientState)
-    end.
+    end;
+handle_msg(Msg, {#state {
+        pool_name = PoolName
+    } = State, ClientState}) ->
+
+    shackle_utils:warning_msg(PoolName, "unknown msg: ~p", [Msg]),
+    {ok, {State, ClientState}}.
 
 -spec terminate(term(), term()) ->
     ok.
