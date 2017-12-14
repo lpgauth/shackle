@@ -95,7 +95,7 @@ handle_msg(#cast {
             shackle_utils:reply(Name, {error, socket_closed}, Cast),
             close(State, ClientState2)
     end;
-handle_msg({ssl, _Socket, Data}, {#state {
+handle_msg({ssl, Socket, Data}, {#state {
         client = Client,
         name = Name,
         pool_name = PoolName,
@@ -164,7 +164,13 @@ handle_msg(?MSG_CONNECT, {#state {
             end;
         {error, _Reason} ->
             reconnect(State, ClientState)
-    end.
+    end;
+handle_msg(Msg, {#state {
+        pool_name = PoolName
+    } = State, ClientState}) ->
+
+    shackle_utils:warning_msg(PoolName, "unknown msg: ~p", [Msg]),
+    {ok, {State, ClientState}}.
 
 -spec terminate(term(), term()) ->
     ok.
