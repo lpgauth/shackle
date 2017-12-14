@@ -45,9 +45,9 @@ High-Performance Erlang Network Client Framework
     request_counter = 0 :: non_neg_integer()
 }).
 
--spec init() -> {ok, State :: term()}.
+-spec init(Options :: term()) -> {ok, State :: term()}.
 
-init() ->
+init(_) ->
      {ok, #state {}}.
 
 -spec setup(Socket :: inet:socket(), State :: term()) ->
@@ -156,6 +156,12 @@ shackle_pool:start(pool_name(), client(), client_options(), pool_options())
     <td>[gen_tcp:connect_option() | gen_udp:option()]</td>
     <td>[]</td>
     <td>options passed to the socket</td>
+  </tr>
+  <tr>
+    <td>init_options</td>
+    <td>term()</td>
+    <td>undefined</td>
+    <td>options passed to client module when init is called</td>
   </tr>
 </table>
 

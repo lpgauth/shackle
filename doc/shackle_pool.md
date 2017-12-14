@@ -32,6 +32,16 @@ client() = module()
 
 
 
+### <a name="type-client_init_options">client_init_options()</a> ###
+
+
+<pre><code>
+client_init_options() = term()
+</code></pre>
+
+
+
+
 ### <a name="type-client_option">client_option()</a> ###
 
 

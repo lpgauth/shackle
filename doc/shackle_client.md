@@ -3,7 +3,7 @@
 # Module shackle_client #
 * [Data Types](#types)
 
-__This module defines the `shackle_client` behaviour.__<br /> Required callback functions: `init/0`, `setup/2`, `handle_request/2`, `handle_data/2`, `terminate/1`.
+__This module defines the `shackle_client` behaviour.__<br /> Required callback functions: `init/1`, `setup/2`, `handle_request/2`, `handle_data/2`, `terminate/1`.
 
 <a name="types"></a>
 
@@ -17,6 +17,16 @@ __This module defines the `shackle_client` behaviour.__<br /> Required callback 
 
 <pre><code>
 backlog_size() = pos_integer() | infinity
+</code></pre>
+
+
+
+
+### <a name="type-client_init_options">client_init_options()</a> ###
+
+
+<pre><code>
+client_init_options() = term()
 </code></pre>
 
 

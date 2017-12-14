@@ -11,7 +11,7 @@
 
 -behavior(shackle_client).
 -export([
-    init/0,
+    init/1,
     setup/2,
     handle_request/2,
     handle_data/2,
@@ -67,7 +67,7 @@ stop() ->
     shackle_pool:stop(?POOL_NAME).
 
 %% shackle_server callbacks
-init() ->
+init(_) ->
     {ok, #state {}}.
 
 setup(Socket, State) ->

@@ -42,6 +42,16 @@ client() = module()
 
 
 
+### <a name="type-client_init_options">client_init_options()</a> ###
+
+
+<pre><code>
+client_init_options() = term()
+</code></pre>
+
+
+
+
 ### <a name="type-client_option">client_option()</a> ###
 
 
@@ -194,7 +204,7 @@ time() = pos_integer()
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#cancel_timer-1">cancel_timer/1</a></td><td></td></tr><tr><td valign="top"><a href="#client_setup-3">client_setup/3</a></td><td></td></tr><tr><td valign="top"><a href="#lookup-3">lookup/3</a></td><td></td></tr><tr><td valign="top"><a href="#process_responses-2">process_responses/2</a></td><td></td></tr><tr><td valign="top"><a href="#random-1">random/1</a></td><td></td></tr><tr><td valign="top"><a href="#random_element-1">random_element/1</a></td><td></td></tr><tr><td valign="top"><a href="#reconnect_state-1">reconnect_state/1</a></td><td></td></tr><tr><td valign="top"><a href="#reconnect_state_reset-1">reconnect_state_reset/1</a></td><td></td></tr><tr><td valign="top"><a href="#reply-3">reply/3</a></td><td></td></tr><tr><td valign="top"><a href="#reply_all-2">reply_all/2</a></td><td></td></tr><tr><td valign="top"><a href="#warning_msg-3">warning_msg/3</a></td><td></td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#cancel_timer-1">cancel_timer/1</a></td><td></td></tr><tr><td valign="top"><a href="#client_setup-4">client_setup/4</a></td><td></td></tr><tr><td valign="top"><a href="#lookup-3">lookup/3</a></td><td></td></tr><tr><td valign="top"><a href="#process_responses-2">process_responses/2</a></td><td></td></tr><tr><td valign="top"><a href="#random-1">random/1</a></td><td></td></tr><tr><td valign="top"><a href="#random_element-1">random_element/1</a></td><td></td></tr><tr><td valign="top"><a href="#reconnect_state-1">reconnect_state/1</a></td><td></td></tr><tr><td valign="top"><a href="#reconnect_state_reset-1">reconnect_state_reset/1</a></td><td></td></tr><tr><td valign="top"><a href="#reply-3">reply/3</a></td><td></td></tr><tr><td valign="top"><a href="#reply_all-2">reply_all/2</a></td><td></td></tr><tr><td valign="top"><a href="#warning_msg-3">warning_msg/3</a></td><td></td></tr></table>
 
 
 <a name="functions"></a>
@@ -210,12 +220,12 @@ cancel_timer(TimerRef::undefined | reference()) -&gt; ok
 </code></pre>
 <br />
 
-<a name="client_setup-3"></a>
+<a name="client_setup-4"></a>
 
-### client_setup/3 ###
+### client_setup/4 ###
 
 <pre><code>
-client_setup(Client::<a href="#type-client">client()</a>, PoolName::<a href="#type-pool_name">pool_name()</a>, Socket::<a href="inet.md#type-socket">inet:socket()</a>) -&gt; {ok, <a href="#type-client_state">client_state()</a>} | {error, term(), <a href="#type-client_state">client_state()</a>}
+client_setup(Client::<a href="#type-client">client()</a>, PoolName::<a href="#type-pool_name">pool_name()</a>, Socket::<a href="inet.md#type-socket">inet:socket()</a>, ClientInitOptions::<a href="#type-client_init_options">client_init_options()</a>) -&gt; {ok, <a href="#type-client_state">client_state()</a>} | {error, term(), <a href="#type-client_state">client_state()</a>}
 </code></pre>
 <br />
 
