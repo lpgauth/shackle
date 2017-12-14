@@ -233,7 +233,7 @@ lookup(Key::atom(), List::[{atom(), term()}], Default::term()) -&gt; term()
 ### process_responses/2 ###
 
 <pre><code>
-process_responses(Responses::[<a href="#type-response">response()</a>], Name::<a href="#type-server_name">server_name()</a>) -&gt; ok
+process_responses(T::[<a href="#type-response">response()</a>], Name::<a href="#type-server_name">server_name()</a>) -&gt; ok
 </code></pre>
 <br />
 
