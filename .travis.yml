@@ -15,6 +15,7 @@ language: erlang
 notifications:
   email: false
 otp_release:
+  - 20.1
   - 19.1
   - 18.3
 script: "make travis"

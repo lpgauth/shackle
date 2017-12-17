@@ -3,6 +3,8 @@ Config = case erlang:function_exported(rebar3, main, 1) of
         CONFIG;
     false ->
         [{deps, [
+            {foil, ".*",
+                {git, "https://github.com/lpgauth/foil.git", {tag, "0.1.0"}}},
             {granderl, ".*",
                 {git, "https://github.com/tokenrove/granderl.git", {tag, "v0.1.5"}}},
             {metal, ".*",
