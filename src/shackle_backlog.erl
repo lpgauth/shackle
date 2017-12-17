@@ -11,6 +11,8 @@
     decrement/1,
     decrement/2,
     delete/1,
+    increment/2,
+    increment/3,
     init/0,
     new/1
 ]).
@@ -57,6 +59,19 @@ delete(ServerName) ->
     ets:delete(?ETS_TABLE_BACKLOG, ServerName),
     ok.
 
+-spec increment(server_name(), backlog_size()) ->
+    list(pos_integer()).
+
+increment(ServerName, BacklogSize) ->
+    increment(ServerName, BacklogSize, ?DEFAULT_INCREMENT).
+
+-spec increment(server_name(), backlog_size(), pos_integer()) ->
+    list(pos_integer()).
+
+increment(ServerName, BacklogSize, Increment) ->
+    UpdateOps = [{2, 0}, {2, Increment, BacklogSize, BacklogSize}],
+    ets:update_counter(?ETS_TABLE_BACKLOG, ServerName, UpdateOps).
+
 -spec init() ->
     ok.
 
@@ -74,8 +89,3 @@ init() ->
 new(ServerName) ->
     ets:insert(?ETS_TABLE_BACKLOG, {ServerName, 0}),
     ok.
-
-%% private
-increment(ServerName, BacklogSize, Increment) ->
-    UpdateOps = [{2, 0}, {2, Increment, BacklogSize, BacklogSize}],
-    ets:update_counter(?ETS_TABLE_BACKLOG, ServerName, UpdateOps).

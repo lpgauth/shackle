@@ -130,6 +130,28 @@ shackle_round_robin_udp_test_() ->
         fun multiply_udp_subtest/0
     ]}}.
 
+shackle_two_choice_tcp_test_() ->
+    {setup,
+        fun () -> setup_tcp([
+            {pool_strategy, two_choice}
+        ]) end,
+        fun (_) -> cleanup_tcp() end,
+    {inparallel, [
+        fun add_tcp_subtest/0,
+        fun multiply_tcp_subtest/0
+    ]}}.
+
+shackle_two_choice_udp_test_() ->
+    {setup,
+        fun () -> setup_udp([
+            {pool_strategy, two_choice}
+        ]) end,
+        fun (_) -> cleanup_udp() end,
+    {inparallel, [
+        fun add_udp_subtest/0,
+        fun multiply_udp_subtest/0
+    ]}}.
+
 %% tests
 add_ssl_subtest() ->
     [assert_random_add(?CLIENT_SSL) || _ <- lists:seq(1, ?N)].

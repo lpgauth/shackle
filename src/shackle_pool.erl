@@ -80,26 +80,72 @@ init() ->
 
 server(Name) ->
     case options(Name) of
-        {ok, #pool_options {
-                backlog_size = BacklogSize,
-                client = Client,
-                pool_size = PoolSize,
-                pool_strategy = PoolStrategy
-            }} ->
-
-            ServerIndex = server_index(Name, PoolSize, PoolStrategy),
-            Server = shackle_pool_utils:server_name(Name, ServerIndex),
-            case shackle_backlog:check(Server, BacklogSize) of
-                true ->
-                    {ok, Client, Server};
-                false ->
-                    {error, backlog_full}
-            end;
-        {error, Reson} ->
-            {error, Reson}
+        {ok, Options} ->
+            choose_server(Name, Options);
+        {error, Reason} ->
+            {error, Reason}
     end.
 
 %% private
+choose_server(Name,
+              Opts = #pool_options {
+                  pool_size = 1,
+                  pool_strategy = two_choice
+                }) ->
+    choose_server(Name, Opts#pool_options{pool_strategy = random});
+choose_server(Name,
+              Opts = #pool_options {
+                 backlog_size = infinity,
+                 pool_strategy = two_choice
+                }) ->
+    choose_server(Name, Opts#pool_options{pool_strategy = random});
+choose_server(Name,
+              #pool_options {
+                 backlog_size = BacklogSize,
+                 client = Client,
+                 pool_size = PoolSize,
+                 pool_strategy = two_choice
+                }) ->
+    Rand = shackle_utils:random(PoolSize * (PoolSize - 1)) - 1,
+    {A, B} = {(Rand rem PoolSize) + 1, (Rand div PoolSize) + 1},
+    {IndexA, IndexB} = case A =< B of
+                           true -> {A, B + 1};
+                           _ -> {A, B}
+                       end,
+    {ServerA, ServerB} =
+        {shackle_pool_utils:server_name(Name, IndexA),
+         shackle_pool_utils:server_name(Name, IndexB)},
+    Backlogs =
+        {shackle_backlog:increment(ServerA, BacklogSize),
+         shackle_backlog:increment(ServerB, BacklogSize)},
+
+    case Backlogs of
+        {[BacklogSize, BacklogSize], [BacklogSize, BacklogSize]} ->
+            {error, backlog_full};
+        {[_, ValA], [_, ValB]} when ValA =< ValB ->
+            shackle_backlog:decrement(ServerB),
+            {ok, Client, ServerA};
+        _ ->
+            shackle_backlog:decrement(ServerA),
+            {ok, Client, ServerB}
+    end;
+
+choose_server(Name,
+              #pool_options {
+                 backlog_size = BacklogSize,
+                 client = Client,
+                 pool_size = PoolSize,
+                 pool_strategy = PoolStrategy
+                }) ->
+    ServerIndex = server_index(Name, PoolSize, PoolStrategy),
+    Server = shackle_pool_utils:server_name(Name, ServerIndex),
+    case shackle_backlog:check(Server, BacklogSize) of
+        false ->
+            {error, backlog_full};
+        _ ->
+            {ok, Client, Server}
+    end.
+
 cleanup(Name, OptionsRec) ->
     cleanup_ets(Name, OptionsRec),
     compile_pool_utils().
@@ -136,6 +182,8 @@ options_rec(Client, Options) ->
         pool_strategy = PoolStrategy
     }.
 
+server_index(Name, 1, random) ->
+    1;
 server_index(_Name, PoolSize, random) ->
     shackle_utils:random(PoolSize);
 server_index(Name, PoolSize, round_robin) ->
