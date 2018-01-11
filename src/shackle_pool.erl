@@ -1,10 +1,6 @@
 -module(shackle_pool).
 -include("shackle_internal.hrl").
 
--ignore_xref([
-    {shackle_pool_foil, lookup, 1}
-]).
-
 %% public
 -export([
     start/3,
@@ -83,7 +79,7 @@ server(Name) ->
             }} ->
 
             ServerIndex = server_index(Name, PoolSize, PoolStrategy),
-            {ok, Server} = shackle_pool_foil:lookup({Name, ServerIndex}),
+            {ok, Server} = foil:lookup(?MODULE, {Name, ServerIndex}),
             case shackle_backlog:check(Server, BacklogSize) of
                 true ->
                     {ok, Client, Server};
@@ -110,7 +106,7 @@ cleanup_foil(Name, #pool_options {pool_size = PoolSize}) ->
     foil:load(?MODULE).
 
 options(Name) ->
-    case shackle_pool_foil:lookup(Name) of
+    case foil:lookup(?MODULE, Name) of
         {ok, Options} ->
             {ok, Options};
         {error, key_not_found} ->
