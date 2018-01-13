@@ -109,6 +109,8 @@ options(Name) ->
     case foil:lookup(?MODULE, Name) of
         {ok, Options} ->
             {ok, Options};
+        {error, foil_not_started} ->
+            {error, shackle_not_started};
         {error, key_not_found} ->
             {error, pool_not_started};
         {error, module_not_found} ->
