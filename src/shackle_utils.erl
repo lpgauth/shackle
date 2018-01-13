@@ -71,6 +71,7 @@ process_responses([{ExtRequestId, Reply} | T], Name) ->
 -spec random(pos_integer()) ->
     non_neg_integer().
 
+random(1) -> 1;
 random(N) ->
     granderl:uniform(N).
 
