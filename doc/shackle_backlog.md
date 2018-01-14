@@ -92,6 +92,16 @@ protocol() = shackle_ssl | shackle_tcp | shackle_udp
 
 
 
+### <a name="type-request_id">request_id()</a> ###
+
+
+<pre><code>
+request_id() = {<a href="#type-server_name">server_name()</a>, reference()}
+</code></pre>
+
+
+
+
 ### <a name="type-server_name">server_name()</a> ###
 
 

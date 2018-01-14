@@ -102,6 +102,26 @@ reconnect_state() = #reconnect_state{current = undefined | <a href="#type-time">
 
 
 
+### <a name="type-request_id">request_id()</a> ###
+
+
+<pre><code>
+request_id() = {<a href="#type-server_name">server_name()</a>, reference()}
+</code></pre>
+
+
+
+
+### <a name="type-server_name">server_name()</a> ###
+
+
+<pre><code>
+server_name() = atom()
+</code></pre>
+
+
+
+
 ### <a name="type-time">time()</a> ###
 
 
