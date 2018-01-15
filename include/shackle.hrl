@@ -54,5 +54,6 @@
 
 -export_type([
     client_options/0,
-    pool_options/0
+    pool_options/0,
+    request_id/0
 ]).
