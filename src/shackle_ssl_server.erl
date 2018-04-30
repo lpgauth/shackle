@@ -19,7 +19,7 @@
     pool_name        :: pool_name(),
     port             :: inet:port_number(),
     reconnect_state  :: undefined | reconnect_state(),
-    socket           :: undefined | inet:socket(),
+    socket           :: undefined | ssl:sslsocket(),
     socket_options   :: [ssl:connect_option()],
     timer_ref        :: undefined | reference()
 }).
