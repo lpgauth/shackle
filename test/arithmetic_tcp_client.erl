@@ -4,6 +4,7 @@
 -export([
     add/2,
     multiply/2,
+    crash/0,
     start/0,
     start/1,
     stop/0
@@ -37,6 +38,9 @@ add(A, B) ->
 
 multiply(A, B) ->
     shackle:call(?POOL_NAME, {multiply, A, B}, ?TIMEOUT).
+
+crash() ->
+    shackle:call(?POOL_NAME, crash, ?TIMEOUT).
 
 -spec start() ->
     ok | {error, shackle_not_started | pool_already_started}.
@@ -94,6 +98,13 @@ handle_data(Data, #state {
         buffer = Buffer2
     }}.
 
+handle_request(crash, #state {
+        request_counter = RequestCounter
+    } = State) ->
+
+    RequestCounter = this_should_error,
+
+    {ok, 0, <<>>, State#state {}};
 handle_request({Operation, A, B}, #state {
         request_counter = RequestCounter
     } = State) ->
