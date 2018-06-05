@@ -93,6 +93,21 @@ shackle_reconnect_tcp_test_() ->
         fun (_) -> cleanup_tcp() end,
     [fun reconnect_tcp_subtest/0]}.
 
+shackle_app_stop_start_tcp_test_() ->
+    {setup,
+        fun () ->
+            setup(),
+            shackle_pool:start(?POOL_NAME, ?CLIENT_TCP, [
+                {port, ?PORT},
+                {protocol, shackle_tcp},
+                {reconnect, true},
+                {reconnect_time_min, 1},
+                {socket_options, [binary, {packet, raw}]}
+            ], [{pool_size, 1}])
+        end,
+        fun (_) -> cleanup_tcp() end,
+    [fun app_stop_start_tcp_subtest/0]}.
+
 shackle_reconnect_udp_test_() ->
     {setup,
         fun () ->
@@ -182,6 +197,27 @@ reconnect_tcp_subtest() ->
     timer:sleep(100),
     ?assertEqual({error, no_socket}, arithmetic_tcp_client:add(1, 1)),
     ok = arithmetic_tcp_server:start(),
+    timer:sleep(100),
+    ?assertEqual(2, arithmetic_tcp_client:add(1, 1)).
+
+app_stop_start_tcp_subtest() ->
+    ?assertEqual({error, no_socket}, arithmetic_tcp_client:add(1, 1)),
+    ok = arithmetic_tcp_server:start(),
+    timer:sleep(100),
+    ?assertEqual(2, arithmetic_tcp_client:add(1, 1)),
+
+    shackle_app:stop(),
+    timer:sleep(200),
+    shackle_app:start(),
+
+    shackle_pool:start(?POOL_NAME, ?CLIENT_TCP, [
+                {port, ?PORT},
+                {protocol, shackle_tcp},
+                {reconnect, true},
+                {reconnect_time_min, 1},
+                {socket_options, [binary, {packet, raw}]}
+            ], [{pool_size, 1}]),
+
     timer:sleep(100),
     ?assertEqual(2, arithmetic_tcp_client:add(1, 1)).
 

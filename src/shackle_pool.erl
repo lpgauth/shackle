@@ -5,6 +5,7 @@
 -export([
     start/3,
     start/4,
+    stop/0,
     stop/1
 ]).
 
@@ -36,6 +37,9 @@ start(Name, Client, ClientOptions, Options) ->
             start_children(Name, Client, ClientOptions, OptionsRec),
             ok
     end.
+
+stop() ->
+    foil:delete(?MODULE).
 
 -spec stop(pool_name()) ->
     ok | {error, shackle_not_started | pool_not_started}.
