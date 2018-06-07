@@ -25,9 +25,29 @@ call(PoolName, Request) ->
     term() | {error, term()}.
 
 call(PoolName, Request, Timeout) ->
-    case cast(PoolName, Request, self(), Timeout) of
-        {ok, RequestId} ->
-            receive_response(RequestId);
+    Timestamp = os:timestamp(),
+    case shackle_pool:server(PoolName) of
+        {ok, Client, Server} ->
+            Ref = erlang:monitor(process, Server),
+            RequestId = {Server, Ref},
+            Server ! #cast {
+                client = Client,
+                pid = self(),
+                request = Request,
+                request_id = RequestId,
+                timeout = Timeout,
+                timestamp = Timestamp
+            },
+            receive
+                {#cast {request_id = RequestId}, Reply} ->
+                    erlang:demonitor(Ref, [flush]),
+                    Reply;
+                {'DOWN', Ref, _, _, Reason} ->
+                    {error, Reason}
+            after
+                Timeout ->
+                    {error, timeout}
+            end;
         {error, Reason} ->
             {error, Reason}
     end.
