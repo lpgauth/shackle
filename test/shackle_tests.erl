@@ -211,12 +211,12 @@ app_stop_start_tcp_subtest() ->
     shackle_app:start(),
 
     shackle_pool:start(?POOL_NAME, ?CLIENT_TCP, [
-                {port, ?PORT},
-                {protocol, shackle_tcp},
-                {reconnect, true},
-                {reconnect_time_min, 1},
-                {socket_options, [binary, {packet, raw}]}
-            ], [{pool_size, 1}]),
+        {port, ?PORT},
+        {protocol, shackle_tcp},
+        {reconnect, true},
+        {reconnect_time_min, 1},
+        {socket_options, [binary, {packet, raw}]}
+    ], [{pool_size, 1}]),
 
     timer:sleep(100),
     ?assertEqual(2, arithmetic_tcp_client:add(1, 1)).
