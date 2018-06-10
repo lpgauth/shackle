@@ -11,7 +11,8 @@
 %% internal
 -export([
     init/0,
-    server/1
+    server/1,
+    terminate/0
 ]).
 
 %% public
@@ -89,6 +90,12 @@ server(Name) ->
         {error, Reson} ->
             {error, Reson}
     end.
+
+-spec terminate() ->
+    ok.
+
+terminate() ->
+    foil:delete(?MODULE).
 
 %% private
 cleanup(Name, OptionsRec) ->
