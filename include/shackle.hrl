@@ -50,6 +50,8 @@
 -type request_id() :: {server_name(), reference()}.
 -type response() :: {external_request_id(), term()}.
 -type server_name() :: atom().
+-type socket() :: inet:socket() | ssl:sslsocket().
+-type socket_type() :: inet | ssl.
 -type time() :: pos_integer().
 
 -export_type([
