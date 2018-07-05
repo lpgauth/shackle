@@ -7,7 +7,7 @@
 %% public
 -export([
     cancel_timer/1,
-    client/4,
+    client/5,
     process_responses/2,
     reconnect_state/1,
     reconnect_state_reset/1,
@@ -24,11 +24,11 @@ cancel_timer(undefined) ->
 cancel_timer(TimerRef) ->
     erlang:cancel_timer(TimerRef).
 
--spec client(client(), pool_name(), socket_type(), socket()) ->
+-spec client(client(), pool_name(), init_options(), socket_type(), socket()) ->
     {ok, client_state()} | {error, term(), client_state()}.
 
-client(Client, PoolName, SocketType, Socket) ->
-    case client_init(Client, PoolName) of
+client(Client, PoolName, InitOptions, SocketType, Socket) ->
+    case client_init(Client, PoolName, InitOptions) of
         {ok, ClientState} ->
             client_setup(Client, PoolName, SocketType, Socket, ClientState);
         {error, Reason} ->
@@ -98,8 +98,8 @@ reply_all(Name, Reply) ->
     reply_all(Name, Reply, shackle_queue:clear(Name)).
 
 %% private
-client_init(Client, PoolName) ->
-    try Client:init() of
+client_init(Client, PoolName, InitOptions) ->
+    try Client:init(InitOptions) of
         {ok, ClientState} ->
             {ok, ClientState};
         {error, Reason} ->

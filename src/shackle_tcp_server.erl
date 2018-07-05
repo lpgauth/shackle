@@ -13,6 +13,7 @@
 
 -record(state, {
     client           :: client(),
+    init_options     :: init_options(),
     ip               :: inet:ip_address() | inet:hostname(),
     name             :: server_name(),
     parent           :: pid(),
@@ -43,6 +44,8 @@ init(Name, Parent, Opts) ->
     self() ! ?MSG_CONNECT,
     ok = shackle_backlog:new(Name),
 
+    InitOptions = ?LOOKUP(init_options, ClientOptions,
+        ?DEFAULT_INIT_OPTS),
     Ip = ?LOOKUP(ip, ClientOptions, ?DEFAULT_IP),
     Port = ?LOOKUP(port, ClientOptions),
     ReconnectState = ?SERVER_UTILS:reconnect_state(ClientOptions),
@@ -51,6 +54,7 @@ init(Name, Parent, Opts) ->
 
     {ok, {#state {
         client = Client,
+        init_options = InitOptions,
         ip = Ip,
         name = Name,
         parent = Parent,
@@ -151,6 +155,7 @@ handle_msg({tcp_error, Socket, Reason}, {#state {
     close(State, ClientState);
 handle_msg(?MSG_CONNECT, {#state {
         client = Client,
+        init_options = Init,
         ip = Ip,
         pool_name = PoolName,
         port = Port,
@@ -160,7 +165,7 @@ handle_msg(?MSG_CONNECT, {#state {
 
     case connect(PoolName, Ip, Port, SocketOptions) of
         {ok, Socket} ->
-            case ?SERVER_UTILS:client(Client, PoolName, inet, Socket) of
+            case ?SERVER_UTILS:client(Client, PoolName, Init, inet, Socket) of
                 {ok, ClientState2} ->
                     ReconnectState2 =
                         ?SERVER_UTILS:reconnect_state_reset(ReconnectState),

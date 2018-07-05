@@ -25,7 +25,8 @@
 -type backlog_size() :: pos_integer() | infinity.
 -type cast() :: #cast {}.
 -type client() :: module().
--type client_option() :: {ip, inet:ip_address() | inet:hostname()} |
+-type client_option() :: {init_options, init_options()} |
+                         {ip, inet:ip_address() | inet:hostname()} |
                          {port, inet:port_number()} |
                          {protocol, protocol()} |
                          {reconnect, boolean()} |
@@ -36,6 +37,7 @@
 -type client_options() :: [client_option()].
 -type client_state() :: term().
 -type external_request_id() :: term().
+-type init_options() :: term().
 -type pool_name() :: atom().
 -type pool_option() :: {backlog_size, backlog_size()} |
                        {pool_size, pool_size()} |
@@ -56,6 +58,7 @@
 
 -export_type([
     client_options/0,
+    init_options/0,
     pool_options/0,
     request_id/0
 ]).
