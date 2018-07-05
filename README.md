@@ -45,10 +45,12 @@ High-Performance Erlang Network Client Framework
     request_counter = 0 :: non_neg_integer()
 }).
 
--spec init() -> {ok, State :: term()}.
+-spec init(Options :: term()) ->
+    {ok, State :: term()} |
+    {error, Reason :: term()}.
 
-init() ->
-     {ok, #state {}}.
+init(_Options) ->
+    {ok, #state {}}.
 
 -spec setup(Socket :: inet:socket(), State :: term()) ->
     {ok, State :: term()} |
