@@ -2,7 +2,8 @@
 -include("shackle_internal.hrl").
 
 -callback init() ->
-    {ok, State :: term()}.
+    {ok, State :: term()} |
+    {error, Reason :: term()}.
 
 -callback setup(Socket :: inet:socket(), State :: term()) ->
     {ok, State :: term()} |

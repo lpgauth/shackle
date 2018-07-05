@@ -5,155 +5,157 @@
 -define(N, 1000).
 
 %% runners
+shackle_app_stop_start_test_() ->
+    {setup,
+        fun () ->
+            setup(),
+            ?CLIENT_TCP:start()
+        end,
+        fun (_) -> cleanup(?CLIENT_TCP) end,
+    [fun app_stop_start_subtest/0]}.
+
 shackle_backlog_test_() ->
     {setup,
         fun () ->
-            setup_tcp([
+            setup(?CLIENT_TCP, [
                 {backlog_size, 1},
                 {pool_size, 1}
             ])
         end,
-        fun (_) -> cleanup_tcp() end,
+        fun (_) -> cleanup(?CLIENT_TCP) end,
     [fun backlog_full_subtest/0]}.
 
 shackle_backlog_infinity_test_() ->
     {setup,
         fun () ->
-            setup_tcp([
+            setup(?CLIENT_TCP, [
                 {backlog_size, infinity},
                 {pool_size, 1}
             ])
         end,
-        fun (_) -> cleanup_tcp() end,
-    [fun add_tcp_subtest/0]}.
+        fun (_) -> cleanup(?CLIENT_TCP) end,
+    [fun () -> add_subtest(?CLIENT_TCP) end]}.
+
+shackle_call_crash_test_() ->
+    {setup,
+        fun () ->
+            setup(?CLIENT_TCP, [
+                {pool_size, 1}
+            ])
+        end,
+        fun (_) -> cleanup(?CLIENT_TCP) end,
+    [fun call_crash_subtest/0]}.
 
 shackle_random_ssl_test_() ->
     {setup,
-        fun () -> setup_ssl([
-            {pool_size, 1},
-            {pool_strategy, random}
+        fun () ->
+            setup(?CLIENT_SSL, [
+                {pool_size, 1},
+                {pool_strategy, random}
         ]) end,
-        fun (_) -> cleanup_ssl() end,
+        fun (_) -> cleanup(?CLIENT_SSL) end,
     {inparallel, [
-        fun add_ssl_subtest/0,
-        fun multiply_ssl_subtest/0
+        fun () -> add_subtest(?CLIENT_SSL) end,
+        fun () -> multiply_subtest(?CLIENT_SSL) end
     ]}}.
 
 shackle_random_tcp_test_() ->
     {setup,
-        fun () -> setup_tcp([
-            {pool_size, 1},
-            {pool_strategy, random}
-        ]) end,
-        fun (_) -> cleanup_tcp() end,
+        fun () ->
+            setup(?CLIENT_TCP, [
+                {pool_size, 1},
+                {pool_strategy, random}
+            ])
+        end,
+        fun (_) -> cleanup(?CLIENT_TCP) end,
     {inparallel, [
-        fun add_tcp_subtest/0,
-        fun multiply_tcp_subtest/0
+        fun () -> add_subtest(?CLIENT_TCP) end,
+        fun () -> multiply_subtest(?CLIENT_TCP) end
     ]}}.
 
 shackle_random_udp_test_() ->
     {setup,
-        fun () -> setup_udp([
-            {pool_size, 1},
-            {pool_strategy, random}
-        ]) end,
-        fun (_) -> cleanup_udp() end,
+        fun () ->
+            setup(?CLIENT_UDP, [
+                {pool_size, 1},
+                {pool_strategy, random}
+            ])
+        end,
+        fun (_) -> cleanup(?CLIENT_UDP) end,
     {inparallel, [
-        fun add_udp_subtest/0,
-        fun multiply_udp_subtest/0
+        fun () -> add_subtest(?CLIENT_UDP) end,
+        fun () -> multiply_subtest(?CLIENT_UDP) end
     ]}}.
 
 shackle_reconnect_ssl_test_() ->
     {setup,
         fun () ->
             setup(),
-            shackle_pool:start(?POOL_NAME, ?CLIENT_SSL, [
-                {port, ?PORT},
-                {protocol, shackle_ssl},
-                {reconnect, true},
-                {reconnect_time_min, 1},
-                {socket_options, [binary, {packet, raw}]}
-            ], [{pool_size, 1}])
+            ?CLIENT_SSL:start()
         end,
-        fun (_) -> cleanup_ssl() end,
-    [fun reconnect_ssl_subtest/0]}.
+        fun (_) -> cleanup(?CLIENT_SSL) end,
+    [fun () -> reconnect_subtest(?CLIENT_SSL) end]}.
 
 shackle_reconnect_tcp_test_() ->
     {setup,
         fun () ->
             setup(),
-            shackle_pool:start(?POOL_NAME, ?CLIENT_TCP, [
-                {port, ?PORT},
-                {protocol, shackle_tcp},
-                {reconnect, true},
-                {reconnect_time_min, 1},
-                {socket_options, [binary, {packet, raw}]}
-            ], [{pool_size, 1}])
+            ?CLIENT_TCP:start()
         end,
-        fun (_) -> cleanup_tcp() end,
-    [fun reconnect_tcp_subtest/0]}.
-
-shackle_app_stop_start_tcp_test_() ->
-    {setup,
-        fun () ->
-            setup(),
-            shackle_pool:start(?POOL_NAME, ?CLIENT_TCP, [
-                {port, ?PORT},
-                {protocol, shackle_tcp},
-                {reconnect, true},
-                {reconnect_time_min, 1},
-                {socket_options, [binary, {packet, raw}]}
-            ], [{pool_size, 1}])
-        end,
-        fun (_) -> cleanup_tcp() end,
-    [fun app_stop_start_tcp_subtest/0]}.
+        fun (_) -> cleanup(?CLIENT_TCP) end,
+    [fun () -> reconnect_subtest(?CLIENT_TCP) end]}.
 
 shackle_reconnect_udp_test_() ->
     {setup,
         fun () ->
             setup(),
-            shackle_pool:start(?POOL_NAME, ?CLIENT_UDP, [
-                {port, ?PORT},
-                {protocol, shackle_udp},
-                {reconnect, true},
-                {reconnect_time_min, 1},
-                {socket_options, [binary]
-            }], [{pool_size, 1}])
+            ?CLIENT_UDP:start()
         end,
-        fun (_) -> cleanup_tcp() end,
-    [fun reconnect_udp_subtest/0]}.
+        fun (_) -> cleanup(?CLIENT_UDP) end,
+    [fun () -> reconnect_subtest(?CLIENT_UDP) end]}.
 
 shackle_round_robin_tcp_test_() ->
     {setup,
-        fun () -> setup_tcp([
-            {pool_strategy, round_robin}
-        ]) end,
-        fun (_) -> cleanup_tcp() end,
+        fun () ->
+            setup(?CLIENT_TCP, [
+                {pool_strategy, round_robin}
+            ]) end,
+        fun (_) -> cleanup(?CLIENT_TCP) end,
     {inparallel, [
-        fun add_tcp_subtest/0,
-        fun multiply_tcp_subtest/0
+        fun () -> add_subtest(?CLIENT_TCP) end,
+        fun () -> multiply_subtest(?CLIENT_TCP) end
     ]}}.
 
 shackle_round_robin_udp_test_() ->
     {setup,
-        fun () -> setup_udp([
-            {pool_strategy, round_robin}
-        ]) end,
-        fun (_) -> cleanup_udp() end,
+        fun () ->
+            setup(?CLIENT_UDP, [
+                {pool_strategy, round_robin}
+            ])
+        end,
+        fun (_) -> cleanup(?CLIENT_UDP) end,
     {inparallel, [
-        fun add_udp_subtest/0,
-        fun multiply_udp_subtest/0
+        fun () -> add_subtest(?CLIENT_UDP) end,
+        fun () -> multiply_subtest(?CLIENT_UDP) end
     ]}}.
 
 %% tests
-add_ssl_subtest() ->
-    [assert_random_add(?CLIENT_SSL) || _ <- lists:seq(1, ?N)].
+add_subtest(Client) ->
+    [assert_random_add(Client) || _ <- lists:seq(1, ?N)].
 
-add_tcp_subtest() ->
-    [assert_random_add(?CLIENT_TCP) || _ <- lists:seq(1, ?N)].
+app_stop_start_subtest() ->
+    ?assertEqual({error, no_socket}, arithmetic_tcp_client:add(1, 1)),
+    ok = arithmetic_tcp_server:start(),
+    timer:sleep(100),
+    ?assertEqual(2, arithmetic_tcp_client:add(1, 1)),
 
-add_udp_subtest() ->
-    [assert_random_add(?CLIENT_UDP) || _ <- lists:seq(1, ?N)].
+    shackle_app:stop(),
+    timer:sleep(100),
+    shackle_app:start(),
+
+    arithmetic_tcp_client:start(),
+    timer:sleep(100),
+    ?assertEqual(2, arithmetic_tcp_client:add(1, 1)).
 
 backlog_full_subtest() ->
     Pid = self(),
@@ -167,71 +169,24 @@ backlog_full_subtest() ->
         (_) -> false
     end, receive_loop(20))).
 
-multiply_ssl_subtest() ->
-    [assert_random_multiply(?CLIENT_SSL) || _ <- lists:seq(1, ?N)].
-
-multiply_tcp_subtest() ->
-    [assert_random_multiply(?CLIENT_TCP) || _ <- lists:seq(1, ?N)].
-
-multiply_udp_subtest() ->
-    [assert_random_multiply(?CLIENT_UDP) || _ <- lists:seq(1, ?N)].
-
-reconnect_ssl_subtest() ->
-    ?assertEqual({error, no_socket}, arithmetic_ssl_client:add(1, 1)),
-    ok = arithmetic_ssl_server:start(),
-    timer:sleep(100),
-    ?assertEqual(2, arithmetic_ssl_client:add(1, 1)),
-    ok = arithmetic_ssl_server:stop(),
-    timer:sleep(100),
-    ?assertEqual({error, no_socket}, arithmetic_ssl_client:add(1, 1)),
-    ok = arithmetic_ssl_server:start(),
-    timer:sleep(100),
-    ?assertEqual(2, arithmetic_ssl_client:add(1, 1)).
-
-reconnect_tcp_subtest() ->
-    ?assertEqual({error, no_socket}, arithmetic_tcp_client:add(1, 1)),
-    ok = arithmetic_tcp_server:start(),
-    timer:sleep(100),
-    ?assertEqual(2, arithmetic_tcp_client:add(1, 1)),
-    ok = arithmetic_tcp_server:stop(),
-    timer:sleep(100),
-    ?assertEqual({error, no_socket}, arithmetic_tcp_client:add(1, 1)),
-    ok = arithmetic_tcp_server:start(),
-    timer:sleep(100),
+call_crash_subtest() ->
+    ?assertEqual({error, client_crash}, arithmetic_tcp_client:add(a, b)),
     ?assertEqual(2, arithmetic_tcp_client:add(1, 1)).
 
-app_stop_start_tcp_subtest() ->
-    ?assertEqual({error, no_socket}, arithmetic_tcp_client:add(1, 1)),
-    ok = arithmetic_tcp_server:start(),
-    timer:sleep(100),
-    ?assertEqual(2, arithmetic_tcp_client:add(1, 1)),
+multiply_subtest(Client) ->
+    [assert_random_multiply(Client) || _ <- lists:seq(1, ?N)].
 
-    shackle_app:stop(),
-    timer:sleep(200),
-    shackle_app:start(),
-
-    shackle_pool:start(?POOL_NAME, ?CLIENT_TCP, [
-        {port, ?PORT},
-        {protocol, shackle_tcp},
-        {reconnect, true},
-        {reconnect_time_min, 1},
-        {socket_options, [binary, {packet, raw}]}
-    ], [{pool_size, 1}]),
-
+reconnect_subtest(Client) ->
+    Server = server(Client),
+    ?assertEqual({error, no_socket}, Client:add(1, 1)),
+    ok = Server:start(),
     timer:sleep(100),
-    ?assertEqual(2, arithmetic_tcp_client:add(1, 1)).
-
-reconnect_udp_subtest() ->
-    ?assertEqual({error, no_socket}, arithmetic_udp_client:add(1, 1)),
-    ok = arithmetic_udp_server:start(),
+    ?assertEqual(2, Client:add(1, 1)),
+    ok = Server:stop(),
+    {error, _} = Client:add(1, 1), % no_socket (ssl, tcp) or timeout (udp)
+    ok = Server:start(),
     timer:sleep(100),
-    ?assertEqual(2, arithmetic_udp_client:add(1, 1)),
-    ok = arithmetic_udp_server:stop(),
-    timer:sleep(100),
-    ?assertEqual({error, timeout}, arithmetic_udp_client:add(1, 1)),
-    ok = arithmetic_udp_server:start(),
-    timer:sleep(100),
-    ?assertEqual(2, arithmetic_udp_client:add(1, 1)).
+    ?assertEqual(2, Client:add(1, 1)).
 
 %% utils
 assert_random_add(Client) ->
@@ -247,19 +202,10 @@ assert_random_multiply(Client) ->
 cleanup() ->
     shackle_app:stop().
 
-cleanup_ssl() ->
-    arithmetic_ssl_client:stop(),
-    arithmetic_ssl_server:stop(),
-    cleanup().
-
-cleanup_tcp() ->
-    arithmetic_tcp_client:stop(),
-    arithmetic_tcp_server:stop(),
-    cleanup().
-
-cleanup_udp() ->
-    arithmetic_udp_client:stop(),
-    arithmetic_udp_server:stop(),
+cleanup(Client) ->
+    Client:stop(),
+    Server = server(Client),
+    Server:stop(),
     cleanup().
 
 rand() ->
@@ -273,44 +219,20 @@ receive_loop(N) ->
             [X | receive_loop(N - 1)]
     end.
 
+server(?CLIENT_SSL) ->
+    arithmetic_ssl_server;
+server(?CLIENT_TCP) ->
+    arithmetic_tcp_server;
+server(?CLIENT_UDP) ->
+    arithmetic_udp_server.
+
 setup() ->
     error_logger:tty(false),
     shackle_app:start().
 
-setup_ssl(Options) ->
+setup(Client, Options) ->
     setup(),
-    arithmetic_ssl_server:start(),
-    shackle_pool:start(?POOL_NAME, ?CLIENT_SSL, [
-        {port, ?PORT},
-        {protocol, shackle_ssl},
-        {reconnect, true},
-        {socket_options, [
-            binary,
-            {packet, raw}
-        ]}
-    ], Options).
-
-setup_tcp(Options) ->
-    setup(),
-    arithmetic_tcp_server:start(),
-    shackle_pool:start(?POOL_NAME, ?CLIENT_TCP, [
-        {port, ?PORT},
-        {protocol, shackle_tcp},
-        {reconnect, true},
-        {socket_options, [
-            binary,
-            {packet, raw}
-        ]}
-    ], Options).
-
-setup_udp(Options) ->
-    setup(),
-    arithmetic_udp_server:start(),
-    shackle_pool:start(?POOL_NAME, ?CLIENT_UDP, [
-        {port, ?PORT},
-        {protocol, shackle_udp},
-        {reconnect, true},
-        {socket_options, [
-            binary
-        ]}
-    ], Options).
+    Server = server(Client),
+    Server:start(),
+    timer:sleep(100),
+    Client:start(Options).

@@ -1,5 +1,6 @@
 -module(arithmetic_udp_client).
 -include("test.hrl").
+-include_lib("shackle/include/shackle.hrl").
 
 -export([
     add/2,
@@ -42,23 +43,24 @@ multiply(A, B) ->
     ok | {error, shackle_not_started | pool_already_started}.
 
 start() ->
-    start(?POOL_SIZE).
+    start([
+        {backlog_size, ?BACKLOG_SIZE},
+        {pool_size, 1}
+    ]).
 
--spec start(pos_integer()) ->
+-spec start(pool_options()) ->
     ok | {error, shackle_not_started | pool_already_started}.
 
-start(PoolSize) ->
+start(PoolOptions) ->
     shackle_pool:start(?POOL_NAME, ?CLIENT_UDP, [
         {port, ?PORT},
         {protocol, shackle_udp},
         {reconnect, true},
+        {reconnect_time_min, 1},
         {socket_options, [
             binary
         ]}
-    ], [
-        {backlog_size, ?BACKLOG_SIZE},
-        {pool_size, PoolSize}
-    ]).
+    ], PoolOptions).
 
 -spec stop() ->
     ok | {error, pool_not_started}.
