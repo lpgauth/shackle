@@ -36,7 +36,7 @@ client() = module()
 
 
 <pre><code>
-client_option() = {ip, <a href="inet.md#type-ip_address">inet:ip_address()</a> | <a href="inet.md#type-hostname">inet:hostname()</a>} | {port, <a href="inet.md#type-port_number">inet:port_number()</a>} | {protocol, <a href="#type-protocol">protocol()</a>} | {reconnect, boolean()} | {reconnect_time_max, <a href="#type-time">time()</a> | infinity} | {reconnect_time_min, <a href="#type-time">time()</a>} | {socket_options, [<a href="gen_tcp.md#type-connect_option">gen_tcp:connect_option()</a> | <a href="gen_udp.md#type-option">gen_udp:option()</a>]}
+client_option() = {init_options, <a href="#type-init_options">init_options()</a>} | {ip, <a href="inet.md#type-ip_address">inet:ip_address()</a> | <a href="inet.md#type-hostname">inet:hostname()</a>} | {port, <a href="inet.md#type-port_number">inet:port_number()</a>} | {protocol, <a href="#type-protocol">protocol()</a>} | {reconnect, boolean()} | {reconnect_time_max, <a href="#type-time">time()</a> | infinity} | {reconnect_time_min, <a href="#type-time">time()</a>} | {socket_options, [<a href="gen_tcp.md#type-connect_option">gen_tcp:connect_option()</a> | <a href="gen_udp.md#type-option">gen_udp:option()</a>]}
 </code></pre>
 
 
@@ -57,6 +57,16 @@ client_options() = [<a href="#type-client_option">client_option()</a>]
 
 <pre><code>
 client_state() = term()
+</code></pre>
+
+
+
+
+### <a name="type-init_options">init_options()</a> ###
+
+
+<pre><code>
+init_options() = term()
 </code></pre>
 
 
@@ -166,7 +176,7 @@ server_name() = atom()
 
 
 <pre><code>
-state() = #state{client = <a href="#type-client">client()</a>, header = undefined | iodata(), ip = <a href="inet.md#type-ip_address">inet:ip_address()</a> | <a href="inet.md#type-hostname">inet:hostname()</a>, name = <a href="#type-server_name">server_name()</a>, parent = pid(), pool_name = <a href="#type-pool_name">pool_name()</a>, port = <a href="inet.md#type-port_number">inet:port_number()</a>, reconnect_state = undefined | <a href="#type-reconnect_state">reconnect_state()</a>, socket = undefined | <a href="inet.md#type-socket">inet:socket()</a>, socket_options = [<a href="gen_udp.md#type-option">gen_udp:option()</a>], timer_ref = undefined | reference()}
+state() = #state{client = <a href="#type-client">client()</a>, header = undefined | iodata(), init_options = <a href="#type-init_options">init_options()</a>, ip = <a href="inet.md#type-ip_address">inet:ip_address()</a> | <a href="inet.md#type-hostname">inet:hostname()</a>, name = <a href="#type-server_name">server_name()</a>, parent = pid(), pool_name = <a href="#type-pool_name">pool_name()</a>, port = <a href="inet.md#type-port_number">inet:port_number()</a>, reconnect_state = undefined | <a href="#type-reconnect_state">reconnect_state()</a>, socket = undefined | <a href="inet.md#type-socket">inet:socket()</a>, socket_options = [<a href="gen_udp.md#type-option">gen_udp:option()</a>], timer_ref = undefined | reference()}
 </code></pre>
 
 

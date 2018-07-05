@@ -46,7 +46,7 @@ client() = module()
 
 
 <pre><code>
-client_option() = {ip, <a href="inet.md#type-ip_address">inet:ip_address()</a> | <a href="inet.md#type-hostname">inet:hostname()</a>} | {port, <a href="inet.md#type-port_number">inet:port_number()</a>} | {protocol, <a href="#type-protocol">protocol()</a>} | {reconnect, boolean()} | {reconnect_time_max, <a href="#type-time">time()</a> | infinity} | {reconnect_time_min, <a href="#type-time">time()</a>} | {socket_options, [<a href="gen_tcp.md#type-connect_option">gen_tcp:connect_option()</a> | <a href="gen_udp.md#type-option">gen_udp:option()</a>]}
+client_option() = {init_options, <a href="#type-init_options">init_options()</a>} | {ip, <a href="inet.md#type-ip_address">inet:ip_address()</a> | <a href="inet.md#type-hostname">inet:hostname()</a>} | {port, <a href="inet.md#type-port_number">inet:port_number()</a>} | {protocol, <a href="#type-protocol">protocol()</a>} | {reconnect, boolean()} | {reconnect_time_max, <a href="#type-time">time()</a> | infinity} | {reconnect_time_min, <a href="#type-time">time()</a>} | {socket_options, [<a href="gen_tcp.md#type-connect_option">gen_tcp:connect_option()</a> | <a href="gen_udp.md#type-option">gen_udp:option()</a>]}
 </code></pre>
 
 
@@ -77,6 +77,16 @@ client_state() = term()
 
 <pre><code>
 external_request_id() = term()
+</code></pre>
+
+
+
+
+### <a name="type-init_options">init_options()</a> ###
+
+
+<pre><code>
+init_options() = term()
 </code></pre>
 
 
@@ -214,7 +224,7 @@ time() = pos_integer()
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#cancel_timer-1">cancel_timer/1</a></td><td></td></tr><tr><td valign="top"><a href="#client-4">client/4</a></td><td></td></tr><tr><td valign="top"><a href="#process_responses-2">process_responses/2</a></td><td></td></tr><tr><td valign="top"><a href="#reconnect_state-1">reconnect_state/1</a></td><td></td></tr><tr><td valign="top"><a href="#reconnect_state_reset-1">reconnect_state_reset/1</a></td><td></td></tr><tr><td valign="top"><a href="#reply-3">reply/3</a></td><td></td></tr><tr><td valign="top"><a href="#reply_all-2">reply_all/2</a></td><td></td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#cancel_timer-1">cancel_timer/1</a></td><td></td></tr><tr><td valign="top"><a href="#client-5">client/5</a></td><td></td></tr><tr><td valign="top"><a href="#process_responses-2">process_responses/2</a></td><td></td></tr><tr><td valign="top"><a href="#reconnect_state-1">reconnect_state/1</a></td><td></td></tr><tr><td valign="top"><a href="#reconnect_state_reset-1">reconnect_state_reset/1</a></td><td></td></tr><tr><td valign="top"><a href="#reply-3">reply/3</a></td><td></td></tr><tr><td valign="top"><a href="#reply_all-2">reply_all/2</a></td><td></td></tr></table>
 
 
 <a name="functions"></a>
@@ -230,12 +240,12 @@ cancel_timer(TimerRef::undefined | reference()) -&gt; ok
 </code></pre>
 <br />
 
-<a name="client-4"></a>
+<a name="client-5"></a>
 
-### client/4 ###
+### client/5 ###
 
 <pre><code>
-client(Client::<a href="#type-client">client()</a>, PoolName::<a href="#type-pool_name">pool_name()</a>, SocketType::<a href="#type-socket_type">socket_type()</a>, Socket::<a href="#type-socket">socket()</a>) -&gt; {ok, <a href="#type-client_state">client_state()</a>} | {error, term(), <a href="#type-client_state">client_state()</a>}
+client(Client::<a href="#type-client">client()</a>, PoolName::<a href="#type-pool_name">pool_name()</a>, InitOptions::<a href="#type-init_options">init_options()</a>, SocketType::<a href="#type-socket_type">socket_type()</a>, Socket::<a href="#type-socket">socket()</a>) -&gt; {ok, <a href="#type-client_state">client_state()</a>} | {error, term(), <a href="#type-client_state">client_state()</a>}
 </code></pre>
 <br />
 
