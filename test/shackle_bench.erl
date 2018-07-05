@@ -42,7 +42,10 @@ run_pool_size([PoolSize | T], Concurencies, N) ->
 run_concurency(_PoolSize, [], _N) ->
     ok;
 run_concurency(PoolSize, [Concurency | T], N) ->
-    ok = ?CLIENT:start(PoolSize),
+    ok = ?CLIENT:start([
+        {backlog_size, ?BACKLOG_SIZE},
+        {pool_size, PoolSize}
+    ]),
     Fun = fun() ->
         case ?CLIENT:add(10, 10) of
             20 ->
