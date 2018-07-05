@@ -144,7 +144,7 @@ time() = pos_integer()
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#init-0">init/0</a></td><td></td></tr><tr><td valign="top"><a href="#server-1">server/1</a></td><td></td></tr><tr><td valign="top"><a href="#start-3">start/3</a></td><td></td></tr><tr><td valign="top"><a href="#start-4">start/4</a></td><td></td></tr><tr><td valign="top"><a href="#stop-1">stop/1</a></td><td></td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#init-0">init/0</a></td><td></td></tr><tr><td valign="top"><a href="#server-1">server/1</a></td><td></td></tr><tr><td valign="top"><a href="#start-3">start/3</a></td><td></td></tr><tr><td valign="top"><a href="#start-4">start/4</a></td><td></td></tr><tr><td valign="top"><a href="#stop-1">stop/1</a></td><td></td></tr><tr><td valign="top"><a href="#terminate-0">terminate/0</a></td><td></td></tr></table>
 
 
 <a name="functions"></a>
@@ -193,6 +193,15 @@ start(Name::<a href="#type-pool_name">pool_name()</a>, Client::<a href="#type-cl
 
 <pre><code>
 stop(Name::<a href="#type-pool_name">pool_name()</a>) -&gt; ok | {error, shackle_not_started | pool_not_started}
+</code></pre>
+<br />
+
+<a name="terminate-0"></a>
+
+### terminate/0 ###
+
+<pre><code>
+terminate() -&gt; ok
 </code></pre>
 <br />
 
