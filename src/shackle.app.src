@@ -7,5 +7,5 @@
   {maintainers, ["Louis-Philippe Gauthier"]},
   {mod, {shackle_app, []}},
   {registered, []},
-  {vsn, "0.5.4"}
+  {vsn, "0.6.0"}
 ]}.
