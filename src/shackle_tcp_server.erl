@@ -67,17 +67,16 @@ init(Name, Parent, Opts) ->
 -spec handle_msg(term(), {state(), client_state()}) ->
     {ok, term()}.
 
-handle_msg(#cast {} = Cast, {#state {
+handle_msg({_, #cast {} = Cast}, {#state {
         socket = undefined,
         name = Name
     } = State, ClientState}) ->
 
     ?SERVER_UTILS:reply(Name, {error, no_socket}, Cast),
     {ok, {State, ClientState}};
-handle_msg(#cast {
-        request = Request,
+handle_msg({Request, #cast {
         timeout = Timeout
-    } = Cast, {#state {
+    } = Cast}, {#state {
         client = Client,
         name = Name,
         pool_name = PoolName,
