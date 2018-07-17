@@ -52,14 +52,13 @@ cast(PoolName, Request, Pid, Timeout) ->
     case shackle_pool:server(PoolName) of
         {ok, Client, Server} ->
             RequestId = {Server, make_ref()},
-            Server ! #cast {
+            Server ! {Request, #cast {
                 client = Client,
                 pid = Pid,
-                request = Request,
                 request_id = RequestId,
                 timeout = Timeout,
                 timestamp = Timestamp
-            },
+            }},
             {ok, RequestId};
         {error, Reason} ->
             {error, Reason}
