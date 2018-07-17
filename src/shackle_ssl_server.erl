@@ -5,7 +5,11 @@
 -compile({inline_size, 512}).
 
 -export([
-    start_link/4,
+    start_link/4
+]).
+
+-behavior(metal).
+-export([
     init/3,
     handle_msg/2,
     terminate/2
@@ -36,6 +40,7 @@ start_link(Name, PoolName, Client, ClientOptions) ->
     Args = {PoolName, Client, ClientOptions},
     metal:start_link(?MODULE, Name, Args).
 
+%% metal callbacks
 -spec init(server_name(), pid(), init_opts()) ->
     no_return().
 
