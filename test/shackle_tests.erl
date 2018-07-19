@@ -50,7 +50,7 @@ shackle_random_ssl_test_() ->
     {setup,
         fun () ->
             setup(?CLIENT_SSL, [
-                {pool_size, 1},
+                {pool_size, 2},
                 {pool_strategy, random}
         ]) end,
         fun (_) -> cleanup(?CLIENT_SSL) end,
