@@ -103,9 +103,9 @@ handle_msg({Request, #cast {
                     close(State, ClientState2)
             end
     catch
-        E:R ->
+        ?EXCEPTION(E, R, Stacktrace) ->
             ?WARN(PoolName, "handle_request error: ~p:~p~n~p~n",
-                [E, R, erlang:get_stacktrace()]),
+                [E, R, ?GET_STACK(Stacktrace)]),
             ?SERVER_UTILS:reply(Name, {error, client_crash}, Cast),
             {ok, {State, ClientState}}
     end;
@@ -127,9 +127,9 @@ handle_msg({udp, Socket, _Ip, _InPortNo, Data}, {#state {
             gen_udp:close(Socket),
             close(State, ClientState2)
     catch
-        E:R ->
+        ?EXCEPTION(E, R, Stacktrace) ->
             ?WARN(PoolName, "handle_data error: ~p:~p~n~p~n",
-                [E, R, erlang:get_stacktrace()]),
+                [E, R, ?GET_STACK(Stacktrace)]),
             gen_udp:close(Socket),
             close(State, ClientState)
     end;
@@ -200,9 +200,9 @@ terminate(_Reason, {#state {
     ?SERVER_UTILS:cancel_timer(TimerRef),
     try Client:terminate(ClientState)
     catch
-        E:R ->
+        ?EXCEPTION(E, R, Stacktrace) ->
             ?WARN(PoolName, "terminate error: ~p:~p~n~p~n",
-                [E, R, erlang:get_stacktrace()])
+                [E, R, ?GET_STACK(Stacktrace)])
     end,
     ?SERVER_UTILS:reply_all(Name, {error, shutdown}),
     shackle_backlog:delete(Name).
@@ -253,9 +253,9 @@ reconnect(#state {
 
     try Client:terminate(ClientState)
     catch
-        E:R ->
+        ?EXCEPTION(E, R, Stacktrace) ->
             ?WARN(PoolName, "terminate error: ~p:~p~n~p~n",
-                [E, R, erlang:get_stacktrace()])
+                [E, R, ?GET_STACK(Stacktrace)])
     end,
     reconnect_timer(State, ClientState).
 
