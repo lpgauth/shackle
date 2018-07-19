@@ -2,6 +2,10 @@
 -include("test.hrl").
 -include_lib("eunit/include/eunit.hrl").
 
+-ifdef(OTP_RELEASE).
+-compile({nowarn_deprecated_function, [{ssl, ssl_accept, 3}]}).
+-endif.
+
 -export([
     start/0,
     stop/0
