@@ -106,9 +106,9 @@ client_init(Client, PoolName, InitOptions) ->
             ?WARN(PoolName, "init error: ~p~n", [Reason]),
             {error, Reason}
     catch
-        E:R ->
+        ?EXCEPTION(E, R, Stacktrace) ->
             ?WARN(PoolName, "init crash: ~p:~p~n~p~n",
-                [E, R, erlang:get_stacktrace()]),
+                [E, R, ?GET_STACK(Stacktrace)]),
             {error, client_crash}
     end.
 
@@ -122,9 +122,9 @@ client_setup(Client, PoolName, SocketType, Socket, ClientState) ->
             ?WARN(PoolName, "setup error: ~p", [Reason]),
             {error, Reason, ClientState2}
     catch
-        E:R ->
+        ?EXCEPTION(E, R, Stacktrace) ->
             ?WARN(PoolName, "handle_data error: ~p:~p~n~p~n",
-                [E, R, erlang:get_stacktrace()]),
+                [E, R, ?GET_STACK(Stacktrace)]),
             {error, client_crash, ClientState}
     end.
 
