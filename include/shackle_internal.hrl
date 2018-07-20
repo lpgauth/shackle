@@ -16,6 +16,7 @@
 -define(ETS_TABLE_POOL_INDEX, shackle_pool_index).
 -define(ETS_TABLE_QUEUE, shackle_queue).
 
+%% compatibility
 -ifdef(OTP_RELEASE). %% this implies 21 or higher
 -define(EXCEPTION(Class, Reason, Stacktrace), Class:Reason:Stacktrace).
 -define(GET_STACK(Stacktrace), Stacktrace).
