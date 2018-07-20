@@ -68,7 +68,7 @@ init() ->
     foil:load(?MODULE).
 
 -spec server(pool_name()) ->
-    {ok, client(), term()} | {error, atom()}.
+    {ok, client(), atom()} | {error, atom()}.
 
 server(Name) ->
     case options(Name) of
