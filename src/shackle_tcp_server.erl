@@ -103,9 +103,9 @@ handle_msg({Request, #cast {
                     close(State, ClientState2)
             end
     catch
-        E:R ->
+        ?EXCEPTION(E, R, Stacktrace) ->
             ?WARN(PoolName, "handle_request crash: ~p:~p~n~p~n",
-                [E, R, erlang:get_stacktrace()]),
+                [E, R, ?GET_STACK(Stacktrace)]),
             ?SERVER_UTILS:reply(Name, {error, client_crash}, Cast),
             {ok, {State, ClientState}}
     end;
@@ -125,9 +125,9 @@ handle_msg({tcp, Socket, Data}, {#state {
             gen_tcp:close(Socket),
             close(State, ClientState2)
     catch
-        E:R ->
+        ?EXCEPTION(E, R, Stacktrace) ->
             ?WARN(PoolName, "handle_data crash: ~p:~p~n~p~n",
-                [E, R, erlang:get_stacktrace()]),
+                [E, R, ?GET_STACK(Stacktrace)]),
             gen_tcp:close(Socket),
             close(State, ClientState)
     end;
@@ -205,9 +205,9 @@ terminate(_Reason, {#state {
     ?SERVER_UTILS:cancel_timer(TimerRef),
     try Client:terminate(ClientState)
     catch
-        E:R ->
+        ?EXCEPTION(E, R, Stacktrace) ->
             ?WARN(PoolName, "terminate crash: ~p:~p~n~p~n",
-                [E, R, erlang:get_stacktrace()])
+                [E, R, ?GET_STACK(Stacktrace)])
     end,
     ?SERVER_UTILS:reply_all(Name, {error, shutdown}),
     shackle_backlog:delete(Name),
@@ -244,9 +244,9 @@ reconnect(#state {
 
     try Client:terminate(ClientState)
     catch
-        E:R ->
+        ?EXCEPTION(E, R, Stacktrace) ->
             ?WARN(PoolName, "terminate crash: ~p:~p~n~p~n",
-                [E, R, erlang:get_stacktrace()])
+                [E, R, ?GET_STACK(Stacktrace)])
     end,
     reconnect_timer(State, ClientState).
 

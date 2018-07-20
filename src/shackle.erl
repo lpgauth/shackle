@@ -22,7 +22,7 @@ call(PoolName, Request) ->
     call(PoolName, Request, ?DEFAULT_TIMEOUT).
 
 -spec call(atom(), term(), timeout()) ->
-    term() | {error, term()}.
+    term() | {error, atom()}.
 
 call(PoolName, Request, Timeout) ->
     case cast(PoolName, Request, self(), Timeout) of
