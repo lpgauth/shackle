@@ -183,7 +183,11 @@ reconnect_subtest(Client) ->
     timer:sleep(100),
     ?assertEqual(2, Client:add(1, 1)),
     ok = Server:stop(),
-    {error, _} = Client:add(1, 1), % no_socket (ssl, tcp) or timeout (udp)
+    Result = Client:add(1, 1), % no_socket (ssl, tcp) or timeout (udp)
+    case Client of
+        ?CLIENT_UDP -> timeout_handled = Result;
+        _ -> {error, _} = Result
+    end,
     ok = Server:start(),
     timer:sleep(100),
     ?assertEqual(2, Client:add(1, 1)).

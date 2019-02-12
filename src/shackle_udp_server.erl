@@ -139,16 +139,30 @@ handle_msg({udp, Socket, _Ip, _InPortNo, Data}, {#state {
             close(State, ClientState)
     end;
 handle_msg({timeout, ExtRequestId}, {#state {
-        name = Name
+        client = Client,
+        name = Name,
+        pool_name = PoolName,
+        socket = Socket
     } = State, ClientState}) ->
 
-    case shackle_queue:remove(Name, ExtRequestId) of
-        {ok, Cast, _TimerRef} ->
-            ?SERVER_UTILS:reply(Name, {error, timeout}, Cast);
-        {error, not_found} ->
-            ok
-    end,
-    {ok, {State, ClientState}};
+    try Client:handle_timeout(ExtRequestId, ClientState) of
+        {ok, Replies, ClientState2} ->
+            ?SERVER_UTILS:process_responses(Replies, Name),
+            {ok, {State, ClientState2}};
+        {error, Reason, ClientState2} ->
+            ?WARN(PoolName, "handle_timeout error: ~p", [Reason]),
+            gen_udp:close(Socket),
+            close(State, ClientState2)
+    catch
+        ?EXCEPTION(_E, _R, _Stacktrace) ->
+            case shackle_queue:remove(Name, ExtRequestId) of
+                {ok, Cast, _TimerRef} ->
+                    ?SERVER_UTILS:reply(Name, {error, timeout}, Cast);
+                {error, not_found} ->
+                    ok
+            end,
+            {ok, {State, ClientState}}
+    end;
 handle_msg({inet_reply, Socket, {error, Reason}}, {#state {
         pool_name = PoolName,
         socket = Socket

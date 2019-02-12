@@ -16,5 +16,9 @@
     {ok, [Response :: response()], State :: term()} |
     {error,  Reason :: term(), State :: term()}.
 
+-callback handle_timeout(RequestId :: external_request_id(), State :: term()) ->
+    {ok, [Response :: response()], State :: term()} |
+    {error,  Reason :: term(), State :: term()}.
+
 -callback terminate(State :: term()) ->
     ok.
