@@ -11,7 +11,7 @@
 
 -define(MAX_REQUEST_ID, 4294967296).
 
--type int() :: 9..4294967295.
+-type int() :: 0..4294967295.
 -type operation() :: add | multiply.
 -type tiny_int() :: 0..255.
 
@@ -49,6 +49,10 @@ parse_replies(Buffer, Acc) ->
 
 parse_requests(<<"INIT", Rest/binary>>, Acc) ->
     parse_requests(Rest, [<<"OK">> | Acc]);
+parse_requests(<<ReqId:32/integer, 1, 255, 255, Rest/binary>>, Acc) ->
+    % special case to test timeouts add(255, 255)
+    timer:sleep(1000),
+    parse_requests(Rest, [<<ReqId:32/integer, 510:16/integer>> | Acc]);
 parse_requests(<<ReqId:32/integer, 1, A:8/integer, B:8/integer,
     Rest/binary>>, Acc) ->
 

@@ -145,16 +145,24 @@ handle_msg({timeout, ExtRequestId}, {#state {
         socket = Socket
     } = State, ClientState}) ->
 
-    try Client:handle_timeout(ExtRequestId, ClientState) of
-        {ok, Replies, ClientState2} ->
-            ?SERVER_UTILS:process_responses(Replies, Name),
-            {ok, {State, ClientState2}};
-        {error, Reason, ClientState2} ->
-            ?WARN(PoolName, "handle_timeout error: ~p", [Reason]),
-            gen_udp:close(Socket),
-            close(State, ClientState2)
-    catch
-        ?EXCEPTION(_E, _R, _Stacktrace) ->
+    case erlang:function_exported(Client, handle_timeout, 2) of
+        true ->
+            try Client:handle_timeout(ExtRequestId, ClientState) of
+                {ok, Reply, ClientState2} ->
+                    ?SERVER_UTILS:process_responses([Reply], Name),
+                    {ok, {State, ClientState2}};
+                {error, Reason, ClientState2} ->
+                    ?WARN(PoolName, "handle_timeout error: ~p", [Reason]),
+                    gen_udp:close(Socket),
+                    close(State, ClientState2)
+            catch
+                ?EXCEPTION(E, R, Stacktrace) ->
+                    ?WARN(PoolName, "handle_timeout error: ~p:~p~n~p~n",
+                        [E, R, ?GET_STACK(Stacktrace)]),
+                    gen_udp:close(Socket),
+                    close(State, ClientState)
+            end;
+        false ->
             case shackle_queue:remove(Name, ExtRequestId) of
                 {ok, Cast, _TimerRef} ->
                     ?SERVER_UTILS:reply(Name, {error, timeout}, Cast);

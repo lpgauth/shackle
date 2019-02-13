@@ -98,7 +98,7 @@ handle_data(Data, #state {
     }}.
 
 handle_timeout(RequestId, State) ->
-    {ok, [{RequestId, timeout_handled}], State}.
+    {ok, {RequestId, {error, timeout_handled}}, State}.
 
 handle_request({Operation, A, B}, #state {
         request_counter = RequestCounter

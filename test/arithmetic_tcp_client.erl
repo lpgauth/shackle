@@ -16,6 +16,7 @@
     setup/2,
     handle_request/2,
     handle_data/2,
+    handle_timeout/2,
     terminate/1
 ]).
 
@@ -95,6 +96,9 @@ handle_data(Data, #state {
     {ok, Replies, State#state {
         buffer = Buffer2
     }}.
+
+handle_timeout(RequestId, State) ->
+    {ok, {RequestId, {error, timeout_handled}}, State}.
 
 handle_request({Operation, A, B}, #state {
         request_counter = RequestCounter
