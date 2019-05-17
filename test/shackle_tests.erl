@@ -139,6 +139,39 @@ shackle_round_robin_udp_test_() ->
         fun () -> multiply_subtest(?CLIENT_UDP) end
     ]}}.
 
+shackle_timeout_ssl_test_() ->
+    {setup,
+        fun () ->
+            setup(?CLIENT_SSL, [
+                {pool_size, 1},
+                {pool_strategy, random}
+            ])
+        end,
+        fun (_) -> cleanup(?CLIENT_SSL) end,
+    [fun () -> timeout_subtest(?CLIENT_SSL) end]}.
+
+shackle_timeout_tcp_test_() ->
+    {setup,
+        fun () ->
+            setup(?CLIENT_TCP, [
+                {pool_size, 1},
+                {pool_strategy, random}
+            ])
+        end,
+        fun (_) -> cleanup(?CLIENT_TCP) end,
+    [fun () -> timeout_subtest(?CLIENT_TCP) end]}.
+
+shackle_timeout_udp_test_() ->
+    {setup,
+        fun () ->
+            setup(?CLIENT_UDP, [
+                {pool_size, 1},
+                {pool_strategy, random}
+            ])
+        end,
+        fun (_) -> cleanup(?CLIENT_UDP) end,
+    [fun () -> timeout_subtest(?CLIENT_UDP) end]}.
+
 %% tests
 add_subtest(Client) ->
     [assert_random_add(Client) || _ <- lists:seq(1, ?N)].
@@ -183,10 +216,13 @@ reconnect_subtest(Client) ->
     timer:sleep(100),
     ?assertEqual(2, Client:add(1, 1)),
     ok = Server:stop(),
-    {error, _} = Client:add(1, 1), % no_socket (ssl, tcp) or timeout (udp)
+    {error, _} = Client:add(1, 1),
     ok = Server:start(),
     timer:sleep(100),
     ?assertEqual(2, Client:add(1, 1)).
+
+timeout_subtest(Client) ->
+    ?assertEqual({error, timeout_handled}, Client:add(255, 255)).
 
 %% utils
 assert_random_add(Client) ->
@@ -209,7 +245,7 @@ cleanup(Client) ->
     cleanup().
 
 rand() ->
-    shackle_utils:random(255).
+    shackle_utils:random(254).
 
 receive_loop(0) ->
     [];

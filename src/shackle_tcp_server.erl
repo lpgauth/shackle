@@ -132,16 +132,38 @@ handle_msg({tcp, Socket, Data}, {#state {
             close(State, ClientState)
     end;
 handle_msg({timeout, ExtRequestId}, {#state {
-        name = Name
+        client = Client,
+        name = Name,
+        pool_name = PoolName,
+        socket = Socket
     } = State, ClientState}) ->
 
-    case shackle_queue:remove(Name, ExtRequestId) of
-        {ok, Cast, _TimerRef} ->
-            ?SERVER_UTILS:reply(Name, {error, timeout}, Cast);
-        {error, not_found} ->
-            ok
-    end,
-    {ok, {State, ClientState}};
+    case erlang:function_exported(Client, handle_timeout, 2) of
+        true ->
+            try Client:handle_timeout(ExtRequestId, ClientState) of
+                {ok, Reply, ClientState2} ->
+                    ?SERVER_UTILS:process_responses([Reply], Name),
+                    {ok, {State, ClientState2}};
+                {error, Reason, ClientState2} ->
+                    ?WARN(PoolName, "handle_timeout error: ~p", [Reason]),
+                    gen_tcp:close(Socket),
+                    close(State, ClientState2)
+            catch
+                ?EXCEPTION(E, R, Stacktrace) ->
+                    ?WARN(PoolName, "handle_timeout error: ~p:~p~n~p~n",
+                        [E, R, ?GET_STACK(Stacktrace)]),
+                    gen_tcp:close(Socket),
+                    close(State, ClientState)
+            end;
+        false ->
+            case shackle_queue:remove(Name, ExtRequestId) of
+                {ok, Cast, _TimerRef} ->
+                    ?SERVER_UTILS:reply(Name, {error, timeout}, Cast);
+                {error, not_found} ->
+                    ok
+            end,
+            {ok, {State, ClientState}}
+    end;
 handle_msg({tcp_closed, Socket}, {#state {
         socket = Socket,
         pool_name = PoolName
