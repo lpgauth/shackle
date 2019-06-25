@@ -13,8 +13,8 @@
 ]).
 
 -export([
-    disable_worker/2,
-    enable_worker/2
+    worker_down/2,
+    worker_up/2
 ]).
 %% internal
 -export([
@@ -64,16 +64,7 @@ stop(Name) ->
     ok.
 
 init() ->
-    ets:new(?ETS_TABLE_POOL_INDEX, [
-        named_table,
-        public,
-        {write_concurrency, true}
-    ]),
-    ets:new(?ETS_TABLE_POOL_BAD_WORKERS, [
-        named_table,
-        public,
-        {write_concurrency, true}
-    ]),
+    init_ets(),
     foil:new(?MODULE),
     foil:load(?MODULE).
 
@@ -111,6 +102,16 @@ server(Name) ->
 
 terminate() ->
     foil:delete(?MODULE).
+
+-spec worker_down(pool_name(), pos_integer()) -> no_return().
+worker_down(PoolName, Index) ->
+    ets:insert(?ETS_TABLE_POOL_BAD_WORKERS, {{PoolName, Index}, true}),
+    worker_down_cb(ets:update_counter(?ETS_TABLE_POOL_BAD_WORKER_NUMBERS, PoolName, 1), PoolName, options(PoolName)).
+
+-spec worker_up(pool_name(), pos_integer()) -> no_return().
+worker_up(PoolName, Index) ->
+    ets:delete_object(?ETS_TABLE_POOL_BAD_WORKERS, {PoolName, Index}),
+    worker_up_cb(ets:update_counter(?ETS_TABLE_POOL_BAD_WORKER_NUMBERS, PoolName, 1), PoolName, options(PoolName)).
 
 %% private
 cleanup(Name, OptionsRec) ->
@@ -181,9 +182,10 @@ setup(Name, OptionsRec) ->
     setup_foil(Name, OptionsRec).
 
 setup_ets(Name, #pool_options{pool_strategy = round_robin}) ->
-    ets:insert_new(?ETS_TABLE_POOL_INDEX, {{Name, round_robin}, 1});
-setup_ets(_Name, _OptionsRec) ->
-    ok.
+    ets:insert_new(?ETS_TABLE_POOL_INDEX, {{Name, round_robin}, 1}),
+    ets:insert_new(?ETS_TABLE_POOL_BAD_WORKER_NUMBERS, {Name, 0});
+setup_ets(Name, _OptionsRec) ->
+    ets:insert_new(?ETS_TABLE_POOL_BAD_WORKER_NUMBERS, {Name, 0}).
 
 setup_foil(Name, #pool_options{pool_size = PoolSize} = OptionsRec) ->
     foil:insert(?MODULE, Name, OptionsRec),
@@ -231,11 +233,33 @@ stop_children([ServerName | T]) ->
     supervisor:delete_child(?SUPERVISOR, ServerName),
     stop_children(T).
 
-disable_worker(PoolName, Index) ->
-    ets:insert(?ETS_TABLE_POOL_BAD_WORKERS, {{PoolName, Index}, true}).
-
-enable_worker(PoolName, Index) ->
-    ets:delete_object(?ETS_TABLE_POOL_BAD_WORKERS, {PoolName, Index}).
-
 is_worker_disabled(PoolName, Index) ->
     ets:lookup(?ETS_TABLE_POOL_BAD_WORKERS, {PoolName, Index}) /= [].
+
+init_ets() ->
+    [
+        ets:new(Tab, [
+            named_table,
+            public,
+            {write_concurrency, true}
+        ])
+        || Tab <- [?ETS_TABLE_POOL_INDEX, ?ETS_TABLE_POOL_BAD_WORKERS, ?ETS_TABLE_POOL_BAD_WORKER_NUMBERS]
+    ].
+
+worker_down_cb(NumberOfFailedWorkers, PoolName,
+    {ok, #pool_options{pool_size = PoolSize,
+    pool_failure_threshold_percentage = DisablePercentage,
+    pool_failure_callback_fn = Fun}}) when (NumberOfFailedWorkers / PoolSize) >= DisablePercentage,
+                                            is_function(Fun) ->
+    Fun(PoolName, NumberOfFailedWorkers);
+worker_down_cb(_, _, _)->
+    ok.
+
+worker_up_cb(NumberOfFailedWorkersss, PoolName,
+    {ok, #pool_options{pool_size = PoolSize,
+        pool_recover_threshold_percentage = EnablePercentage,
+        pool_recover_callback_fn = Fun}}) when (NumberOfFailedWorkersss / PoolSize) =< EnablePercentage,
+    is_function(Fun) ->
+    Fun(NumberOfFailedWorkersss, PoolName);
+worker_up_cb(_, _, _) ->
+    ok.

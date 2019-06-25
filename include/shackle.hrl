@@ -11,7 +11,15 @@
     backlog_size  :: backlog_size(),
     client        :: client(),
     pool_size     :: pool_size(),
-    pool_strategy :: pool_strategy()
+    pool_strategy :: pool_strategy(),
+    %% the percentage of failed worker which will trigger pool_failure_callback_fn
+    %% 0 mean any worker failure will trigger that callback.
+    pool_failure_threshold_percentage = 0.0 :: float(),
+    %% the percentage of failed worker which will trigger pool_recover_callback_fn
+    %% 0 mean any worker failure will NOT trigger that callback.
+    pool_recover_threshold_percentage = 0.0 :: float(),
+    pool_failure_callback_fn :: fun(),
+    pool_recover_callback_fn :: fun()
 }).
 
 -record(reconnect_state, {

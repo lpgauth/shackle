@@ -5,7 +5,7 @@
 -compile({inline_size, 512}).
 
 -export([
-    start_link/4
+    start_link/5
 ]).
 
 -behavior(metal).
@@ -27,21 +27,22 @@
     reconnect_state  :: undefined | reconnect_state(),
     socket           :: undefined | inet:socket(),
     socket_options   :: [gen_udp:option()],
-    timer_ref        :: undefined | reference()
+    timer_ref        :: undefined | reference(),
+    worker_index :: pos_integer()
 }).
 
 -define(INET_AF_INET, 1).
 -define(INT16(X), [((X) bsr 8) band 16#ff, (X) band 16#ff]).
 
--type init_opts() :: {pool_name(), client(), client_options()}.
+-type init_opts() :: {pool_name(), client(), client_options(), pos_integer()}.
 -type state() :: #state {}.
 
 %% public
--spec start_link(server_name(), pool_name(), client(), client_options()) ->
+-spec start_link(server_name(), pool_name(), client(), client_options(), pos_integer()) ->
     {ok, pid()}.
 
-start_link(Name, PoolName, Client, ClientOptions) ->
-    Args = {PoolName, Client, ClientOptions},
+start_link(Name, PoolName, Client, ClientOptions, Index) ->
+    Args = {PoolName, Client, ClientOptions, Index},
     metal:start_link(?MODULE, Name, Args).
 
 %% metal callbacks
@@ -49,7 +50,7 @@ start_link(Name, PoolName, Client, ClientOptions) ->
     no_return().
 
 init(Name, Parent, Opts) ->
-    {PoolName, Client, ClientOptions} = Opts,
+    {PoolName, Client, ClientOptions, Index} = Opts,
     self() ! ?MSG_CONNECT,
     ok = shackle_backlog:new(Name),
 
@@ -70,7 +71,8 @@ init(Name, Parent, Opts) ->
         pool_name = PoolName,
         port = Port,
         reconnect_state = ReconnectState,
-        socket_options = SocketOptions
+        socket_options = SocketOptions,
+        worker_index = Index
     }, undefined}}.
 
 -spec handle_msg(term(), {state(), client_state()}) ->
@@ -185,7 +187,8 @@ handle_msg(?MSG_CONNECT, {#state {
         pool_name = PoolName,
         port = Port,
         reconnect_state = ReconnectState,
-        socket_options = SocketOptions
+        socket_options = SocketOptions,
+        worker_index = Index
     } = State, ClientState}) ->
 
     case connect(PoolName, Ip, Port, SocketOptions) of
@@ -194,7 +197,7 @@ handle_msg(?MSG_CONNECT, {#state {
                 {ok, ClientState2} ->
                     ReconnectState2 =
                         ?SERVER_UTILS:reconnect_state_reset(ReconnectState),
-
+                    shackle_pool:worker_up(PoolName, Index),
                     {ok, {State#state {
                         header = Header,
                         reconnect_state = ReconnectState2,
@@ -252,8 +255,9 @@ connect(PoolName, Ip, Port, SocketOptions) ->
             {error, Reason}
     end.
 
-close(#state {name = Name} = State, ClientState) ->
+close(#state {name = Name, pool_name = PoolName, worker_index = Index} = State, ClientState) ->
     ?SERVER_UTILS:reply_all(Name, {error, socket_closed}),
+    shackle_pool:worker_down(PoolName, Index),
     reconnect(State, ClientState).
 
 -ifdef(UDP_HEADER).
