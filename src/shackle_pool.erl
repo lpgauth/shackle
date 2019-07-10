@@ -72,31 +72,13 @@ init() ->
     foil:load(?MODULE).
 
 -spec server(pool_name()) ->
-    {ok, client(), atom()} | {error, no_server}.
+    {ok, client(), atom()} |
+    {error, pool_not_started | no_server | shackle_not_started}.
 
 server(Name) ->
     case options(Name) of
-        {ok, #pool_options {
-                backlog_size = BacklogSize,
-                client = Client,
-                pool_size = PoolSize,
-                pool_strategy = PoolStrategy
-            }} ->
-
-            ServerIndex = server_index(Name, PoolSize, PoolStrategy),
-            Key = {Name, ServerIndex},
-            {ok, Server} = shackle_pool_foil:lookup(Key),
-            case shackle_status:active(Name, ServerIndex) of
-                true ->
-                    case shackle_backlog:check(Server, BacklogSize) of
-                        true ->
-                            {ok, Client, Server};
-                        false ->
-                            {error, backlog_full}
-                    end;
-                false ->
-                    {error, server_disabled}
-            end;
+        {ok, #pool_options {max_retries = MaxRetries} = Options} ->
+            server(Name, Options, MaxRetries + 1);
         {error, Reson} ->
             {error, Reson}
     end.
@@ -136,15 +118,41 @@ options(Name) ->
 
 options_rec(Client, Options) ->
     BacklogSize = ?LOOKUP(backlog_size, Options, ?DEFAULT_BACKLOG_SIZE),
+    MaxRetries = ?LOOKUP(max_retries, Options, ?DEFAULT_MAX_RETRIES),
     PoolSize = ?LOOKUP(pool_size, Options, ?DEFAULT_POOL_SIZE),
     PoolStrategy = ?LOOKUP(pool_strategy, Options, ?DEFAULT_POOL_STRATEGY),
 
     #pool_options {
         backlog_size = BacklogSize,
         client = Client,
+        max_retries = MaxRetries,
         pool_size = PoolSize,
         pool_strategy = PoolStrategy
     }.
+
+server(_Name, _Options, 0) ->
+    {error, no_server};
+server(Name, #pool_options {
+        backlog_size = BacklogSize,
+        client = Client,
+        pool_size = PoolSize,
+        pool_strategy = PoolStrategy
+    } = Options, N) ->
+
+    ServerIndex = server_index(Name, PoolSize, PoolStrategy),
+    {ok, Server} = shackle_pool_foil:lookup({Name, ServerIndex}),
+
+    case shackle_status:active(Name, ServerIndex) of
+        true ->
+            case shackle_backlog:check(Server, BacklogSize) of
+                true ->
+                    {ok, Client, Server};
+                false ->
+                    server(Name, Options, N - 1)
+            end;
+        false ->
+            server(Name, Options, N - 1)
+    end.
 
 server_index(_Name, PoolSize, random) ->
     shackle_utils:random(PoolSize);

@@ -10,6 +10,7 @@
 -record(pool_options, {
     backlog_size  :: backlog_size(),
     client        :: client(),
+    max_retries   :: max_retries(),
     pool_size     :: pool_size(),
     pool_strategy :: pool_strategy()
 }).
@@ -37,8 +38,10 @@
 -type client_state() :: term().
 -type external_request_id() :: term().
 -type init_options() :: term().
+-type max_retries() :: non_neg_integer().
 -type pool_name() :: atom().
 -type pool_option() :: {backlog_size, backlog_size()} |
+                       {max_retries, max_retries()} |
                        {pool_size, pool_size()} |
                        {pool_strategy, pool_strategy()}.
 

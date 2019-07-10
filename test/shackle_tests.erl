@@ -198,7 +198,7 @@ backlog_full_subtest() ->
     end) || _ <- lists:seq(1, 20)],
 
     ?assert(lists:any(fun
-        ({error, backlog_full}) -> true;
+        ({error, no_server}) -> true;
         (_) -> false
     end, receive_loop(20))).
 
