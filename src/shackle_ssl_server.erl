@@ -5,7 +5,7 @@
 -compile({inline_size, 512}).
 
 -export([
-    start_link/4
+    start_link/2
 ]).
 
 -behavior(metal).
@@ -17,6 +17,7 @@
 
 -record(state, {
     client           :: client(),
+    index            :: server_index(),
     init_options     :: init_options(),
     ip               :: inet:ip_address() | inet:hostname(),
     name             :: server_name(),
@@ -29,23 +30,21 @@
     timer_ref        :: undefined | reference()
 }).
 
--type init_opts() :: {pool_name(), client(), client_options()}.
 -type state() :: #state {}.
 
 %% public
--spec start_link(server_name(), pool_name(), client(), client_options()) ->
+-spec start_link(server_name(), server_opts()) ->
     {ok, pid()}.
 
-start_link(Name, PoolName, Client, ClientOptions) ->
-    Args = {PoolName, Client, ClientOptions},
-    metal:start_link(?MODULE, Name, Args).
+start_link(Name, Opts) ->
+    metal:start_link(?MODULE, Name, Opts).
 
 %% metal callbacks
--spec init(server_name(), pid(), init_opts()) ->
+-spec init(server_name(), pid(), server_opts()) ->
     no_return().
 
 init(Name, Parent, Opts) ->
-    {PoolName, Client, ClientOptions} = Opts,
+    {PoolName, Index, Client, ClientOptions} = Opts,
     self() ! ?MSG_CONNECT,
     ok = shackle_backlog:new(Name),
 
@@ -59,6 +58,7 @@ init(Name, Parent, Opts) ->
 
     {ok, {#state {
         client = Client,
+        index = Index,
         init_options = InitOptions,
         ip = Ip,
         name = Name,
@@ -181,6 +181,7 @@ handle_msg({ssl_error, Socket, Reason}, {#state {
     close(State, ClientState);
 handle_msg(?MSG_CONNECT, {#state {
         client = Client,
+        index = Index,
         init_options = Init,
         ip = Ip,
         pool_name = PoolName,
@@ -195,6 +196,7 @@ handle_msg(?MSG_CONNECT, {#state {
                 {ok, ClientState2} ->
                     ReconnectState2 =
                         ?SERVER_UTILS:reconnect_state_reset(ReconnectState),
+                    shackle_status:enable(PoolName, Index),
 
                     {ok, {State#state {
                         reconnect_state = ReconnectState2,
@@ -236,7 +238,13 @@ terminate(_Reason, {#state {
     ok.
 
 %% private
-close(#state {name = Name} = State, ClientState) ->
+close(#state {
+        index = Index,
+        name = Name,
+        pool_name = PoolName
+    } = State, ClientState) ->
+
+    shackle_status:disable(PoolName, Index),
     ?SERVER_UTILS:reply_all(Name, {error, socket_closed}),
     reconnect(State, ClientState).
 

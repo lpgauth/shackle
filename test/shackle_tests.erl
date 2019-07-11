@@ -177,7 +177,7 @@ add_subtest(Client) ->
     [assert_random_add(Client) || _ <- lists:seq(1, ?N)].
 
 app_stop_start_subtest() ->
-    ?assertEqual({error, no_socket}, arithmetic_tcp_client:add(1, 1)),
+    ?assertEqual({error, no_server}, arithmetic_tcp_client:add(1, 1)),
     ok = arithmetic_tcp_server:start(),
     timer:sleep(100),
     ?assertEqual(2, arithmetic_tcp_client:add(1, 1)),
@@ -211,7 +211,7 @@ multiply_subtest(Client) ->
 
 reconnect_subtest(Client) ->
     Server = server(Client),
-    ?assertEqual({error, no_socket}, Client:add(1, 1)),
+    ?assertEqual({error, no_server}, Client:add(1, 1)),
     ok = Server:start(),
     timer:sleep(100),
     ?assertEqual(2, Client:add(1, 1)),
@@ -271,4 +271,5 @@ setup(Client, Options) ->
     Server = server(Client),
     Server:start(),
     timer:sleep(100),
-    Client:start(Options).
+    Client:start(Options),
+    timer:sleep(500).
