@@ -26,5 +26,6 @@ init([]) ->
     shackle_backlog:init(),
     shackle_pool:init(),
     shackle_queue:init(),
+    shackle_status:init(),
 
     {ok, {{one_for_one, 5, 10}, []}}.

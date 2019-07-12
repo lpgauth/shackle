@@ -91,7 +91,7 @@ terminate() ->
 
 %% private
 cleanup(Name, OptionsRec) ->
-    shackle_status:terminate(Name),
+    shackle_status:delete(Name),
     cleanup_ets(Name, OptionsRec),
     cleanup_foil(Name, OptionsRec).
 
@@ -141,7 +141,6 @@ server(Name, #pool_options {
 
     ServerIndex = server_index(Name, PoolSize, PoolStrategy),
     {ok, Server} = shackle_pool_foil:lookup({Name, ServerIndex}),
-
     case shackle_status:active(Name, ServerIndex) of
         true ->
             case shackle_backlog:check(Server, BacklogSize) of
@@ -163,7 +162,7 @@ server_index(Name, PoolSize, round_robin) ->
     ServerId.
 
 setup(Name, #pool_options {pool_size = PoolSize} = OptionsRec) ->
-    shackle_status:init(Name, PoolSize),
+    shackle_status:new(Name, PoolSize),
     setup_ets(Name, OptionsRec),
     setup_foil(Name, OptionsRec).
 

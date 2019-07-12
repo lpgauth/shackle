@@ -1,3 +1,5 @@
+%% TODO: switch interface to PoolName + ServerIndex
+
 -module(shackle_backlog).
 -include("shackle_internal.hrl").
 
