@@ -54,6 +54,7 @@
 -type request_id() :: {server_name(), reference()}.
 -type response() :: {external_request_id(), term()}.
 -type server_index() :: pos_integer().
+-type server_id() :: {pool_name(), server_index()}.
 -type server_name() :: atom().
 -type server_opts() :: {pool_name(), server_index(), client(), client_options()}.
 -type socket() :: inet:socket() | ssl:sslsocket().

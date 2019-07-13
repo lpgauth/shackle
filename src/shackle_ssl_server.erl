@@ -17,7 +17,7 @@
 
 -record(state, {
     client           :: client(),
-    index            :: server_index(),
+    id               :: server_id(),
     init_options     :: init_options(),
     ip               :: inet:ip_address() | inet:hostname(),
     name             :: server_name(),
@@ -46,7 +46,8 @@ start_link(Name, Opts) ->
 init(Name, Parent, Opts) ->
     {PoolName, Index, Client, ClientOptions} = Opts,
     self() ! ?MSG_CONNECT,
-    ok = shackle_backlog:new(Name),
+    Id = {PoolName, Index},
+    ok = shackle_backlog:new(Id),
 
     InitOptions = ?LOOKUP(init_options, ClientOptions,
         ?DEFAULT_INIT_OPTS),
@@ -58,7 +59,7 @@ init(Name, Parent, Opts) ->
 
     {ok, {#state {
         client = Client,
-        index = Index,
+        id = Id,
         init_options = InitOptions,
         ip = Ip,
         name = Name,
@@ -74,16 +75,16 @@ init(Name, Parent, Opts) ->
 
 handle_msg({_, #cast {} = Cast}, {#state {
         socket = undefined,
-        name = Name
+        id = Id
     } = State, ClientState}) ->
 
-    ?SERVER_UTILS:reply(Name, {error, no_socket}, Cast),
+    ?SERVER_UTILS:reply(Id, {error, no_socket}, Cast),
     {ok, {State, ClientState}};
 handle_msg({Request, #cast {
         timeout = Timeout
     } = Cast}, {#state {
         client = Client,
-        name = Name,
+        id = Id,
         pool_name = PoolName,
         socket = Socket
     } = State, ClientState}) ->
@@ -94,31 +95,31 @@ handle_msg({Request, #cast {
                 ok ->
                     Msg = {timeout, ExtRequestId},
                     TimerRef = erlang:send_after(Timeout, self(), Msg),
-                    shackle_queue:add(ExtRequestId, Cast, TimerRef),
+                    shackle_queue:add(Id, ExtRequestId, Cast, TimerRef),
                     {ok, {State, ClientState2}};
                 {error, Reason} ->
                     ?WARN(PoolName, "send error: ~p", [Reason]),
                     ssl:close(Socket),
-                    ?SERVER_UTILS:reply(Name, {error, socket_closed}, Cast),
+                    ?SERVER_UTILS:reply(Id, {error, socket_closed}, Cast),
                     close(State, ClientState2)
             end
     catch
         ?EXCEPTION(E, R, Stacktrace) ->
             ?WARN(PoolName, "handle_request crash: ~p:~p~n~p~n",
                 [E, R, ?GET_STACK(Stacktrace)]),
-            ?SERVER_UTILS:reply(Name, {error, client_crash}, Cast),
+            ?SERVER_UTILS:reply(Id, {error, client_crash}, Cast),
             {ok, {State, ClientState}}
     end;
 handle_msg({ssl, Socket, Data}, {#state {
         client = Client,
-        name = Name,
+        id = Id,
         pool_name = PoolName,
         socket = Socket
     } = State, ClientState}) ->
 
     try Client:handle_data(Data, ClientState) of
         {ok, Replies, ClientState2} ->
-            ?SERVER_UTILS:process_responses(Replies, Name),
+            ?SERVER_UTILS:process_responses(Id, Replies),
             {ok, {State, ClientState2}};
         {error, Reason, ClientState2} ->
             ?WARN(PoolName, "handle_data error: ~p", [Reason]),
@@ -133,7 +134,7 @@ handle_msg({ssl, Socket, Data}, {#state {
     end;
 handle_msg({timeout, ExtRequestId}, {#state {
         client = Client,
-        name = Name,
+        id = Id,
         pool_name = PoolName,
         socket = Socket
     } = State, ClientState}) ->
@@ -142,7 +143,7 @@ handle_msg({timeout, ExtRequestId}, {#state {
         true ->
             try Client:handle_timeout(ExtRequestId, ClientState) of
                 {ok, Reply, ClientState2} ->
-                    ?SERVER_UTILS:process_responses([Reply], Name),
+                    ?SERVER_UTILS:process_responses(Id, [Reply]),
                     {ok, {State, ClientState2}};
                 {error, Reason, ClientState2} ->
                     ?WARN(PoolName, "handle_timeout error: ~p", [Reason]),
@@ -156,9 +157,9 @@ handle_msg({timeout, ExtRequestId}, {#state {
                     close(State, ClientState)
             end;
         false ->
-            case shackle_queue:remove(Name, ExtRequestId) of
+            case shackle_queue:remove(Id, ExtRequestId) of
                 {ok, Cast, _TimerRef} ->
-                    ?SERVER_UTILS:reply(Name, {error, timeout}, Cast);
+                    ?SERVER_UTILS:reply(Id, {error, timeout}, Cast);
                 {error, not_found} ->
                     ok
             end,
@@ -181,7 +182,7 @@ handle_msg({ssl_error, Socket, Reason}, {#state {
     close(State, ClientState);
 handle_msg(?MSG_CONNECT, {#state {
         client = Client,
-        index = Index,
+        id = Id,
         init_options = Init,
         ip = Ip,
         pool_name = PoolName,
@@ -196,7 +197,7 @@ handle_msg(?MSG_CONNECT, {#state {
                 {ok, ClientState2} ->
                     ReconnectState2 =
                         ?SERVER_UTILS:reconnect_state_reset(ReconnectState),
-                    shackle_status:enable(PoolName, Index),
+                    shackle_status:enable(Id),
 
                     {ok, {State#state {
                         reconnect_state = ReconnectState2,
@@ -221,7 +222,7 @@ handle_msg(Msg, {#state {
 
 terminate(_Reason, {#state {
         client = Client,
-        name = Name,
+        id = Id,
         pool_name = PoolName,
         timer_ref = TimerRef
     }, ClientState}) ->
@@ -233,19 +234,14 @@ terminate(_Reason, {#state {
             ?WARN(PoolName, "terminate crash: ~p:~p~n~p~n",
                 [E, R, ?GET_STACK(Stacktrace)])
     end,
-    ?SERVER_UTILS:reply_all(Name, {error, shutdown}),
-    shackle_backlog:delete(Name),
+    ?SERVER_UTILS:reply_all(Id, {error, shutdown}),
+    shackle_backlog:delete(Id),
     ok.
 
 %% private
-close(#state {
-        index = Index,
-        name = Name,
-        pool_name = PoolName
-    } = State, ClientState) ->
-
-    shackle_status:disable(PoolName, Index),
-    ?SERVER_UTILS:reply_all(Name, {error, socket_closed}),
+close(#state {id = Id} = State, ClientState) ->
+    shackle_status:disable(Id),
+    ?SERVER_UTILS:reply_all(Id, {error, socket_closed}),
     reconnect(State, ClientState).
 
 connect(PoolName, Ip, Port, SocketOptions) ->

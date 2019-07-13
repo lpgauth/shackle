@@ -139,13 +139,13 @@ server(Name, #pool_options {
         pool_strategy = PoolStrategy
     } = Options, N) ->
 
-    ServerIndex = server_index(Name, PoolSize, PoolStrategy),
-    {ok, Server} = shackle_pool_foil:lookup({Name, ServerIndex}),
-    case shackle_status:active(Name, ServerIndex) of
+    ServerId = server_id(Name, PoolSize, PoolStrategy),
+    case shackle_status:active(ServerId) of
         true ->
-            case shackle_backlog:check(Server, BacklogSize) of
+            case shackle_backlog:check(ServerId, BacklogSize) of
                 true ->
-                    {ok, Client, Server};
+                    {ok, ServerName} = shackle_pool_foil:lookup(ServerId),
+                    {ok, Client, ServerName};
                 false ->
                     server(Name, Options, N - 1)
             end;
@@ -153,13 +153,13 @@ server(Name, #pool_options {
             server(Name, Options, N - 1)
     end.
 
-server_index(_Name, PoolSize, random) ->
-    shackle_utils:random(PoolSize);
-server_index(Name, PoolSize, round_robin) ->
+server_id(Name, PoolSize, random) ->
+    {Name, shackle_utils:random(PoolSize)};
+server_id(Name, PoolSize, round_robin) ->
     UpdateOps = [{2, 1, PoolSize, 1}],
     Key = {Name, round_robin},
     [ServerId] = ets:update_counter(?ETS_TABLE_POOL_INDEX, Key, UpdateOps),
-    ServerId.
+    {Name, ServerId}.
 
 setup(Name, #pool_options {pool_size = PoolSize} = OptionsRec) ->
     shackle_status:new(Name, PoolSize),

@@ -35,20 +35,20 @@ client(Client, PoolName, InitOptions, SocketType, Socket) ->
             {error, Reason, undefined}
     end.
 
--spec process_responses([response()], server_name()) ->
+-spec process_responses(server_id(), [response()]) ->
     ok.
 
-process_responses([], _Name) ->
+process_responses(_ServerId, []) ->
     ok;
-process_responses([{ExtRequestId, Reply} | T], Name) ->
-    case shackle_queue:remove(Name, ExtRequestId) of
+process_responses(ServerId, [{ExtRequestId, Reply} | T]) ->
+    case shackle_queue:remove(ServerId, ExtRequestId) of
         {ok, Cast, TimerRef} ->
             erlang:cancel_timer(TimerRef),
-            reply(Name, Reply, Cast);
+            reply(ServerId, Reply, Cast);
         {error, not_found} ->
             ok
     end,
-    process_responses(T, Name).
+    process_responses(ServerId, T).
 
 -spec reconnect_state(client_options()) ->
     undefined | reconnect_state().
@@ -80,22 +80,22 @@ reconnect_state_reset(#reconnect_state {} = ReconnectState) ->
         current = undefined
     }.
 
--spec reply(server_name(), term(), undefined | cast()) ->
+-spec reply(server_id(), term(), undefined | cast()) ->
     ok.
 
-reply(Name, _Reply, #cast {pid = undefined}) ->
-    shackle_backlog:decrement(Name),
+reply(ServerId, _Reply, #cast {pid = undefined}) ->
+    shackle_backlog:decrement(ServerId),
     ok;
-reply(Name, Reply, #cast {pid = Pid} = Cast) ->
-    shackle_backlog:decrement(Name),
+reply(ServerId, Reply, #cast {pid = Pid} = Cast) ->
+    shackle_backlog:decrement(ServerId),
     Pid ! {Cast, Reply},
     ok.
 
--spec reply_all(server_name(), term()) ->
+-spec reply_all(server_id(), term()) ->
     ok.
 
-reply_all(Name, Reply) ->
-    reply_all(Name, Reply, shackle_queue:clear(Name)).
+reply_all(ServerId, Reply) ->
+    reply_all(ServerId, Reply, shackle_queue:clear(ServerId)).
 
 %% private
 client_init(Client, PoolName, InitOptions) ->
@@ -128,9 +128,9 @@ client_setup(Client, PoolName, SocketType, Socket, ClientState) ->
             {error, client_crash, ClientState}
     end.
 
-reply_all(_Name, _Reply, []) ->
+reply_all(_ServerId, _Reply, []) ->
     ok;
-reply_all(Name, Reply, [{Cast, TimerRef} | T]) ->
+reply_all(ServerId, Reply, [{Cast, TimerRef} | T]) ->
     erlang:cancel_timer(TimerRef),
-    reply(Name, Reply, Cast),
-    reply_all(Name, Reply, T).
+    reply(ServerId, Reply, Cast),
+    reply_all(ServerId, Reply, T).

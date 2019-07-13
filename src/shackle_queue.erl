@@ -6,30 +6,26 @@
 
 %% internal
 -export([
-    add/3,
+    add/4,
     clear/1,
     init/0,
     remove/2
 ]).
 
 %% internal
--spec add(external_request_id(), cast(), reference()) ->
+-spec add(server_id(), external_request_id(), cast(), reference()) ->
     ok.
 
-add(ExtRequestId, #cast {
-        request_id = {ServerName, _}
-    } = Cast, TimerRef) ->
-
-    Object = {{ServerName, ExtRequestId}, {Cast, TimerRef}},
+add(ServerId, ExtRequestId, Cast, TimerRef) ->
+    Object = {{ServerId, ExtRequestId}, {Cast, TimerRef}},
     ets:insert(?ETS_TABLE_QUEUE, Object),
-
     ok.
 
--spec clear(server_name()) ->
+-spec clear(server_id()) ->
     [{cast(), reference()}].
 
-clear(ServerName) ->
-    Match = {{ServerName, '_'}, '_'},
+clear(ServerId) ->
+    Match = {{ServerId, '_'}, '_'},
     case ets_match_take(?ETS_TABLE_QUEUE, Match) of
         [] ->
             [];
@@ -44,11 +40,11 @@ init() ->
     ets_new(?ETS_TABLE_QUEUE),
     ok.
 
--spec remove(server_name(), external_request_id()) ->
+-spec remove(server_id(), external_request_id()) ->
     {ok, cast(), reference()} | {error, not_found}.
 
-remove(ServerName, ExtRequestId) ->
-    case ets_take(?ETS_TABLE_QUEUE, {ServerName, ExtRequestId}) of
+remove(ServerId, ExtRequestId) ->
+    case ets_take(?ETS_TABLE_QUEUE, {ServerId, ExtRequestId}) of
         [] ->
             {error, not_found};
         [{_, {Cast, TimerRef}}] ->

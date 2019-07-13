@@ -5,10 +5,10 @@
 -compile({inline_size, 512}).
 
 -export([
-    active/2,
+    active/1,
     delete/1,
-    disable/2,
-    enable/2,
+    disable/1,
+    enable/1,
     init/0,
     new/2
 ]).
@@ -16,10 +16,10 @@
 %% public
 -ifdef(ATOMICS).
 
--spec active(pool_name(), server_index()) ->
+-spec active(server_id()) ->
     boolean().
 
-active(PoolName, ServerIndex) ->
+active({PoolName, ServerIndex}) ->
     case persistent_term:get(PoolName, undefined) of
         undefined ->
             false;
@@ -34,10 +34,10 @@ delete(PoolName) ->
     persistent_term:erase(PoolName),
     ok.
 
--spec disable(pool_name(), server_index()) ->
+-spec disable(server_id()) ->
     ok.
 
-disable(PoolName, ServerIndex) ->
+disable({PoolName, ServerIndex}) ->
     case persistent_term:get(PoolName, undefined) of
         undefined ->
             ok;
@@ -45,10 +45,10 @@ disable(PoolName, ServerIndex) ->
             counters:sub(Counters, ServerIndex, 1)
     end.
 
--spec enable(pool_name(), server_index()) ->
+-spec enable(server_id()) ->
     ok.
 
-enable(PoolName, ServerIndex) ->
+enable({PoolName, ServerIndex}) ->
     case persistent_term:get(PoolName, undefined) of
         undefined ->
             ok;
@@ -71,10 +71,10 @@ new(PoolName, PoolSize) ->
 
 -else.
 
--spec active(pool_name(), server_index()) ->
+-spec active(server_id()) ->
     boolean().
 
-active(PoolName, ServerIndex) ->
+active({PoolName, ServerIndex}) ->
     try
         Bit = ets:lookup_element(?ETS_TABLE_STATUS, PoolName, ServerIndex + 1),
         boolean(Bit)
@@ -90,10 +90,10 @@ delete(PoolName) ->
     ets:delete(?ETS_TABLE_STATUS, PoolName),
     ok.
 
--spec disable(pool_name(), server_index()) ->
+-spec disable(server_id()) ->
     ok.
 
-disable(PoolName, ServerIndex) ->
+disable({PoolName, ServerIndex}) ->
     try
         ets:update_counter(?ETS_TABLE_STATUS, PoolName, {ServerIndex + 1, -1}),
         ok
@@ -102,10 +102,10 @@ disable(PoolName, ServerIndex) ->
             ok
     end.
 
--spec enable(pool_name(), server_index()) ->
+-spec enable(server_id()) ->
     ok.
 
-enable(PoolName, ServerIndex) ->
+enable({PoolName, ServerIndex}) ->
     try
         ets:update_counter(?ETS_TABLE_STATUS, PoolName, {ServerIndex + 1, 1}),
         ok
