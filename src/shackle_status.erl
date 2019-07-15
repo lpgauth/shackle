@@ -75,13 +75,7 @@ new(PoolName, PoolSize) ->
     boolean().
 
 active({PoolName, ServerIndex}) ->
-    try
-        Bit = ets:lookup_element(?ETS_TABLE_STATUS, PoolName, ServerIndex + 1),
-        boolean(Bit)
-    catch
-        error:badarg ->
-            false
-    end.
+    boolean(ets:lookup_element(?ETS_TABLE_STATUS, PoolName, ServerIndex + 1)).
 
 -spec delete(pool_name()) ->
     ok.
@@ -94,25 +88,15 @@ delete(PoolName) ->
     ok.
 
 disable({PoolName, ServerIndex}) ->
-    try
-        ets:update_counter(?ETS_TABLE_STATUS, PoolName, {ServerIndex + 1, -1}),
-        ok
-    catch
-        error:badard ->
-            ok
-    end.
+    ets:update_counter(?ETS_TABLE_STATUS, PoolName, {ServerIndex + 1, -1}),
+    ok.
 
 -spec enable(server_id()) ->
     ok.
 
 enable({PoolName, ServerIndex}) ->
-    try
-        ets:update_counter(?ETS_TABLE_STATUS, PoolName, {ServerIndex + 1, 1}),
-        ok
-    catch
-        error:badard ->
-            ok
-    end.
+    ets:update_counter(?ETS_TABLE_STATUS, PoolName, {ServerIndex + 1, 1}),
+    ok.
 
 -spec init() ->
     ok.
