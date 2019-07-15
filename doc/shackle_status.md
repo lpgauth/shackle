@@ -1,6 +1,6 @@
 
 
-# Module shackle_ssl_server #
+# Module shackle_status #
 * [Data Types](#types)
 * [Function Index](#index)
 * [Function Details](#functions)
@@ -22,16 +22,6 @@ backlog_size() = pos_integer() | infinity
 
 
 
-### <a name="type-client">client()</a> ###
-
-
-<pre><code>
-client() = module()
-</code></pre>
-
-
-
-
 ### <a name="type-client_option">client_option()</a> ###
 
 
@@ -47,16 +37,6 @@ client_option() = {init_options, <a href="#type-init_options">init_options()</a>
 
 <pre><code>
 client_options() = [<a href="#type-client_option">client_option()</a>]
-</code></pre>
-
-
-
-
-### <a name="type-client_state">client_state()</a> ###
-
-
-<pre><code>
-client_state() = term()
 </code></pre>
 
 
@@ -142,16 +122,6 @@ protocol() = shackle_ssl | shackle_tcp | shackle_udp
 
 
 
-### <a name="type-reconnect_state">reconnect_state()</a> ###
-
-
-<pre><code>
-reconnect_state() = #reconnect_state{current = undefined | <a href="#type-time">time()</a>, max = <a href="#type-time">time()</a> | infinity, min = <a href="#type-time">time()</a>}
-</code></pre>
-
-
-
-
 ### <a name="type-request_id">request_id()</a> ###
 
 
@@ -192,26 +162,6 @@ server_name() = atom()
 
 
 
-### <a name="type-server_opts">server_opts()</a> ###
-
-
-<pre><code>
-server_opts() = {<a href="#type-pool_name">pool_name()</a>, <a href="#type-server_index">server_index()</a>, <a href="#type-client">client()</a>, <a href="#type-client_options">client_options()</a>}
-</code></pre>
-
-
-
-
-### <a name="type-state">state()</a> ###
-
-
-<pre><code>
-state() = #state{client = <a href="#type-client">client()</a>, id = <a href="#type-server_id">server_id()</a>, init_options = <a href="#type-init_options">init_options()</a>, ip = <a href="inet.md#type-ip_address">inet:ip_address()</a> | <a href="inet.md#type-hostname">inet:hostname()</a>, name = <a href="#type-server_name">server_name()</a>, parent = pid(), pool_name = <a href="#type-pool_name">pool_name()</a>, port = <a href="inet.md#type-port_number">inet:port_number()</a>, reconnect_state = undefined | <a href="#type-reconnect_state">reconnect_state()</a>, socket = undefined | <a href="ssl.md#type-sslsocket">ssl:sslsocket()</a>, socket_options = [<a href="ssl.md#type-connect_option">ssl:connect_option()</a>], timer_ref = undefined | reference()}
-</code></pre>
-
-
-
-
 ### <a name="type-time">time()</a> ###
 
 
@@ -224,46 +174,64 @@ time() = pos_integer()
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#handle_msg-2">handle_msg/2</a></td><td></td></tr><tr><td valign="top"><a href="#init-3">init/3</a></td><td></td></tr><tr><td valign="top"><a href="#start_link-2">start_link/2</a></td><td></td></tr><tr><td valign="top"><a href="#terminate-2">terminate/2</a></td><td></td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#active-1">active/1</a></td><td></td></tr><tr><td valign="top"><a href="#delete-1">delete/1</a></td><td></td></tr><tr><td valign="top"><a href="#disable-1">disable/1</a></td><td></td></tr><tr><td valign="top"><a href="#enable-1">enable/1</a></td><td></td></tr><tr><td valign="top"><a href="#init-0">init/0</a></td><td></td></tr><tr><td valign="top"><a href="#new-2">new/2</a></td><td></td></tr></table>
 
 
 <a name="functions"></a>
 
 ## Function Details ##
 
-<a name="handle_msg-2"></a>
+<a name="active-1"></a>
 
-### handle_msg/2 ###
+### active/1 ###
 
 <pre><code>
-handle_msg(Msg::term(), X2::{<a href="#type-state">state()</a>, <a href="#type-client_state">client_state()</a>}) -&gt; {ok, term()}
+active(X1::<a href="#type-server_id">server_id()</a>) -&gt; boolean()
 </code></pre>
 <br />
 
-<a name="init-3"></a>
+<a name="delete-1"></a>
 
-### init/3 ###
+### delete/1 ###
 
 <pre><code>
-init(Name::<a href="#type-server_name">server_name()</a>, Parent::pid(), Opts::<a href="#type-server_opts">server_opts()</a>) -&gt; no_return()
+delete(PoolName::<a href="#type-pool_name">pool_name()</a>) -&gt; ok
 </code></pre>
 <br />
 
-<a name="start_link-2"></a>
+<a name="disable-1"></a>
 
-### start_link/2 ###
+### disable/1 ###
 
 <pre><code>
-start_link(Name::<a href="#type-server_name">server_name()</a>, Opts::<a href="#type-server_opts">server_opts()</a>) -&gt; {ok, pid()}
+disable(X1::<a href="#type-server_id">server_id()</a>) -&gt; ok
 </code></pre>
 <br />
 
-<a name="terminate-2"></a>
+<a name="enable-1"></a>
 
-### terminate/2 ###
+### enable/1 ###
 
 <pre><code>
-terminate(Reason::term(), X2::term()) -&gt; ok
+enable(X1::<a href="#type-server_id">server_id()</a>) -&gt; ok
+</code></pre>
+<br />
+
+<a name="init-0"></a>
+
+### init/0 ###
+
+<pre><code>
+init() -&gt; ok
+</code></pre>
+<br />
+
+<a name="new-2"></a>
+
+### new/2 ###
+
+<pre><code>
+new(PoolName::<a href="#type-pool_name">pool_name()</a>, PoolSize::<a href="#type-pool_size">pool_size()</a>) -&gt; ok
 </code></pre>
 <br />
 

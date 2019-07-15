@@ -62,6 +62,16 @@ init_options() = term()
 
 
 
+### <a name="type-max_retries">max_retries()</a> ###
+
+
+<pre><code>
+max_retries() = non_neg_integer()
+</code></pre>
+
+
+
+
 ### <a name="type-pool_name">pool_name()</a> ###
 
 
@@ -76,7 +86,7 @@ pool_name() = atom()
 
 
 <pre><code>
-pool_option() = {backlog_size, <a href="#type-backlog_size">backlog_size()</a>} | {pool_size, <a href="#type-pool_size">pool_size()</a>} | {pool_strategy, <a href="#type-pool_strategy">pool_strategy()</a>}
+pool_option() = {backlog_size, <a href="#type-backlog_size">backlog_size()</a>} | {max_retries, <a href="#type-max_retries">max_retries()</a>} | {pool_size, <a href="#type-pool_size">pool_size()</a>} | {pool_strategy, <a href="#type-pool_strategy">pool_strategy()</a>}
 </code></pre>
 
 
@@ -175,7 +185,7 @@ init() -&gt; ok
 ### server/1 ###
 
 <pre><code>
-server(Name::<a href="#type-pool_name">pool_name()</a>) -&gt; {ok, <a href="#type-client">client()</a>, pid()} | {error, atom()}
+server(Name::<a href="#type-pool_name">pool_name()</a>) -&gt; {ok, <a href="#type-client">client()</a>, atom()} | {error, pool_not_started | no_server | shackle_not_started}
 </code></pre>
 <br />
 

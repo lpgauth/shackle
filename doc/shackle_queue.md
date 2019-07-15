@@ -26,7 +26,7 @@ backlog_size() = pos_integer() | infinity
 
 
 <pre><code>
-cast() = #cast{client = <a href="#type-client">client()</a>, pid = undefined | pid(), request = term(), request_id = <a href="#type-request_id">request_id()</a>, timeout = timeout(), timestamp = <a href="erlang.md#type-timestamp">erlang:timestamp()</a>}
+cast() = #cast{client = <a href="#type-client">client()</a>, pid = undefined | pid(), request_id = <a href="#type-request_id">request_id()</a>, timeout = timeout(), timestamp = <a href="erlang.md#type-timestamp">erlang:timestamp()</a>}
 </code></pre>
 
 
@@ -82,11 +82,31 @@ init_options() = term()
 
 
 
+### <a name="type-max_retries">max_retries()</a> ###
+
+
+<pre><code>
+max_retries() = non_neg_integer()
+</code></pre>
+
+
+
+
+### <a name="type-pool_name">pool_name()</a> ###
+
+
+<pre><code>
+pool_name() = atom()
+</code></pre>
+
+
+
+
 ### <a name="type-pool_option">pool_option()</a> ###
 
 
 <pre><code>
-pool_option() = {backlog_size, <a href="#type-backlog_size">backlog_size()</a>} | {pool_size, <a href="#type-pool_size">pool_size()</a>} | {pool_strategy, <a href="#type-pool_strategy">pool_strategy()</a>}
+pool_option() = {backlog_size, <a href="#type-backlog_size">backlog_size()</a>} | {max_retries, <a href="#type-max_retries">max_retries()</a>} | {pool_size, <a href="#type-pool_size">pool_size()</a>} | {pool_strategy, <a href="#type-pool_strategy">pool_strategy()</a>}
 </code></pre>
 
 
@@ -142,6 +162,26 @@ request_id() = {<a href="#type-server_name">server_name()</a>, reference()}
 
 
 
+### <a name="type-server_id">server_id()</a> ###
+
+
+<pre><code>
+server_id() = {<a href="#type-pool_name">pool_name()</a>, <a href="#type-server_index">server_index()</a>}
+</code></pre>
+
+
+
+
+### <a name="type-server_index">server_index()</a> ###
+
+
+<pre><code>
+server_index() = pos_integer()
+</code></pre>
+
+
+
+
 ### <a name="type-server_name">server_name()</a> ###
 
 
@@ -164,19 +204,19 @@ time() = pos_integer()
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#add-3">add/3</a></td><td></td></tr><tr><td valign="top"><a href="#clear-1">clear/1</a></td><td></td></tr><tr><td valign="top"><a href="#init-0">init/0</a></td><td></td></tr><tr><td valign="top"><a href="#remove-2">remove/2</a></td><td></td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#add-4">add/4</a></td><td></td></tr><tr><td valign="top"><a href="#clear-1">clear/1</a></td><td></td></tr><tr><td valign="top"><a href="#init-0">init/0</a></td><td></td></tr><tr><td valign="top"><a href="#remove-2">remove/2</a></td><td></td></tr></table>
 
 
 <a name="functions"></a>
 
 ## Function Details ##
 
-<a name="add-3"></a>
+<a name="add-4"></a>
 
-### add/3 ###
+### add/4 ###
 
 <pre><code>
-add(ExtRequestId::<a href="#type-external_request_id">external_request_id()</a>, Cast::<a href="#type-cast">cast()</a>, TimerRef::reference()) -&gt; ok
+add(ServerId::<a href="#type-server_id">server_id()</a>, ExtRequestId::<a href="#type-external_request_id">external_request_id()</a>, Cast::<a href="#type-cast">cast()</a>, TimerRef::reference()) -&gt; ok
 </code></pre>
 <br />
 
@@ -185,7 +225,7 @@ add(ExtRequestId::<a href="#type-external_request_id">external_request_id()</a>,
 ### clear/1 ###
 
 <pre><code>
-clear(ServerName::<a href="#type-server_name">server_name()</a>) -&gt; [{<a href="#type-cast">cast()</a>, reference()}]
+clear(ServerId::<a href="#type-server_id">server_id()</a>) -&gt; [{<a href="#type-cast">cast()</a>, reference()}]
 </code></pre>
 <br />
 
@@ -203,7 +243,7 @@ init() -&gt; ok
 ### remove/2 ###
 
 <pre><code>
-remove(ServerName::<a href="#type-server_name">server_name()</a>, ExtRequestId::<a href="#type-external_request_id">external_request_id()</a>) -&gt; {ok, <a href="#type-cast">cast()</a>, reference()} | {error, not_found}
+remove(ServerId::<a href="#type-server_id">server_id()</a>, ExtRequestId::<a href="#type-external_request_id">external_request_id()</a>) -&gt; {ok, <a href="#type-cast">cast()</a>, reference()} | {error, not_found}
 </code></pre>
 <br />
 

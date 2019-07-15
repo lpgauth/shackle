@@ -72,11 +72,11 @@ init_options() = term()
 
 
 
-### <a name="type-init_opts">init_opts()</a> ###
+### <a name="type-max_retries">max_retries()</a> ###
 
 
 <pre><code>
-init_opts() = {<a href="#type-pool_name">pool_name()</a>, <a href="#type-client">client()</a>, <a href="#type-client_options">client_options()</a>}
+max_retries() = non_neg_integer()
 </code></pre>
 
 
@@ -96,7 +96,7 @@ pool_name() = atom()
 
 
 <pre><code>
-pool_option() = {backlog_size, <a href="#type-backlog_size">backlog_size()</a>} | {pool_size, <a href="#type-pool_size">pool_size()</a>} | {pool_strategy, <a href="#type-pool_strategy">pool_strategy()</a>}
+pool_option() = {backlog_size, <a href="#type-backlog_size">backlog_size()</a>} | {max_retries, <a href="#type-max_retries">max_retries()</a>} | {pool_size, <a href="#type-pool_size">pool_size()</a>} | {pool_strategy, <a href="#type-pool_strategy">pool_strategy()</a>}
 </code></pre>
 
 
@@ -162,6 +162,26 @@ request_id() = {<a href="#type-server_name">server_name()</a>, reference()}
 
 
 
+### <a name="type-server_id">server_id()</a> ###
+
+
+<pre><code>
+server_id() = {<a href="#type-pool_name">pool_name()</a>, <a href="#type-server_index">server_index()</a>}
+</code></pre>
+
+
+
+
+### <a name="type-server_index">server_index()</a> ###
+
+
+<pre><code>
+server_index() = pos_integer()
+</code></pre>
+
+
+
+
 ### <a name="type-server_name">server_name()</a> ###
 
 
@@ -172,11 +192,21 @@ server_name() = atom()
 
 
 
+### <a name="type-server_opts">server_opts()</a> ###
+
+
+<pre><code>
+server_opts() = {<a href="#type-pool_name">pool_name()</a>, <a href="#type-server_index">server_index()</a>, <a href="#type-client">client()</a>, <a href="#type-client_options">client_options()</a>}
+</code></pre>
+
+
+
+
 ### <a name="type-state">state()</a> ###
 
 
 <pre><code>
-state() = #state{client = <a href="#type-client">client()</a>, init_options = <a href="#type-init_options">init_options()</a>, ip = <a href="inet.md#type-ip_address">inet:ip_address()</a> | <a href="inet.md#type-hostname">inet:hostname()</a>, name = <a href="#type-server_name">server_name()</a>, parent = pid(), pool_name = <a href="#type-pool_name">pool_name()</a>, port = <a href="inet.md#type-port_number">inet:port_number()</a>, reconnect_state = undefined | <a href="#type-reconnect_state">reconnect_state()</a>, socket = undefined | <a href="inet.md#type-socket">inet:socket()</a>, socket_options = [<a href="gen_tcp.md#type-connect_option">gen_tcp:connect_option()</a>], timer_ref = undefined | reference()}
+state() = #state{client = <a href="#type-client">client()</a>, id = <a href="#type-server_id">server_id()</a>, init_options = <a href="#type-init_options">init_options()</a>, ip = <a href="inet.md#type-ip_address">inet:ip_address()</a> | <a href="inet.md#type-hostname">inet:hostname()</a>, name = <a href="#type-server_name">server_name()</a>, parent = pid(), pool_name = <a href="#type-pool_name">pool_name()</a>, port = <a href="inet.md#type-port_number">inet:port_number()</a>, reconnect_state = undefined | <a href="#type-reconnect_state">reconnect_state()</a>, socket = undefined | <a href="inet.md#type-socket">inet:socket()</a>, socket_options = [<a href="gen_tcp.md#type-connect_option">gen_tcp:connect_option()</a>], timer_ref = undefined | reference()}
 </code></pre>
 
 
@@ -194,7 +224,7 @@ time() = pos_integer()
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#handle_msg-2">handle_msg/2</a></td><td></td></tr><tr><td valign="top"><a href="#init-3">init/3</a></td><td></td></tr><tr><td valign="top"><a href="#start_link-4">start_link/4</a></td><td></td></tr><tr><td valign="top"><a href="#terminate-2">terminate/2</a></td><td></td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#handle_msg-2">handle_msg/2</a></td><td></td></tr><tr><td valign="top"><a href="#init-3">init/3</a></td><td></td></tr><tr><td valign="top"><a href="#start_link-2">start_link/2</a></td><td></td></tr><tr><td valign="top"><a href="#terminate-2">terminate/2</a></td><td></td></tr></table>
 
 
 <a name="functions"></a>
@@ -206,7 +236,7 @@ time() = pos_integer()
 ### handle_msg/2 ###
 
 <pre><code>
-handle_msg(Cast::term(), X2::{<a href="#type-state">state()</a>, <a href="#type-client_state">client_state()</a>}) -&gt; {ok, term()}
+handle_msg(Msg::term(), X2::{<a href="#type-state">state()</a>, <a href="#type-client_state">client_state()</a>}) -&gt; {ok, term()}
 </code></pre>
 <br />
 
@@ -215,16 +245,16 @@ handle_msg(Cast::term(), X2::{<a href="#type-state">state()</a>, <a href="#type-
 ### init/3 ###
 
 <pre><code>
-init(Name::<a href="#type-server_name">server_name()</a>, Parent::pid(), Opts::<a href="#type-init_opts">init_opts()</a>) -&gt; no_return()
+init(Name::<a href="#type-server_name">server_name()</a>, Parent::pid(), Opts::<a href="#type-server_opts">server_opts()</a>) -&gt; no_return()
 </code></pre>
 <br />
 
-<a name="start_link-4"></a>
+<a name="start_link-2"></a>
 
-### start_link/4 ###
+### start_link/2 ###
 
 <pre><code>
-start_link(Name::<a href="#type-server_name">server_name()</a>, PoolName::<a href="#type-pool_name">pool_name()</a>, Client::<a href="#type-client">client()</a>, ClientOptions::<a href="#type-client_options">client_options()</a>) -&gt; {ok, pid()}
+start_link(Name::<a href="#type-server_name">server_name()</a>, Opts::<a href="#type-server_opts">server_opts()</a>) -&gt; {ok, pid()}
 </code></pre>
 <br />
 

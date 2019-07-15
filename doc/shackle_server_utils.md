@@ -26,7 +26,7 @@ backlog_size() = pos_integer() | infinity
 
 
 <pre><code>
-cast() = #cast{client = <a href="#type-client">client()</a>, pid = undefined | pid(), request = term(), request_id = <a href="#type-request_id">request_id()</a>, timeout = timeout(), timestamp = <a href="erlang.md#type-timestamp">erlang:timestamp()</a>}
+cast() = #cast{client = <a href="#type-client">client()</a>, pid = undefined | pid(), request_id = <a href="#type-request_id">request_id()</a>, timeout = timeout(), timestamp = <a href="erlang.md#type-timestamp">erlang:timestamp()</a>}
 </code></pre>
 
 
@@ -92,6 +92,16 @@ init_options() = term()
 
 
 
+### <a name="type-max_retries">max_retries()</a> ###
+
+
+<pre><code>
+max_retries() = non_neg_integer()
+</code></pre>
+
+
+
+
 ### <a name="type-pool_name">pool_name()</a> ###
 
 
@@ -106,7 +116,7 @@ pool_name() = atom()
 
 
 <pre><code>
-pool_option() = {backlog_size, <a href="#type-backlog_size">backlog_size()</a>} | {pool_size, <a href="#type-pool_size">pool_size()</a>} | {pool_strategy, <a href="#type-pool_strategy">pool_strategy()</a>}
+pool_option() = {backlog_size, <a href="#type-backlog_size">backlog_size()</a>} | {max_retries, <a href="#type-max_retries">max_retries()</a>} | {pool_size, <a href="#type-pool_size">pool_size()</a>} | {pool_strategy, <a href="#type-pool_strategy">pool_strategy()</a>}
 </code></pre>
 
 
@@ -177,6 +187,26 @@ request_id() = {<a href="#type-server_name">server_name()</a>, reference()}
 
 <pre><code>
 response() = {<a href="#type-external_request_id">external_request_id()</a>, term()}
+</code></pre>
+
+
+
+
+### <a name="type-server_id">server_id()</a> ###
+
+
+<pre><code>
+server_id() = {<a href="#type-pool_name">pool_name()</a>, <a href="#type-server_index">server_index()</a>}
+</code></pre>
+
+
+
+
+### <a name="type-server_index">server_index()</a> ###
+
+
+<pre><code>
+server_index() = pos_integer()
 </code></pre>
 
 
@@ -254,7 +284,7 @@ client(Client::<a href="#type-client">client()</a>, PoolName::<a href="#type-poo
 ### process_responses/2 ###
 
 <pre><code>
-process_responses(T::[<a href="#type-response">response()</a>], Name::<a href="#type-server_name">server_name()</a>) -&gt; ok
+process_responses(ServerId::<a href="#type-server_id">server_id()</a>, T::[<a href="#type-response">response()</a>]) -&gt; ok
 </code></pre>
 <br />
 
@@ -281,7 +311,7 @@ reconnect_state_reset(Reconnect_state::undefined | <a href="#type-reconnect_stat
 ### reply/3 ###
 
 <pre><code>
-reply(Name::<a href="#type-server_name">server_name()</a>, Reply::term(), Cast::undefined | <a href="#type-cast">cast()</a>) -&gt; ok
+reply(ServerId::<a href="#type-server_id">server_id()</a>, Reply::term(), Cast::undefined | <a href="#type-cast">cast()</a>) -&gt; ok
 </code></pre>
 <br />
 
@@ -290,7 +320,7 @@ reply(Name::<a href="#type-server_name">server_name()</a>, Reply::term(), Cast::
 ### reply_all/2 ###
 
 <pre><code>
-reply_all(Name::<a href="#type-server_name">server_name()</a>, Reply::term()) -&gt; ok
+reply_all(ServerId::<a href="#type-server_id">server_id()</a>, Reply::term()) -&gt; ok
 </code></pre>
 <br />
 
