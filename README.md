@@ -26,6 +26,23 @@ High-Performance Erlang Network Client Framework
 * Concurrency
 * Safety
 
+## Environment variables
+
+<table width="100%">
+  <theader>
+    <th>Name</th>
+    <th>Type</th>
+    <th>Default</th>
+    <th>Description</th>
+  </theader>
+  <tr>
+    <td>hooks</td>
+    <td>[{atom(), {module(), atom()}}]</td>
+    <td>[]</td>
+    <td>used to receive events/metrics about your client</td>
+  </tr>
+</table>
+
 ## How-to
 
 #### Implementing a client
@@ -207,6 +224,34 @@ shackle_pool:start(pool_name(), client(), client_options(), pool_options())
 
 3> shackle:receive_response(ReqId).
 {ok, <<"bar">>}
+```
+
+## Hooks
+Hooks allow you to receive events and metrics about your client. To do so you need to implement the `shackle_hooks` behaviour and then use the `hooks` environment variable.
+
+```erlang
+-module(my_client_hooks).
+
+-behaviour(shackle_hooks).
+-export([
+    metrics/4
+]).
+
+metrics(Client, counter, Key, Value) ->
+    statsderl:increment(key(Client, Key), Value, 0.005);
+metrics(Client, timing, Key, Value) ->
+    statsderl:timing(key(Client, Key), Value, 0.005).
+
+key(Client, Key) ->
+    [<<"shackle.">>, atom_to_binary(Client, latin1), <<".">>, Key].
+```
+
+```erlang
+{shackle, [
+  {hooks, [
+    {metrics {my_client_hooks, metrics}}
+  ]}
+]}
 ```
 
 ## Tests

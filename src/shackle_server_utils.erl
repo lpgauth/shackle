@@ -8,7 +8,7 @@
 -export([
     cancel_timer/1,
     client/5,
-    process_responses/2,
+    process_responses/3,
     reconnect_state/1,
     reconnect_state_reset/1,
     reply/3,
@@ -35,20 +35,25 @@ client(Client, PoolName, InitOptions, SocketType, Socket) ->
             {error, Reason, undefined}
     end.
 
--spec process_responses(server_id(), [response()]) ->
+-spec process_responses(client(), server_id(), [response()]) ->
     ok.
 
-process_responses(_ServerId, []) ->
+process_responses(_Client, _ServerId, []) ->
     ok;
-process_responses(ServerId, [{ExtRequestId, Reply} | T]) ->
+process_responses(Client, ServerId, [{ExtRequestId, Reply} | T]) ->
+    ?METRICS(Client, counter, <<"replies">>),
     case shackle_queue:remove(ServerId, ExtRequestId) of
-        {ok, Cast, TimerRef} ->
+        {ok, #cast {timestamp = Timestamp} = Cast, TimerRef} ->
+            ?METRICS(Client, counter, <<"found">>),
+            Diff = timer:now_diff(os:timestamp(), Timestamp),
+            ?METRICS(Client, timing, <<"reply">>, Diff),
             erlang:cancel_timer(TimerRef),
             reply(ServerId, Reply, Cast);
         {error, not_found} ->
+            ?METRICS(Client, counter, <<"not_found">>, 1),
             ok
     end,
-    process_responses(ServerId, T).
+    process_responses(Client, ServerId, T).
 
 -spec reconnect_state(client_options()) ->
     undefined | reconnect_state().

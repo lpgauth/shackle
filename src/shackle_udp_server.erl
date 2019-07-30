@@ -98,6 +98,7 @@ handle_msg({Request, #cast {
         {ok, ExtRequestId, Data, ClientState2} ->
             case send(Socket, Header, Data) of
                 ok ->
+                    ?METRICS(Client, counter, <<"send">>),
                     Msg = {timeout, ExtRequestId},
                     TimerRef = erlang:send_after(Timeout, self(), Msg),
                     shackle_queue:add(Id, ExtRequestId, Cast, TimerRef),
@@ -124,9 +125,10 @@ handle_msg({udp, Socket, _Ip, _InPortNo, Data}, {#state {
         socket = Socket
     } = State, ClientState}) ->
 
+    ?METRICS(Client, counter, <<"recv">>),
     try Client:handle_data(Data, ClientState) of
         {ok, Replies, ClientState2} ->
-            ?SERVER_UTILS:process_responses(Id, Replies),
+            ?SERVER_UTILS:process_responses(Client, Id, Replies),
             {ok, {State, ClientState2}};
         {error, Reason, ClientState2} ->
             ?WARN(PoolName, "handle_data error: ~p", [Reason]),
@@ -150,7 +152,8 @@ handle_msg({timeout, ExtRequestId}, {#state {
         true ->
             try Client:handle_timeout(ExtRequestId, ClientState) of
                 {ok, Reply, ClientState2} ->
-                    ?SERVER_UTILS:process_responses(Id, [Reply]),
+                    ?METRICS(Client, counter, <<"handle_timeout">>),
+                    ?SERVER_UTILS:process_responses(Client, Id, [Reply]),
                     {ok, {State, ClientState2}};
                 {error, Reason, ClientState2} ->
                     ?WARN(PoolName, "handle_timeout error: ~p", [Reason]),
@@ -166,6 +169,7 @@ handle_msg({timeout, ExtRequestId}, {#state {
         false ->
             case shackle_queue:remove(Id, ExtRequestId) of
                 {ok, Cast, _TimerRef} ->
+                    ?METRICS(Client, counter, <<"timeout">>),
                     ?SERVER_UTILS:reply(Id, {error, timeout}, Cast);
                 {error, not_found} ->
                     ok
