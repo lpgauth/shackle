@@ -39,6 +39,9 @@
 -type external_request_id() :: term().
 -type init_options() :: term().
 -type max_retries() :: non_neg_integer().
+-type metric_type() :: counter | timing.
+-type metric_key() :: iodata().
+-type metric_value() :: integer().
 -type pool_name() :: atom().
 -type pool_option() :: {backlog_size, backlog_size()} |
                        {max_retries, max_retries()} |

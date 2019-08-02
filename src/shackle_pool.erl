@@ -130,7 +130,11 @@ options_rec(Client, Options) ->
         pool_strategy = PoolStrategy
     }.
 
-server(_Name, _Options, 0) ->
+server(_Name, #pool_options {
+        client = Client
+    }, 0) ->
+
+    ?METRICS(Client, counter, <<"no_server">>),
     {error, no_server};
 server(Name, #pool_options {
         backlog_size = BacklogSize,
@@ -147,9 +151,11 @@ server(Name, #pool_options {
                     {ok, ServerName} = shackle_pool_foil:lookup(ServerId),
                     {ok, Client, ServerName};
                 false ->
+                    ?METRICS(Client, counter, <<"backlog_full">>),
                     server(Name, Options, N - 1)
             end;
         false ->
+            ?METRICS(Client, counter, <<"disabled">>),
             server(Name, Options, N - 1)
     end.
 

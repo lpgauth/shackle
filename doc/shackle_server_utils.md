@@ -254,7 +254,7 @@ time() = pos_integer()
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#cancel_timer-1">cancel_timer/1</a></td><td></td></tr><tr><td valign="top"><a href="#client-5">client/5</a></td><td></td></tr><tr><td valign="top"><a href="#process_responses-2">process_responses/2</a></td><td></td></tr><tr><td valign="top"><a href="#reconnect_state-1">reconnect_state/1</a></td><td></td></tr><tr><td valign="top"><a href="#reconnect_state_reset-1">reconnect_state_reset/1</a></td><td></td></tr><tr><td valign="top"><a href="#reply-3">reply/3</a></td><td></td></tr><tr><td valign="top"><a href="#reply_all-2">reply_all/2</a></td><td></td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#cancel_timer-1">cancel_timer/1</a></td><td></td></tr><tr><td valign="top"><a href="#client-5">client/5</a></td><td></td></tr><tr><td valign="top"><a href="#process_responses-3">process_responses/3</a></td><td></td></tr><tr><td valign="top"><a href="#reconnect_state-1">reconnect_state/1</a></td><td></td></tr><tr><td valign="top"><a href="#reconnect_state_reset-1">reconnect_state_reset/1</a></td><td></td></tr><tr><td valign="top"><a href="#reply-3">reply/3</a></td><td></td></tr><tr><td valign="top"><a href="#reply_all-2">reply_all/2</a></td><td></td></tr></table>
 
 
 <a name="functions"></a>
@@ -279,12 +279,12 @@ client(Client::<a href="#type-client">client()</a>, PoolName::<a href="#type-poo
 </code></pre>
 <br />
 
-<a name="process_responses-2"></a>
+<a name="process_responses-3"></a>
 
-### process_responses/2 ###
+### process_responses/3 ###
 
 <pre><code>
-process_responses(ServerId::<a href="#type-server_id">server_id()</a>, T::[<a href="#type-response">response()</a>]) -&gt; ok
+process_responses(Client::<a href="#type-client">client()</a>, ServerId::<a href="#type-server_id">server_id()</a>, T::[<a href="#type-response">response()</a>]) -&gt; ok
 </code></pre>
 <br />
 
