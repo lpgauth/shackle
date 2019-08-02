@@ -15,6 +15,7 @@
 -define(ETS_TABLE_BACKLOG, shackle_backlog).
 -define(ETS_TABLE_POOL_INDEX, shackle_pool_index).
 -define(ETS_TABLE_QUEUE, shackle_queue).
+-define(ETS_TABLE_STATUS, shackle_status).
 
 %% compatibility
 -ifdef(OTP_RELEASE). %% this implies 21 or higher

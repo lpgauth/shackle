@@ -52,11 +52,31 @@ init_options() = term()
 
 
 
+### <a name="type-max_retries">max_retries()</a> ###
+
+
+<pre><code>
+max_retries() = non_neg_integer()
+</code></pre>
+
+
+
+
+### <a name="type-pool_name">pool_name()</a> ###
+
+
+<pre><code>
+pool_name() = atom()
+</code></pre>
+
+
+
+
 ### <a name="type-pool_option">pool_option()</a> ###
 
 
 <pre><code>
-pool_option() = {backlog_size, <a href="#type-backlog_size">backlog_size()</a>} | {pool_size, <a href="#type-pool_size">pool_size()</a>} | {pool_strategy, <a href="#type-pool_strategy">pool_strategy()</a>}
+pool_option() = {backlog_size, <a href="#type-backlog_size">backlog_size()</a>} | {max_retries, <a href="#type-max_retries">max_retries()</a>} | {pool_size, <a href="#type-pool_size">pool_size()</a>} | {pool_strategy, <a href="#type-pool_strategy">pool_strategy()</a>}
 </code></pre>
 
 
@@ -112,6 +132,26 @@ request_id() = {<a href="#type-server_name">server_name()</a>, reference()}
 
 
 
+### <a name="type-server_id">server_id()</a> ###
+
+
+<pre><code>
+server_id() = {<a href="#type-pool_name">pool_name()</a>, <a href="#type-server_index">server_index()</a>}
+</code></pre>
+
+
+
+
+### <a name="type-server_index">server_index()</a> ###
+
+
+<pre><code>
+server_index() = pos_integer()
+</code></pre>
+
+
+
+
 ### <a name="type-server_name">server_name()</a> ###
 
 
@@ -146,7 +186,7 @@ time() = pos_integer()
 ### check/2 ###
 
 <pre><code>
-check(ServerName::<a href="#type-server_name">server_name()</a>, BacklogSize::<a href="#type-backlog_size">backlog_size()</a>) -&gt; boolean()
+check(ServerId::<a href="#type-server_id">server_id()</a>, BacklogSize::<a href="#type-backlog_size">backlog_size()</a>) -&gt; boolean()
 </code></pre>
 <br />
 
@@ -155,7 +195,7 @@ check(ServerName::<a href="#type-server_name">server_name()</a>, BacklogSize::<a
 ### check/3 ###
 
 <pre><code>
-check(ServerName::<a href="#type-server_name">server_name()</a>, BacklogSize::<a href="#type-backlog_size">backlog_size()</a>, Increment::pos_integer()) -&gt; boolean()
+check(ServerId::<a href="#type-server_id">server_id()</a>, BacklogSize::<a href="#type-backlog_size">backlog_size()</a>, Increment::pos_integer()) -&gt; boolean()
 </code></pre>
 <br />
 
@@ -164,7 +204,7 @@ check(ServerName::<a href="#type-server_name">server_name()</a>, BacklogSize::<a
 ### decrement/1 ###
 
 <pre><code>
-decrement(ServerName::<a href="#type-server_name">server_name()</a>) -&gt; non_neg_integer()
+decrement(ServerId::<a href="#type-server_id">server_id()</a>) -&gt; non_neg_integer()
 </code></pre>
 <br />
 
@@ -173,7 +213,7 @@ decrement(ServerName::<a href="#type-server_name">server_name()</a>) -&gt; non_n
 ### decrement/2 ###
 
 <pre><code>
-decrement(ServerName::<a href="#type-server_name">server_name()</a>, Decrement::neg_integer()) -&gt; non_neg_integer()
+decrement(ServerId::<a href="#type-server_id">server_id()</a>, Decrement::neg_integer()) -&gt; non_neg_integer()
 </code></pre>
 <br />
 
@@ -182,7 +222,7 @@ decrement(ServerName::<a href="#type-server_name">server_name()</a>, Decrement::
 ### delete/1 ###
 
 <pre><code>
-delete(ServerName::<a href="#type-server_name">server_name()</a>) -&gt; ok
+delete(ServerId::<a href="#type-server_id">server_id()</a>) -&gt; ok
 </code></pre>
 <br />
 
@@ -200,7 +240,7 @@ init() -&gt; ok
 ### new/1 ###
 
 <pre><code>
-new(ServerName::<a href="#type-server_name">server_name()</a>) -&gt; ok
+new(ServerId::<a href="#type-server_id">server_id()</a>) -&gt; ok
 </code></pre>
 <br />
 

@@ -19,42 +19,42 @@
 -define(DEFAULT_INCREMENT, 1).
 
 %% internal
--spec check(server_name(), backlog_size()) ->
+-spec check(server_id(), backlog_size()) ->
     boolean().
 
-check(ServerName, BacklogSize) ->
-    check(ServerName, BacklogSize, ?DEFAULT_INCREMENT).
+check(ServerId, BacklogSize) ->
+    check(ServerId, BacklogSize, ?DEFAULT_INCREMENT).
 
--spec check(server_name(), backlog_size(), pos_integer()) ->
+-spec check(server_id(), backlog_size(), pos_integer()) ->
     boolean().
 
-check(_ServerName, infinity, _Increment) ->
+check(_ServerId, infinity, _Increment) ->
     true;
-check(ServerName, BacklogSize, Increment) ->
-    case increment(ServerName, BacklogSize, Increment) of
+check(ServerId, BacklogSize, Increment) ->
+    case increment(ServerId, BacklogSize, Increment) of
         [BacklogSize, BacklogSize] ->
             false;
         [_, Value] when Value =< BacklogSize ->
             true
     end.
 
--spec decrement(server_name()) ->
+-spec decrement(server_id()) ->
     non_neg_integer().
 
-decrement(ServerName) ->
-    decrement(ServerName, ?DEFAULT_DECREMENT).
+decrement(ServerId) ->
+    decrement(ServerId, ?DEFAULT_DECREMENT).
 
--spec decrement(server_name(), neg_integer()) ->
+-spec decrement(server_id(), neg_integer()) ->
     non_neg_integer().
 
-decrement(ServerName, Decrement) ->
-    ets:update_counter(?ETS_TABLE_BACKLOG, ServerName, {2, Decrement, 0, 0}).
+decrement(ServerId, Decrement) ->
+    ets:update_counter(?ETS_TABLE_BACKLOG, ServerId, {2, Decrement, 0, 0}).
 
--spec delete(server_name()) ->
+-spec delete(server_id()) ->
     ok.
 
-delete(ServerName) ->
-    ets:delete(?ETS_TABLE_BACKLOG, ServerName),
+delete(ServerId) ->
+    ets:delete(?ETS_TABLE_BACKLOG, ServerId),
     ok.
 
 -spec init() ->
@@ -68,14 +68,14 @@ init() ->
     ]),
     ok.
 
--spec new(server_name()) ->
+-spec new(server_id()) ->
     ok.
 
-new(ServerName) ->
-    ets:insert(?ETS_TABLE_BACKLOG, {ServerName, 0}),
+new(ServerId) ->
+    ets:insert(?ETS_TABLE_BACKLOG, {ServerId, 0}),
     ok.
 
 %% private
-increment(ServerName, BacklogSize, Increment) ->
+increment(ServerId, BacklogSize, Increment) ->
     UpdateOps = [{2, 0}, {2, Increment, BacklogSize, BacklogSize}],
-    ets:update_counter(?ETS_TABLE_BACKLOG, ServerName, UpdateOps).
+    ets:update_counter(?ETS_TABLE_BACKLOG, ServerId, UpdateOps).

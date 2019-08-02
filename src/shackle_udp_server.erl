@@ -5,7 +5,7 @@
 -compile({inline_size, 512}).
 
 -export([
-    start_link/4
+    start_link/2
 ]).
 
 -behavior(metal).
@@ -18,6 +18,7 @@
 -record(state, {
     client           :: client(),
     header           :: undefined | iodata(),
+    id               :: server_id(),
     init_options     :: init_options(),
     ip               :: inet:ip_address() | inet:hostname(),
     name             :: server_name(),
@@ -33,25 +34,24 @@
 -define(INET_AF_INET, 1).
 -define(INT16(X), [((X) bsr 8) band 16#ff, (X) band 16#ff]).
 
--type init_opts() :: {pool_name(), client(), client_options()}.
 -type state() :: #state {}.
 
 %% public
--spec start_link(server_name(), pool_name(), client(), client_options()) ->
+-spec start_link(server_name(), server_opts()) ->
     {ok, pid()}.
 
-start_link(Name, PoolName, Client, ClientOptions) ->
-    Args = {PoolName, Client, ClientOptions},
-    metal:start_link(?MODULE, Name, Args).
+start_link(Name, Opts) ->
+    metal:start_link(?MODULE, Name, Opts).
 
 %% metal callbacks
--spec init(server_name(), pid(), init_opts()) ->
+-spec init(server_name(), pid(), server_opts()) ->
     no_return().
 
 init(Name, Parent, Opts) ->
-    {PoolName, Client, ClientOptions} = Opts,
+    {PoolName, Index, Client, ClientOptions} = Opts,
     self() ! ?MSG_CONNECT,
-    ok = shackle_backlog:new(Name),
+    Id = {PoolName, Index},
+    ok = shackle_backlog:new(Id),
 
     InitOptions = ?LOOKUP(init_options, ClientOptions,
         ?DEFAULT_INIT_OPTS),
@@ -63,6 +63,7 @@ init(Name, Parent, Opts) ->
 
     {ok, {#state {
         client = Client,
+        id = Id,
         init_options = InitOptions,
         ip = Ip,
         name = Name,
@@ -78,17 +79,17 @@ init(Name, Parent, Opts) ->
 
 handle_msg({_, #cast {} = Cast}, {#state {
         socket = undefined,
-        name = Name
+        id = Id
     } = State, ClientState}) ->
 
-    ?SERVER_UTILS:reply(Name, {error, no_socket}, Cast),
+    ?SERVER_UTILS:reply(Id, {error, no_socket}, Cast),
     {ok, {State, ClientState}};
 handle_msg({Request, #cast {
         timeout = Timeout
     } = Cast}, {#state {
         client = Client,
         header = Header,
-        name = Name,
+        id = Id,
         pool_name = PoolName,
         socket = Socket
     } = State, ClientState}) ->
@@ -99,33 +100,33 @@ handle_msg({Request, #cast {
                 ok ->
                     Msg = {timeout, ExtRequestId},
                     TimerRef = erlang:send_after(Timeout, self(), Msg),
-                    shackle_queue:add(ExtRequestId, Cast, TimerRef),
+                    shackle_queue:add(Id, ExtRequestId, Cast, TimerRef),
                     {ok, {State, ClientState2}};
                 {error, Reason} ->
                     ?WARN(PoolName, "send error: ~p", [Reason]),
                     gen_udp:close(Socket),
-                    ?SERVER_UTILS:reply(Name, {error, socket_closed}, Cast),
+                    ?SERVER_UTILS:reply(Id, {error, socket_closed}, Cast),
                     close(State, ClientState2)
             end
     catch
         ?EXCEPTION(E, R, Stacktrace) ->
             ?WARN(PoolName, "handle_request error: ~p:~p~n~p~n",
                 [E, R, ?GET_STACK(Stacktrace)]),
-            ?SERVER_UTILS:reply(Name, {error, client_crash}, Cast),
+            ?SERVER_UTILS:reply(Id, {error, client_crash}, Cast),
             {ok, {State, ClientState}}
     end;
 handle_msg({inet_reply, _Socket, ok}, {State, ClientState}) ->
     {ok, {State, ClientState}};
 handle_msg({udp, Socket, _Ip, _InPortNo, Data}, {#state {
         client = Client,
-        name = Name,
+        id = Id,
         pool_name = PoolName,
         socket = Socket
     } = State, ClientState}) ->
 
     try Client:handle_data(Data, ClientState) of
         {ok, Replies, ClientState2} ->
-            ?SERVER_UTILS:process_responses(Replies, Name),
+            ?SERVER_UTILS:process_responses(Id, Replies),
             {ok, {State, ClientState2}};
         {error, Reason, ClientState2} ->
             ?WARN(PoolName, "handle_data error: ~p", [Reason]),
@@ -140,7 +141,7 @@ handle_msg({udp, Socket, _Ip, _InPortNo, Data}, {#state {
     end;
 handle_msg({timeout, ExtRequestId}, {#state {
         client = Client,
-        name = Name,
+        id = Id,
         pool_name = PoolName,
         socket = Socket
     } = State, ClientState}) ->
@@ -149,7 +150,7 @@ handle_msg({timeout, ExtRequestId}, {#state {
         true ->
             try Client:handle_timeout(ExtRequestId, ClientState) of
                 {ok, Reply, ClientState2} ->
-                    ?SERVER_UTILS:process_responses([Reply], Name),
+                    ?SERVER_UTILS:process_responses(Id, [Reply]),
                     {ok, {State, ClientState2}};
                 {error, Reason, ClientState2} ->
                     ?WARN(PoolName, "handle_timeout error: ~p", [Reason]),
@@ -163,9 +164,9 @@ handle_msg({timeout, ExtRequestId}, {#state {
                     close(State, ClientState)
             end;
         false ->
-            case shackle_queue:remove(Name, ExtRequestId) of
+            case shackle_queue:remove(Id, ExtRequestId) of
                 {ok, Cast, _TimerRef} ->
-                    ?SERVER_UTILS:reply(Name, {error, timeout}, Cast);
+                    ?SERVER_UTILS:reply(Id, {error, timeout}, Cast);
                 {error, not_found} ->
                     ok
             end,
@@ -180,6 +181,7 @@ handle_msg({inet_reply, Socket, {error, Reason}}, {#state {
     {ok, {State, ClientState}};
 handle_msg(?MSG_CONNECT, {#state {
         client = Client,
+        id = Id,
         init_options = Init,
         ip = Ip,
         pool_name = PoolName,
@@ -194,6 +196,7 @@ handle_msg(?MSG_CONNECT, {#state {
                 {ok, ClientState2} ->
                     ReconnectState2 =
                         ?SERVER_UTILS:reconnect_state_reset(ReconnectState),
+                    shackle_status:enable(Id),
 
                     {ok, {State#state {
                         header = Header,
@@ -219,7 +222,7 @@ handle_msg(Msg, {#state {
 
 terminate(_Reason, {#state {
         client = Client,
-        name = Name,
+        id = Id,
         pool_name = PoolName,
         timer_ref = TimerRef
     }, ClientState}) ->
@@ -231,8 +234,8 @@ terminate(_Reason, {#state {
             ?WARN(PoolName, "terminate error: ~p:~p~n~p~n",
                 [E, R, ?GET_STACK(Stacktrace)])
     end,
-    ?SERVER_UTILS:reply_all(Name, {error, shutdown}),
-    shackle_backlog:delete(Name).
+    ?SERVER_UTILS:reply_all(Id, {error, shutdown}),
+    shackle_backlog:delete(Id).
 
 %% private
 connect(PoolName, Ip, Port, SocketOptions) ->
@@ -252,8 +255,9 @@ connect(PoolName, Ip, Port, SocketOptions) ->
             {error, Reason}
     end.
 
-close(#state {name = Name} = State, ClientState) ->
-    ?SERVER_UTILS:reply_all(Name, {error, socket_closed}),
+close(#state {id = Id} = State, ClientState) ->
+    shackle_status:disable(Id),
+    ?SERVER_UTILS:reply_all(Id, {error, socket_closed}),
     reconnect(State, ClientState).
 
 -ifdef(UDP_HEADER).

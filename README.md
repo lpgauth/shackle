@@ -177,6 +177,12 @@ shackle_pool:start(pool_name(), client(), client_options(), pool_options())
     <td>maximum number of concurrent requests per connection</td>
   </tr>
   <tr>
+    <td>max_retries</td>
+    <td>non_neg_integer()</td>
+    <td>3</td>
+    <td>>maximum number of tries to find an active server</td>
+  </tr>
+  <tr>
     <td>pool_size</td>
     <td>pos_integer()</td>
     <td>16</td>
