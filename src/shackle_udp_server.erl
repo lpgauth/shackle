@@ -3,6 +3,11 @@
 
 -compile(inline).
 -compile({inline_size, 512}).
+-compile({nowarn_unused_function, [{uint32, 1}]}).
+
+-ignore_xref([
+    {?MODULE, uint32, 1}
+]).
 
 -export([
     start_link/2
@@ -264,16 +269,23 @@ close(#state {id = Id} = State, ClientState) ->
     ?SERVER_UTILS:reply_all(Id, {error, socket_closed}),
     reconnect(State, ClientState).
 
--ifdef(UDP_HEADER).
+-ifdef(UDP_HEADER_1).
 
 header(IP, Port) ->
-    [?INET_AF_INET, ?INT16(Port) | ip4_to_bytes(IP)].
+    [?INT16(Port), ip4_to_bytes(IP)].
+
+-else.
+-ifdef(UDP_HEADER_2).
+
+header(IP, Port) ->
+    [?INET_AF_INET, ?INT16(Port), ip4_to_bytes(IP)].
 
 -else.
 
 header(IP, Port) ->
-    [?INT16(Port) | ip4_to_bytes(IP)].
+    [?INET_AF_INET, ?INT16(Port), ip4_to_bytes(IP), uint32(0)].
 
+-endif.
 -endif.
 
 ip4_to_bytes({A, B, C, D}) ->
@@ -323,3 +335,7 @@ send(Socket, Header, Data) ->
         Error:Reason ->
             {error, {Error, Reason}}
     end.
+
+uint32(X) ->
+    [((X) bsr 24) band 16#ff, ((X) bsr 16) band 16#ff,
+     ((X) bsr 8) band 16#ff, (X) band 16#ff].
