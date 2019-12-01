@@ -148,7 +148,7 @@ shackle_pool:start(pool_name(), client(), client_options(), pool_options())
   </tr>
   <tr>
     <td>protocol</td>
-    <td>shackle_tcp | shackle_udp</td>
+    <td>shackle_tcp | shackle_udp | shackle_ssl</td>
     <td>shackle_tcp</td>
     <td>server protocol</td>
   </tr>
@@ -197,7 +197,7 @@ shackle_pool:start(pool_name(), client(), client_options(), pool_options())
     <td>max_retries</td>
     <td>non_neg_integer()</td>
     <td>3</td>
-    <td>>maximum number of tries to find an active server</td>
+    <td>maximum number of tries to find an active server</td>
   </tr>
   <tr>
     <td>pool_size</td>
@@ -315,7 +315,7 @@ make profile
 ```license
 The MIT License (MIT)
 
-Copyright (c) 2015-2017 Louis-Philippe Gauthier
+Copyright (c) 2015-2019 Louis-Philippe Gauthier
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
