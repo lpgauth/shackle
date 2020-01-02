@@ -239,8 +239,7 @@ terminate(_Reason, {#state {
                 [E, R, ?GET_STACK(Stacktrace)])
     end,
     ?SERVER_UTILS:reply_all(Id, {error, shutdown}),
-    shackle_backlog:delete(Id),
-    ok.
+    shackle_backlog:delete(Id).
 
 %% private
 close(#state {id = Id} = State, ClientState) ->
