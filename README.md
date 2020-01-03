@@ -2,8 +2,7 @@
 
 High-Performance Erlang Network Client Framework
 
-[![Build Status](https://travis-ci.org/lpgauth/shackle.svg?branch=master)](https://travis-ci.org/lpgauth/shackle)
-[![Coverage Status](https://coveralls.io/repos/github/lpgauth/shackle/badge.svg?branch=master)](https://coveralls.io/github/lpgauth/shackle?branch=master)
+![Build Status](https://github.com/lpgauth/shackle/workflows/Erlang%20CI/badge.svg)
 
 #### Requirements
 
