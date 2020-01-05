@@ -10,7 +10,6 @@
 -define(METRICS(Client, Type, Key, Value), shackle_hooks:metrics(Client, Type, Key, Value)).
 -define(MSG_CONNECT, connect).
 -define(SERVER, shackle_server).
--define(SERVER_UTILS, shackle_server_utils).
 -define(SUPERVISOR, shackle_sup).
 -define(WARN(PoolName, Format, Data), shackle_utils:warning_msg(PoolName, Format, Data)).
 
