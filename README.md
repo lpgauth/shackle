@@ -134,10 +134,10 @@ shackle_pool:start(pool_name(), client(), client_options(), pool_options())
     <th>Description</th>
   </theader>
   <tr>
-    <td>ip</td>
+    <td>address</td>
     <td>inet:ip_address() | inet:hostname()</td>
     <td>"127.0.0.1"</td>
-    <td>server ip</td>
+    <td>server address (formerly ip)</td>
   </tr>
   <tr>
     <td>port</td>
