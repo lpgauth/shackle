@@ -1,11 +1,9 @@
 
 
-# Module shackle_sup #
+# Module shackle_ssl #
 * [Data Types](#types)
 * [Function Index](#index)
 * [Function Details](#functions)
-
-__Behaviours:__ [`supervisor`](supervisor.md).
 
 <a name="types"></a>
 
@@ -49,6 +47,16 @@ client_options() = [<a href="#type-client_option">client_option()</a>]
 
 <pre><code>
 inet_address() = <a href="inet.md#type-ip_address">inet:ip_address()</a> | <a href="inet.md#type-hostname">inet:hostname()</a>
+</code></pre>
+
+
+
+
+### <a name="type-inet_port">inet_port()</a> ###
+
+
+<pre><code>
+inet_port() = <a href="inet.md#type-port_number">inet:port_number()</a>
 </code></pre>
 
 
@@ -144,6 +152,16 @@ server_name() = atom()
 
 
 
+### <a name="type-socket">socket()</a> ###
+
+
+<pre><code>
+socket() = <a href="inet.md#type-socket">inet:socket()</a> | <a href="ssl.md#type-sslsocket">ssl:sslsocket()</a>
+</code></pre>
+
+
+
+
 ### <a name="type-socket_option">socket_option()</a> ###
 
 
@@ -176,28 +194,46 @@ time() = pos_integer()
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#init-1">init/1</a></td><td></td></tr><tr><td valign="top"><a href="#start_link-0">start_link/0</a></td><td></td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#close-1">close/1</a></td><td></td></tr><tr><td valign="top"><a href="#connect-3">connect/3</a></td><td></td></tr><tr><td valign="top"><a href="#send-2">send/2</a></td><td></td></tr><tr><td valign="top"><a href="#setopts-2">setopts/2</a></td><td></td></tr></table>
 
 
 <a name="functions"></a>
 
 ## Function Details ##
 
-<a name="init-1"></a>
+<a name="close-1"></a>
 
-### init/1 ###
+### close/1 ###
 
 <pre><code>
-init(X1::[]) -&gt; {ok, {{one_for_one, 5, 10}, []}}
+close(Socket::<a href="#type-socket">socket()</a>) -&gt; ok
 </code></pre>
 <br />
 
-<a name="start_link-0"></a>
+<a name="connect-3"></a>
 
-### start_link/0 ###
+### connect/3 ###
 
 <pre><code>
-start_link() -&gt; {ok, pid()}
+connect(Address::<a href="#type-inet_address">inet_address()</a>, Port::<a href="#type-inet_port">inet_port()</a>, SocketOptions::<a href="#type-socket_options">socket_options()</a>) -&gt; {ok, <a href="#type-socket">socket()</a>} | {error, atom()}
+</code></pre>
+<br />
+
+<a name="send-2"></a>
+
+### send/2 ###
+
+<pre><code>
+send(Socket::<a href="#type-socket">socket()</a>, Data::iodata()) -&gt; ok | {error, atom()}
+</code></pre>
+<br />
+
+<a name="setopts-2"></a>
+
+### setopts/2 ###
+
+<pre><code>
+setopts(Socket::<a href="#type-socket">socket()</a>, Opts::[<a href="gen_tcp.md#type-option">gen_tcp:option()</a>]) -&gt; ok | {error, atom()}
 </code></pre>
 <br />
 
