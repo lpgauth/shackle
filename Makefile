@@ -6,7 +6,7 @@ all: compile
 
 bench:
 	@echo "Benchmarking..."
-	@$(REBAR3) as test compile
+	@$(REBAR3) as bench compile
 	@./bin/bench.sh
 
 clean:
@@ -35,9 +35,9 @@ eunit:
 
 profile:
 	@echo "Profiling..."
-	@$(REBAR3) as test compile
+	@$(REBAR3) as profile compile
 	@./bin/profile.sh
-	@_build/test/lib/fprofx/erlgrindx -p fprofx.analysis
+	@_build/profile/lib/fprofx/erlgrindx -p fprofx.analysis
 	@$(CACHEGRIND) fprofx.cgrind
 
 test: elvis xref eunit dialyzer
