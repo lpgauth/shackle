@@ -22,6 +22,8 @@ run() ->
     fprofx:trace([start, {procs, new}, {tracer, Tracer}]),
 
     ?CLIENT:start(),
+    timer:sleep(500),
+
     Self = self(),
     [spawn(fun () ->
         [20 = ?CLIENT:add(10, 10) || _ <- lists:seq(1, ?N)],

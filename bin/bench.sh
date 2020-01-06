@@ -1,5 +1,5 @@
-erl -pa _build/test/lib/*/ebin \
-    -pa _build/test/lib/*/test \
+erl -pa _build/bench/lib/*/ebin \
+    -pa _build/bench/lib/*/test \
     +K true \
     +scl false \
     +spp true \

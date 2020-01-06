@@ -6,7 +6,7 @@ all: compile
 
 bench:
 	@echo "Benchmarking..."
-	@$(REBAR3) as test compile
+	@$(REBAR3) as bench compile
 	@./bin/bench.sh
 
 clean:
@@ -16,10 +16,6 @@ clean:
 compile:
 	@echo "Running rebar3 compile..."
 	@$(REBAR3) as compile compile
-
-coveralls:
-	@echo "Running rebar3 coveralls send..."
-	@$(REBAR3) as test coveralls send
 
 dialyzer:
 	@echo "Running rebar3 dialyze..."
@@ -39,17 +35,15 @@ eunit:
 
 profile:
 	@echo "Profiling..."
-	@$(REBAR3) as test compile
+	@$(REBAR3) as profile compile
 	@./bin/profile.sh
-	@_build/test/lib/fprofx/erlgrindx -p fprofx.analysis
+	@_build/profile/lib/fprofx/erlgrindx -p fprofx.analysis
 	@$(CACHEGRIND) fprofx.cgrind
 
 test: elvis xref eunit dialyzer
-
-travis: test coveralls
 
 xref:
 	@echo "Running rebar3 xref..."
 	@$(REBAR3) xref
 
-.PHONY: bench clean compile coveralls dialyzer edoc elvis eunit profile xref
+.PHONY: bench clean compile dialyzer edoc elvis eunit profile xref

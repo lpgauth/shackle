@@ -179,15 +179,14 @@ add_subtest(Client) ->
 app_stop_start_subtest() ->
     ?assertEqual({error, no_server}, arithmetic_tcp_client:add(1, 1)),
     ok = arithmetic_tcp_server:start(),
-    timer:sleep(100),
+    timer:sleep(1000),
     ?assertEqual(2, arithmetic_tcp_client:add(1, 1)),
 
     shackle_app:stop(),
-    timer:sleep(100),
     shackle_app:start(),
 
     arithmetic_tcp_client:start(),
-    timer:sleep(100),
+    timer:sleep(1000),
     ?assertEqual(2, arithmetic_tcp_client:add(1, 1)).
 
 backlog_full_subtest() ->
