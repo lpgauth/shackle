@@ -20,7 +20,7 @@
 -define(ETS_TABLE_STATUS, shackle_status).
 
 %% compatibility
--ifdef(OTP_RELEASE). %% this implies 21 or higher
+-ifdef(OTP_RELEASE). %% OTP-21+
 -define(EXCEPTION(Class, Reason, Stacktrace), Class:Reason:Stacktrace).
 -define(GET_STACK(Stacktrace), Stacktrace).
 -else.

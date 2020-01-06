@@ -25,23 +25,6 @@ High-Performance Erlang Network Client Framework
 * Concurrency
 * Safety
 
-## Environment variables
-
-<table width="100%">
-  <theader>
-    <th>Name</th>
-    <th>Type</th>
-    <th>Default</th>
-    <th>Description</th>
-  </theader>
-  <tr>
-    <td>hooks</td>
-    <td>[{atom(), {module(), atom()}}]</td>
-    <td>[]</td>
-    <td>used to receive events/metrics about your client</td>
-  </tr>
-</table>
-
 ## How-to
 
 #### Implementing a client
@@ -124,7 +107,7 @@ terminate(_State) -> ok.
 shackle_pool:start(pool_name(), client(), client_options(), pool_options())
 ```
 
-##### client_options()
+##### client_options:
 
 <table width="100%">
   <theader>
@@ -134,10 +117,10 @@ shackle_pool:start(pool_name(), client(), client_options(), pool_options())
     <th>Description</th>
   </theader>
   <tr>
-    <td>ip</td>
+    <td>address</td>
     <td>inet:ip_address() | inet:hostname()</td>
     <td>"127.0.0.1"</td>
-    <td>server ip</td>
+    <td>server address (formerly ip)</td>
   </tr>
   <tr>
     <td>port</td>
@@ -177,7 +160,7 @@ shackle_pool:start(pool_name(), client(), client_options(), pool_options())
   </tr>
 </table>
 
-##### pool_options()
+##### pool_options:
 
 <table width="100%">
   <theader>
@@ -225,6 +208,23 @@ shackle_pool:start(pool_name(), client(), client_options(), pool_options())
 {ok, <<"bar">>}
 ```
 
+## Environment variables
+
+<table width="100%">
+  <theader>
+    <th>Name</th>
+    <th>Type</th>
+    <th>Default</th>
+    <th>Description</th>
+  </theader>
+  <tr>
+    <td>hooks</td>
+    <td>[{atom(), {module(), atom()}}]</td>
+    <td>[]</td>
+    <td>used to receive events/metrics about your client</td>
+  </tr>
+</table>
+
 ## Hooks
 Hooks allow you to receive events and metrics about your client. To do so you need to implement the `shackle_hooks` behaviour and then use the `hooks` environment variable.
 
@@ -267,14 +267,7 @@ make xref
 To run performance testing targets you must first start the server:
 
 ```
-./bin/rebar3 as test shell
-===> Verifying dependencies...
-===> Compiling shackle
-Erlang/OTP 18 [erts-7.3.1] [source] [64-bit] [smp:4:4] [async-threads:0] [hipe] [kernel-poll:false] [dtrace]
-
-Eshell V7.3.1  (abort with ^G)
-1> arithmetic_tcp_server:start().
-ok
+./bin/server.sh
 ```
 
 Then you can run the `bench` or `profile` target:
@@ -314,7 +307,7 @@ make profile
 ```license
 The MIT License (MIT)
 
-Copyright (c) 2015-2019 Louis-Philippe Gauthier
+Copyright (c) 2015-2020 Louis-Philippe Gauthier
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

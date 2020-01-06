@@ -1,6 +1,6 @@
 
 
-# Module shackle_ssl_server #
+# Module shackle_server #
 * [Data Types](#types)
 * [Function Index](#index)
 * [Function Details](#functions)
@@ -36,7 +36,7 @@ client() = module()
 
 
 <pre><code>
-client_option() = {init_options, <a href="#type-init_options">init_options()</a>} | {ip, <a href="inet.md#type-ip_address">inet:ip_address()</a> | <a href="inet.md#type-hostname">inet:hostname()</a>} | {port, <a href="inet.md#type-port_number">inet:port_number()</a>} | {protocol, <a href="#type-protocol">protocol()</a>} | {reconnect, boolean()} | {reconnect_time_max, <a href="#type-time">time()</a> | infinity} | {reconnect_time_min, <a href="#type-time">time()</a>} | {socket_options, [<a href="gen_tcp.md#type-connect_option">gen_tcp:connect_option()</a> | <a href="gen_udp.md#type-option">gen_udp:option()</a>]}
+client_option() = {init_options, <a href="#type-init_options">init_options()</a>} | {ip, <a href="#type-inet_address">inet_address()</a>} | {port, <a href="inet.md#type-port_number">inet:port_number()</a>} | {protocol, <a href="#type-protocol">protocol()</a>} | {reconnect, boolean()} | {reconnect_time_max, <a href="#type-time">time()</a> | infinity} | {reconnect_time_min, <a href="#type-time">time()</a>} | {socket_options, <a href="#type-socket_options">socket_options()</a>}
 </code></pre>
 
 
@@ -57,6 +57,26 @@ client_options() = [<a href="#type-client_option">client_option()</a>]
 
 <pre><code>
 client_state() = term()
+</code></pre>
+
+
+
+
+### <a name="type-inet_address">inet_address()</a> ###
+
+
+<pre><code>
+inet_address() = <a href="inet.md#type-ip_address">inet:ip_address()</a> | <a href="inet.md#type-hostname">inet:hostname()</a>
+</code></pre>
+
+
+
+
+### <a name="type-inet_port">inet_port()</a> ###
+
+
+<pre><code>
+inet_port() = <a href="inet.md#type-port_number">inet:port_number()</a>
 </code></pre>
 
 
@@ -202,11 +222,41 @@ server_opts() = {<a href="#type-pool_name">pool_name()</a>, <a href="#type-serve
 
 
 
+### <a name="type-socket">socket()</a> ###
+
+
+<pre><code>
+socket() = <a href="inet.md#type-socket">inet:socket()</a> | <a href="ssl.md#type-sslsocket">ssl:sslsocket()</a>
+</code></pre>
+
+
+
+
+### <a name="type-socket_option">socket_option()</a> ###
+
+
+<pre><code>
+socket_option() = <a href="gen_tcp.md#type-connect_option">gen_tcp:connect_option()</a> | <a href="gen_udp.md#type-option">gen_udp:option()</a> | <a href="ssl.md#type-connect_option">ssl:connect_option()</a>
+</code></pre>
+
+
+
+
+### <a name="type-socket_options">socket_options()</a> ###
+
+
+<pre><code>
+socket_options() = [<a href="#type-socket_option">socket_option()</a>]
+</code></pre>
+
+
+
+
 ### <a name="type-state">state()</a> ###
 
 
 <pre><code>
-state() = #state{client = <a href="#type-client">client()</a>, id = <a href="#type-server_id">server_id()</a>, init_options = <a href="#type-init_options">init_options()</a>, ip = <a href="inet.md#type-ip_address">inet:ip_address()</a> | <a href="inet.md#type-hostname">inet:hostname()</a>, name = <a href="#type-server_name">server_name()</a>, parent = pid(), pool_name = <a href="#type-pool_name">pool_name()</a>, port = <a href="inet.md#type-port_number">inet:port_number()</a>, reconnect_state = undefined | <a href="#type-reconnect_state">reconnect_state()</a>, socket = undefined | <a href="ssl.md#type-sslsocket">ssl:sslsocket()</a>, socket_options = [<a href="ssl.md#type-connect_option">ssl:connect_option()</a>], timer_ref = undefined | reference()}
+state() = #state{address = <a href="#type-inet_address">inet_address()</a>, client = <a href="#type-client">client()</a>, id = <a href="#type-server_id">server_id()</a>, init_options = <a href="#type-init_options">init_options()</a>, name = <a href="#type-server_name">server_name()</a>, parent = pid(), pool_name = <a href="#type-pool_name">pool_name()</a>, port = <a href="#type-inet_port">inet_port()</a>, protocol = <a href="#type-protocol">protocol()</a>, reconnect_state = undefined | <a href="#type-reconnect_state">reconnect_state()</a>, socket = undefined | <a href="#type-socket">socket()</a>, socket_options = <a href="#type-socket_options">socket_options()</a>, timer_ref = undefined | reference()}
 </code></pre>
 
 

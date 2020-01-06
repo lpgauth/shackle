@@ -46,7 +46,7 @@ client() = module()
 
 
 <pre><code>
-client_option() = {init_options, <a href="#type-init_options">init_options()</a>} | {ip, <a href="inet.md#type-ip_address">inet:ip_address()</a> | <a href="inet.md#type-hostname">inet:hostname()</a>} | {port, <a href="inet.md#type-port_number">inet:port_number()</a>} | {protocol, <a href="#type-protocol">protocol()</a>} | {reconnect, boolean()} | {reconnect_time_max, <a href="#type-time">time()</a> | infinity} | {reconnect_time_min, <a href="#type-time">time()</a>} | {socket_options, [<a href="gen_tcp.md#type-connect_option">gen_tcp:connect_option()</a> | <a href="gen_udp.md#type-option">gen_udp:option()</a>]}
+client_option() = {init_options, <a href="#type-init_options">init_options()</a>} | {ip, <a href="#type-inet_address">inet_address()</a>} | {port, <a href="inet.md#type-port_number">inet:port_number()</a>} | {protocol, <a href="#type-protocol">protocol()</a>} | {reconnect, boolean()} | {reconnect_time_max, <a href="#type-time">time()</a> | infinity} | {reconnect_time_min, <a href="#type-time">time()</a>} | {socket_options, <a href="#type-socket_options">socket_options()</a>}
 </code></pre>
 
 
@@ -67,6 +67,16 @@ client_options() = [<a href="#type-client_option">client_option()</a>]
 
 <pre><code>
 external_request_id() = term()
+</code></pre>
+
+
+
+
+### <a name="type-inet_address">inet_address()</a> ###
+
+
+<pre><code>
+inet_address() = <a href="inet.md#type-ip_address">inet:ip_address()</a> | <a href="inet.md#type-hostname">inet:hostname()</a>
 </code></pre>
 
 
@@ -187,6 +197,26 @@ server_index() = pos_integer()
 
 <pre><code>
 server_name() = atom()
+</code></pre>
+
+
+
+
+### <a name="type-socket_option">socket_option()</a> ###
+
+
+<pre><code>
+socket_option() = <a href="gen_tcp.md#type-connect_option">gen_tcp:connect_option()</a> | <a href="gen_udp.md#type-option">gen_udp:option()</a> | <a href="ssl.md#type-connect_option">ssl:connect_option()</a>
+</code></pre>
+
+
+
+
+### <a name="type-socket_options">socket_options()</a> ###
+
+
+<pre><code>
+socket_options() = [<a href="#type-socket_option">socket_option()</a>]
 </code></pre>
 
 

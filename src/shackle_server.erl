@@ -52,8 +52,7 @@ init(Name, Parent, Opts) ->
     ok = shackle_backlog:new(Id),
 
     InitOptions = ?LOOKUP(init_options, ClientOptions, ?DEFAULT_INIT_OPTS),
-    % TODO: rename ip option to address
-    Address = ?LOOKUP(ip, ClientOptions, ?DEFAULT_IP),
+    Address = address(ClientOptions),
     Port = ?LOOKUP(port, ClientOptions),
     Protocol = ?LOOKUP(protocol, ClientOptions, ?DEFAULT_PROTOCOL),
     ReconnectState = reconnect_state(ClientOptions),
@@ -226,6 +225,14 @@ terminate(_Reason, {#state {
     shackle_backlog:delete(Id).
 
 %% private
+address(ClientOptions) ->
+    case ?LOOKUP(address, ClientOptions, ?DEFAULT_ADDRESS) of
+        undefined ->
+            ?LOOKUP(ip, ClientOptions, ?DEFAULT_ADDRESS);
+        Address ->
+            Address
+    end.
+
 cancel_timer(undefined) ->
     ok;
 cancel_timer(TimerRef) ->

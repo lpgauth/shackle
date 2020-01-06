@@ -1,6 +1,6 @@
 %% encoding: UTF-8
 {application,shackle}.
 {modules,[shackle,shackle_app,shackle_backlog,shackle_backoff,shackle_client,
-          shackle_hooks,shackle_pool,shackle_queue,shackle_server_utils,
-          shackle_ssl_server,shackle_status,shackle_sup,shackle_tcp_server,
-          shackle_udp_server,shackle_utils]}.
+          shackle_hooks,shackle_pool,shackle_protocol,shackle_queue,
+          shackle_server,shackle_ssl,shackle_status,shackle_sup,shackle_tcp,
+          shackle_udp,shackle_utils]}.
