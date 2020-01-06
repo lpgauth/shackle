@@ -65,7 +65,6 @@
 -type socket() :: inet:socket() | ssl:sslsocket().
 -type socket_option() :: gen_tcp:connect_option() | gen_udp:option() | ssl:connect_option().
 -type socket_options() :: [socket_option()].
--type socket_type() :: inet | ssl.
 -type time() :: pos_integer().
 
 -export_type([
