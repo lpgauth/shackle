@@ -25,23 +25,6 @@ High-Performance Erlang Network Client Framework
 * Concurrency
 * Safety
 
-## Environment variables
-
-<table width="100%">
-  <theader>
-    <th>Name</th>
-    <th>Type</th>
-    <th>Default</th>
-    <th>Description</th>
-  </theader>
-  <tr>
-    <td>hooks</td>
-    <td>[{atom(), {module(), atom()}}]</td>
-    <td>[]</td>
-    <td>used to receive events/metrics about your client</td>
-  </tr>
-</table>
-
 ## How-to
 
 #### Implementing a client
@@ -124,7 +107,7 @@ terminate(_State) -> ok.
 shackle_pool:start(pool_name(), client(), client_options(), pool_options())
 ```
 
-##### client_options()
+##### client_options:
 
 <table width="100%">
   <theader>
@@ -165,7 +148,7 @@ shackle_pool:start(pool_name(), client(), client_options(), pool_options())
   </tr>
   <tr>
     <td>reconnect_time_min</td>
-    <td>none | pos_integer()</td>
+    <td>pos_integer()</td>
     <td>1000</td>
     <td>minimum reconnect time in milliseconds</td>
   </tr>
@@ -177,7 +160,7 @@ shackle_pool:start(pool_name(), client(), client_options(), pool_options())
   </tr>
 </table>
 
-##### pool_options()
+##### pool_options:
 
 <table width="100%">
   <theader>
@@ -225,6 +208,23 @@ shackle_pool:start(pool_name(), client(), client_options(), pool_options())
 {ok, <<"bar">>}
 ```
 
+## Environment variables
+
+<table width="100%">
+  <theader>
+    <th>Name</th>
+    <th>Type</th>
+    <th>Default</th>
+    <th>Description</th>
+  </theader>
+  <tr>
+    <td>hooks</td>
+    <td>[{atom(), {module(), atom()}}]</td>
+    <td>[]</td>
+    <td>used to receive events/metrics about your client</td>
+  </tr>
+</table>
+
 ## Hooks
 Hooks allow you to receive events and metrics about your client. To do so you need to implement the `shackle_hooks` behaviour and then use the `hooks` environment variable.
 
@@ -267,14 +267,7 @@ make xref
 To run performance testing targets you must first start the server:
 
 ```
-./bin/rebar3 as test shell
-===> Verifying dependencies...
-===> Compiling shackle
-Erlang/OTP 18 [erts-7.3.1] [source] [64-bit] [smp:4:4] [async-threads:0] [hipe] [kernel-poll:false] [dtrace]
-
-Eshell V7.3.1  (abort with ^G)
-1> arithmetic_tcp_server:start().
-ok
+./bin/server.sh
 ```
 
 Then you can run the `bench` or `profile` target:
