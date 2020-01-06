@@ -26,17 +26,19 @@
 -type cast() :: #cast {}.
 -type client() :: module().
 -type client_option() :: {init_options, init_options()} |
-                         {ip, inet:ip_address() | inet:hostname()} |
+                         {ip, inet_address()} |
                          {port, inet:port_number()} |
                          {protocol, protocol()} |
                          {reconnect, boolean()} |
                          {reconnect_time_max, time() | infinity} |
                          {reconnect_time_min, time()} |
-                         {socket_options, [gen_tcp:connect_option() | gen_udp:option()]}.
+                         {socket_options, socket_options()}.
 
 -type client_options() :: [client_option()].
 -type client_state() :: term().
 -type external_request_id() :: term().
+-type inet_address() :: inet:ip_address() | inet:hostname().
+-type inet_port() :: inet:port_number().
 -type init_options() :: term().
 -type max_retries() :: non_neg_integer().
 -type metric_type() :: counter | timing.
@@ -61,6 +63,8 @@
 -type server_name() :: atom().
 -type server_opts() :: {pool_name(), server_index(), client(), client_options()}.
 -type socket() :: inet:socket() | ssl:sslsocket().
+-type socket_option() :: gen_tcp:connect_option() | gen_udp:option() | ssl:connect_option().
+-type socket_options() :: [socket_option()].
 -type socket_type() :: inet | ssl.
 -type time() :: pos_integer().
 

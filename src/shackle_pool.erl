@@ -186,20 +186,11 @@ setup_foil(Name, #pool_options {pool_size = PoolSize} = OptionsRec) ->
 server_name(Name, Index) ->
     list_to_atom(atom_to_list(Name) ++ "_" ++ integer_to_list(Index)).
 
-server_mod(shackle_ssl) ->
-    shackle_ssl_server;
-server_mod(shackle_tcp) ->
-    shackle_tcp_server;
-server_mod(shackle_udp) ->
-    shackle_udp_server.
-
 server_spec(Name, Index, Client, ClientOptions) ->
-    Protocol = ?LOOKUP(protocol, ClientOptions, ?DEFAULT_PROTOCOL),
-    ServerMod = server_mod(Protocol),
     ServerName = server_name(Name, Index),
     ServerOpts = {Name, Index, Client, ClientOptions},
-    StartFunc = {ServerMod, start_link, [ServerName, ServerOpts]},
-    {ServerName, StartFunc, permanent, 5000, worker, [ServerMod]}.
+    StartFunc = {?SERVER, start_link, [ServerName, ServerOpts]},
+    {ServerName, StartFunc, permanent, 5000, worker, [?SERVER]}.
 
 start_children(Name, Client, ClientOptions, #pool_options {
         pool_size = PoolSize
