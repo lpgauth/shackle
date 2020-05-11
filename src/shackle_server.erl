@@ -303,7 +303,9 @@ handle_msg_close(Socket, #state {
     } = State, ClientState) ->
 
     ?WARN(PoolName, "connection closed", []),
-    close(State, ClientState).
+    close(State, ClientState);
+handle_msg_close(_Socket, State, ClientState) ->
+    {ok, {State, ClientState}}.
 
 handle_msg_data(Socket, Data, #state {
         client = Client,
@@ -328,7 +330,9 @@ handle_msg_data(Socket, Data, #state {
                 [E, R, ?GET_STACK(Stacktrace)]),
             Protocol:close(Socket),
             close(State, ClientState)
-    end.
+    end;
+handle_msg_data(_Socket, _Data, State, ClientState) ->
+    {ok, {State, ClientState}}.
 
 handle_msg_error(Socket, Reason, #state {
         socket = Socket,
@@ -338,7 +342,9 @@ handle_msg_error(Socket, Reason, #state {
 
     ?WARN(PoolName, "connection error: ~p", [Reason]),
     Protocol:close(Socket),
-    close(State, ClientState).
+    close(State, ClientState);
+handle_msg_error(_Socket, _Reason, State, ClientState) ->
+    {ok, {State, ClientState}}.
 
 process_responses(_Client, _ServerId, []) ->
     ok;
