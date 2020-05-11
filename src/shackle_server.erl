@@ -328,7 +328,9 @@ handle_msg_data(Socket, Data, #state {
                 [E, R, ?GET_STACK(Stacktrace)]),
             Protocol:close(Socket),
             close(State, ClientState)
-    end.
+    end;
+handle_msg_data(_Socket, _Data, State, ClientState) ->
+    {ok, {State, ClientState}}.
 
 handle_msg_error(Socket, Reason, #state {
         socket = Socket,
