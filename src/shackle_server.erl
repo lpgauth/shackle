@@ -98,9 +98,14 @@ handle_msg({Request, #cast {
             case Protocol:send(Socket, Data) of
                 ok ->
                     ?METRICS(Client, counter, <<"send">>),
-                    Msg = {timeout, ExtRequestId},
-                    TimerRef = erlang:send_after(Timeout, self(), Msg),
-                    shackle_queue:add(Id, ExtRequestId, Cast, TimerRef),
+                    case ExtRequestId of
+                        undefined ->
+                            reply(Id, ok, Cast);
+                        _ ->
+                            Msg = {timeout, ExtRequestId},
+                            TimerRef = erlang:send_after(Timeout, self(), Msg),
+                            shackle_queue:add(Id, ExtRequestId, Cast, TimerRef)
+                    end,
                     {ok, {State, ClientState2}};
                 {error, Reason} ->
                     ?WARN(PoolName, "send error: ~p", [Reason]),

@@ -56,7 +56,8 @@ shackle_random_ssl_test_() ->
         fun (_) -> cleanup(?CLIENT_SSL) end,
     {inparallel, [
         fun () -> add_subtest(?CLIENT_SSL) end,
-        fun () -> multiply_subtest(?CLIENT_SSL) end
+        fun () -> multiply_subtest(?CLIENT_SSL) end,
+        fun () -> noop_subtest(?CLIENT_SSL) end
     ]}}.
 
 shackle_random_tcp_test_() ->
@@ -70,7 +71,8 @@ shackle_random_tcp_test_() ->
         fun (_) -> cleanup(?CLIENT_TCP) end,
     {inparallel, [
         fun () -> add_subtest(?CLIENT_TCP) end,
-        fun () -> multiply_subtest(?CLIENT_TCP) end
+        fun () -> multiply_subtest(?CLIENT_TCP) end,
+        fun () -> noop_subtest(?CLIENT_TCP) end
     ]}}.
 
 shackle_random_udp_test_() ->
@@ -84,7 +86,8 @@ shackle_random_udp_test_() ->
         fun (_) -> cleanup(?CLIENT_UDP) end,
     {inparallel, [
         fun () -> add_subtest(?CLIENT_UDP) end,
-        fun () -> multiply_subtest(?CLIENT_UDP) end
+        fun () -> multiply_subtest(?CLIENT_UDP) end,
+        fun () -> noop_subtest(?CLIENT_UDP) end
     ]}}.
 
 shackle_reconnect_ssl_test_() ->
@@ -123,7 +126,8 @@ shackle_round_robin_tcp_test_() ->
         fun (_) -> cleanup(?CLIENT_TCP) end,
     {inparallel, [
         fun () -> add_subtest(?CLIENT_TCP) end,
-        fun () -> multiply_subtest(?CLIENT_TCP) end
+        fun () -> multiply_subtest(?CLIENT_TCP) end,
+        fun () -> noop_subtest(?CLIENT_TCP) end
     ]}}.
 
 shackle_round_robin_udp_test_() ->
@@ -136,7 +140,8 @@ shackle_round_robin_udp_test_() ->
         fun (_) -> cleanup(?CLIENT_UDP) end,
     {inparallel, [
         fun () -> add_subtest(?CLIENT_UDP) end,
-        fun () -> multiply_subtest(?CLIENT_UDP) end
+        fun () -> multiply_subtest(?CLIENT_UDP) end,
+        fun () -> noop_subtest(?CLIENT_UDP) end
     ]}}.
 
 shackle_timeout_ssl_test_() ->
@@ -207,6 +212,9 @@ call_crash_subtest() ->
 
 multiply_subtest(Client) ->
     [assert_random_multiply(Client) || _ <- lists:seq(1, ?N)].
+
+noop_subtest(Client) ->
+    [Client:noop() || _ <- lists:seq(1, 10)].
 
 reconnect_subtest(Client) ->
     Server = server(Client),

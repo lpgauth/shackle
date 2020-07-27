@@ -71,6 +71,10 @@ setup(Socket, State) ->
 -spec handle_request(Request :: term(), State :: term()) ->
     {ok, RequestId :: external_request_id(), Data :: iodata(), State :: term()}.
 
+handle_request(noop,  State) ->
+    Data = arithmetic_protocol:request(0, noop, 0, 0),
+
+    {ok, undefined, Data, State};
 handle_request({Operation, A, B}, #state {
         request_counter = RequestCounter
     } = State) ->
