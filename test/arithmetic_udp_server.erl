@@ -13,7 +13,7 @@
 start() ->
     case whereis(?MODULE) of
         undefined ->
-            spawn(fun () -> loop(open(), <<>>) end),
+            spawn(fun () -> loop(open()) end),
             ok;
         _Socket ->
             {error, already_started}
@@ -35,13 +35,12 @@ stop() ->
     end.
 
 %% private
-loop(Socket, Buffer) ->
+loop(Socket) ->
     case gen_udp:recv(Socket, 0) of
-        {ok, {{127, 0, 0, 1}, Port, Requests}} ->
-            Requests2 = <<Buffer/binary, Requests/binary>>,
-            {Replies, Buffer2} = arithmetic_protocol:parse_requests(Requests2),
-            ok = gen_udp:send(Socket, "127.0.0.1", Port, Replies),
-            loop(Socket, Buffer2);
+        {ok, {{127, 0, 0, 1}, Port, Request}} ->
+            {Reply, <<>>} = arithmetic_protocol:parse_requests(Request),
+            ok = gen_udp:send(Socket, "127.0.0.1", Port, Reply),
+            loop(Socket);
         {error, closed} ->
             ok
     end.
