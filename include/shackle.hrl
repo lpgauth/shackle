@@ -25,7 +25,8 @@
 -type backlog_size() :: pos_integer() | infinity.
 -type cast() :: #cast {}.
 -type client() :: module().
--type client_option() :: {init_options, init_options()} |
+-type client_option() :: {address, inet_address()} |
+                         {init_options, init_options()} |
                          {ip, inet_address()} |
                          {port, inet:port_number()} |
                          {protocol, protocol()} |
