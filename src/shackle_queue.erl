@@ -6,45 +6,59 @@
 
 %% internal
 -export([
-    add/4,
-    clear/1,
-    init/0,
-    remove/2
+    add/5,
+    clear/2,
+    delete/1,
+    new/1,
+    remove/3,
+    table_name/1
 ]).
 
 %% internal
--spec add(server_id(), external_request_id(), cast(), reference()) ->
+-spec add(table(), server_id(), external_request_id(), cast(), reference()) ->
     ok.
 
-add(ServerId, ExtRequestId, Cast, TimerRef) ->
+add(Table, ServerId, ExtRequestId, Cast, TimerRef) ->
     Object = {{ServerId, ExtRequestId}, {Cast, TimerRef}},
-    ets:insert(?ETS_TABLE_QUEUE, Object),
+    ets:insert(Table, Object),
     ok.
 
--spec clear(server_id()) ->
+-spec clear(table(), server_id()) ->
     [{cast(), reference()}].
 
-clear(ServerId) ->
+clear(Table, ServerId) ->
     Match = {{ServerId, '_'}, '_'},
-    case ets_match_take(?ETS_TABLE_QUEUE, Match) of
+    case ets_match_take(Table, Match) of
         [] ->
             [];
         Objects ->
             [{Cast, TimerRef} || {_, {Cast, TimerRef}} <- Objects]
     end.
 
--spec init() ->
+-spec delete(pool_name()) ->
     ok.
 
-init() ->
-    ets_new(?ETS_TABLE_QUEUE),
+delete(PoolName) ->
+    ets:delete(table_name(PoolName)),
     ok.
 
--spec remove(server_id(), external_request_id()) ->
+-spec new(pool_name()) ->
+    ok.
+
+new(PoolName) ->
+    Table = ets:new(table_name(PoolName), [
+        named_table,
+        public,
+        {write_concurrency, true}
+    ]),
+    ets:give_away(Table, whereis(shackle_ets_manager), undefined),
+    ok.
+
+-spec remove(table(), server_id(), external_request_id()) ->
     {ok, cast(), reference()} | {error, not_found}.
 
-remove(ServerId, ExtRequestId) ->
-    case ets_take(?ETS_TABLE_QUEUE, {ServerId, ExtRequestId}) of
+remove(Table, ServerId, ExtRequestId) ->
+    case ets_take(Table, {ServerId, ExtRequestId}) of
         [] ->
             {error, not_found};
         [{_, {Cast, TimerRef}}] ->
@@ -52,37 +66,35 @@ remove(ServerId, ExtRequestId) ->
     end.
 
 %% private
-ets_match_take(Tid, Match) ->
-    case ets:match_object(Tid, Match) of
+ets_match_take(Table, Match) ->
+    case ets:match_object(Table, Match) of
         [] ->
             [];
         Objects ->
-            ets:match_delete(Tid, Match),
+            ets:match_delete(Table, Match),
             Objects
     end.
 
-ets_new(Tid) ->
-    ets:new(Tid, [
-        named_table,
-        public,
-        {read_concurrency, true},
-        {write_concurrency, true}
-    ]).
-
 -ifdef(ETS_TAKE).
 
-ets_take(Tid, Key) ->
-    ets:take(Tid, Key).
+ets_take(Table, Key) ->
+    ets:take(Table, Key).
 
 -else.
 
-ets_take(Tid, Key) ->
-    case ets:lookup(Tid, Key) of
+ets_take(Table, Key) ->
+    case ets:lookup(Table, Key) of
         [] ->
             [];
         Objects ->
-            ets:delete(Tid, Key),
+            ets:delete(Table, Key),
             Objects
     end.
 
 -endif.
+
+-spec table_name(pool_name()) ->
+    table().
+
+table_name(PoolName) ->
+    list_to_atom("shackle_queue_" ++ atom_to_list(PoolName)).

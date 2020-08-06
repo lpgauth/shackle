@@ -186,6 +186,7 @@ app_stop_start_subtest() ->
     ok = arithmetic_tcp_server:start(),
     timer:sleep(1000),
     ?assertEqual(2, arithmetic_tcp_client:add(1, 1)),
+    ok = arithmetic_tcp_client:stop(),
 
     shackle_app:stop(),
     shackle_app:start(),
@@ -223,6 +224,7 @@ reconnect_subtest(Client) ->
     timer:sleep(100),
     ?assertEqual(2, Client:add(1, 1)),
     ok = Server:stop(),
+    timer:sleep(100),
     {error, _} = Client:add(1, 1),
     ok = Server:start(),
     timer:sleep(100),

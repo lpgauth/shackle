@@ -3,6 +3,7 @@
 
 %% macros
 -define(APP, shackle).
+-define(CHILD(Mod), {Mod, {Mod, start_link, [Mod]}, permanent, 5000, worker, [Mod]}).
 -define(GET_ENV(Key, Default), application:get_env(?APP, Key, Default)).
 -define(LOOKUP(Key, List), ?LOOKUP(Key, List, undefined)).
 -define(LOOKUP(Key, List, Default), shackle_utils:lookup(Key, List, Default)).
@@ -14,9 +15,7 @@
 -define(WARN(PoolName, Format, Data), shackle_utils:warning_msg(PoolName, Format, Data)).
 
 %% ETS tables
--define(ETS_TABLE_BACKLOG, shackle_backlog).
 -define(ETS_TABLE_POOL_INDEX, shackle_pool_index).
--define(ETS_TABLE_QUEUE, shackle_queue).
 -define(ETS_TABLE_STATUS, shackle_status).
 
 %% compatibility

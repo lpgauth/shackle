@@ -91,6 +91,8 @@ terminate() ->
 
 %% private
 cleanup(Name, OptionsRec) ->
+    shackle_backlog:delete(Name),
+    shackle_queue:delete(Name),
     shackle_status:delete(Name),
     cleanup_ets(Name, OptionsRec),
     cleanup_foil(Name, OptionsRec).
@@ -103,6 +105,7 @@ cleanup_ets(_Name, _OptionsRec) ->
 cleanup_foil(Name, #pool_options {pool_size = PoolSize}) ->
     foil:delete(?MODULE, Name),
     [foil:delete(?MODULE, {Name, N}) || N <- lists:seq(1, PoolSize)],
+    foil:delete(?MODULE, {Name, backlog}),
     foil:load(?MODULE).
 
 options(Name) ->
@@ -146,7 +149,8 @@ server(Name, #pool_options {
     ServerId = server_id(Name, PoolSize, PoolStrategy),
     case shackle_status:active(ServerId) of
         true ->
-            case shackle_backlog:check(ServerId, BacklogSize) of
+            {ok, Backlog} = shackle_pool_foil:lookup({Name, backlog}),
+            case shackle_backlog:check(Backlog, ServerId, BacklogSize) of
                 true ->
                     {ok, ServerName} = shackle_pool_foil:lookup(ServerId),
                     {ok, Client, ServerName};
@@ -168,6 +172,8 @@ server_id(Name, PoolSize, round_robin) ->
     {Name, ServerId}.
 
 setup(Name, #pool_options {pool_size = PoolSize} = OptionsRec) ->
+    shackle_backlog:new(Name),
+    shackle_queue:new(Name),
     shackle_status:new(Name, PoolSize),
     setup_ets(Name, OptionsRec),
     setup_foil(Name, OptionsRec).
@@ -181,6 +187,7 @@ setup_foil(Name, #pool_options {pool_size = PoolSize} = OptionsRec) ->
     foil:insert(?MODULE, Name, OptionsRec),
     [foil:insert(?MODULE, {Name, N}, server_name(Name, N)) ||
         N <- lists:seq(1, PoolSize)],
+    foil:insert(?MODULE, {Name, backlog}, shackle_backlog:table_name(Name)),
     foil:load(?MODULE).
 
 server_name(Name, Index) ->
