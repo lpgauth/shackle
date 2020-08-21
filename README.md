@@ -304,6 +304,10 @@ make profile
     <td><a href="https://github.com/lpgauth/marina">marina</a></td>
     <td>Cassandra CQL Client</td>
   </tr>
+  <tr>
+    <td><a href="https://github.com/lpgauth/statsderl">statsderl</a></td>
+    <td>StatsD Client</td>
+  </tr>
 </table>
 
 ## License
