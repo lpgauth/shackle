@@ -42,7 +42,7 @@ disable({PoolName, ServerIndex}) ->
         undefined ->
             ok;
         Counters ->
-            counters:sub(Counters, ServerIndex, 1)
+            counters:put(Counters, ServerIndex, 0)
     end.
 
 -spec enable(server_id()) ->
@@ -53,7 +53,7 @@ enable({PoolName, ServerIndex}) ->
         undefined ->
             ok;
         Counters ->
-            counters:add(Counters, ServerIndex, 1)
+            counters:put(Counters, ServerIndex, 1)
     end.
 
 -spec init() ->
