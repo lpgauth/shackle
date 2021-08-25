@@ -2,10 +2,6 @@
 -include("test.hrl").
 -include_lib("eunit/include/eunit.hrl").
 
--ifdef(OTP_RELEASE).
--compile({nowarn_deprecated_function, [{ssl, ssl_accept, 3}]}).
--endif.
-
 -export([
     start/0,
     stop/0
@@ -43,12 +39,25 @@ stop() ->
 accept(LSocket) ->
     case ssl:transport_accept(LSocket) of
         {ok, Socket} ->
-            ok = ssl:ssl_accept(Socket),
-            spawn(fun() -> loop(Socket, <<>>) end),
+            {ok, Socket2} = handshake(Socket),
+            spawn(fun() -> loop(Socket2, <<>>) end),
             accept(LSocket);
         {error, closed} ->
             ok
     end.
+
+-ifdef(SSL_HANDSHAKE).
+
+handshake(Socket) ->
+    ssl:handshake(Socket).
+
+-else.
+
+handshake(Socket) ->
+    ok = ssl:ssl_accept(Socket),
+    {ok, Socket}.
+
+-endif.
 
 listen() ->
     Self = self(),
