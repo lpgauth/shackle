@@ -102,11 +102,7 @@ enable({PoolName, ServerIndex}) ->
     ok.
 
 init() ->
-    ets:new(?ETS_TABLE_STATUS, [
-        named_table,
-        public,
-        {write_concurrency, true}
-    ]),
+    ets:new(?ETS_TABLE_STATUS, shackle_utils:ets_options()),
     ok.
 
 -spec new(pool_name(), pool_size()) ->

@@ -46,11 +46,7 @@ delete(PoolName) ->
     ok.
 
 new(PoolName) ->
-    Table = ets:new(table_name(PoolName), [
-        named_table,
-        public,
-        {write_concurrency, true}
-    ]),
+    Table = ets:new(table_name(PoolName), shackle_utils:ets_options()),
     ets:give_away(Table, whereis(shackle_ets_manager), undefined),
     ok.
 

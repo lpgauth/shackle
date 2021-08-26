@@ -6,6 +6,7 @@
 
 %% public
 -export([
+    ets_options/0,
     lookup/3,
     random/1,
     random_element/1,
@@ -13,6 +14,29 @@
 ]).
 
 %% public
+-spec ets_options() ->
+  ets:options().
+
+-ifdef(DECENTRALIZED_COUNTERS).
+
+ets_options() -> [
+      named_table,
+      public,
+      {write_concurrency, true},
+      {decentralized_counters, true}
+  ].
+
+-else.
+
+ets_options() -> [
+      named_table,
+      public,
+      {write_concurrency, true}
+  ].
+
+-endif.
+
+
 -spec lookup(atom(), [{atom(), term()}], term()) ->
     term().
 
