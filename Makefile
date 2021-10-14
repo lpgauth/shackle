@@ -1,6 +1,9 @@
 CACHEGRIND=qcachegrind
 ELVIS=./bin/elvis
+REBAR3=$(shell which rebar3)
+ifeq ($(REBAR3),)
 REBAR3=./bin/rebar3
+endif
 
 all: compile
 
