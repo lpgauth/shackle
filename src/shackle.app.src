@@ -6,5 +6,5 @@
   {links, [{"GitHub", "https://github.com/lpgauth/shackle"}]},
   {mod, {shackle_app, []}},
   {registered, []},
-  {vsn, "0.6.13"}
+  {vsn, git}
 ]}.
