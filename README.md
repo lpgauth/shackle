@@ -6,7 +6,7 @@ High-Performance Erlang Network Client Framework
 
 #### Requirements
 
-* Erlang 18.0+
+* Erlang 19.0+
 
 #### Features
 
