@@ -261,7 +261,6 @@ key(Client, Key) ->
 
 ```makefile
 make dialyzer
-make elvis
 make eunit
 make xref
 ```
