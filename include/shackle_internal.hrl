@@ -12,7 +12,6 @@
 -define(MSG_CONNECT, connect).
 -define(SERVER, shackle_server).
 -define(SUPERVISOR, shackle_sup).
--define(WARN(PoolName, Format, Data), shackle_utils:warning_msg(PoolName, Format, Data)).
 
 %% ETS tables
 -define(ETS_TABLE_POOL_INDEX, shackle_pool_index).
@@ -22,7 +21,12 @@
 -ifdef(OTP_RELEASE). %% OTP-21+
 -define(EXCEPTION(Class, Reason, Stacktrace), Class:Reason:Stacktrace).
 -define(GET_STACK(Stacktrace), Stacktrace).
+
+-include_lib("kernel/include/logger.hrl").
+-define(WARN(PoolName, Format, Data), ?LOG_WARNING("[~p] " ++ Format, [PoolName | Data])).
 -else.
 -define(EXCEPTION(Class, Reason, _), Class:Reason).
 -define(GET_STACK(_), erlang:get_stacktrace()).
+
+-define(WARN(PoolName, Format, Data), shackle_utils:warning_msg(PoolName, Format, Data)).
 -endif.
