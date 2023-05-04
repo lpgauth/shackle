@@ -7,6 +7,7 @@
 %% public
 -export([
     ets_options/0,
+    info_msg/3,
     lookup/3,
     random/1,
     random_element/1,
@@ -36,6 +37,11 @@ ets_options() -> [
 
 -endif.
 
+-spec info_msg(pool_name(), string(), [term()]) ->
+    ok.
+
+info_msg(Pool, Format, Data) ->
+    error_logger:info_msg("[~p] " ++ Format, [Pool | Data]).
 
 -spec lookup(atom(), [{atom(), term()}], term()) ->
     term().
