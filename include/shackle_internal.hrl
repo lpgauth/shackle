@@ -23,10 +23,13 @@
 -define(GET_STACK(Stacktrace), Stacktrace).
 
 -include_lib("kernel/include/logger.hrl").
+-define(DEBUG(PoolName, Format, Data), ?LOG_DEBUG("[~p] " ++ Format, [PoolName | Data])).
 -define(WARN(PoolName, Format, Data), ?LOG_WARNING("[~p] " ++ Format, [PoolName | Data])).
 -else.
 -define(EXCEPTION(Class, Reason, _), Class:Reason).
 -define(GET_STACK(_), erlang:get_stacktrace()).
 
+% HACK: error_logger doesn't support DEBUG level so we use INFO instead
+-define(DEBUG(PoolName, Format, Data), shackle_utils:info_msg(PoolName, Format, Data)).
 -define(WARN(PoolName, Format, Data), shackle_utils:warning_msg(PoolName, Format, Data)).
 -endif.

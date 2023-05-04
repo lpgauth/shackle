@@ -313,7 +313,7 @@ handle_msg_close(Socket, #state {
         pool_name = PoolName
     } = State, ClientState) ->
 
-    ?WARN(PoolName, "connection closed", []),
+    ?DEBUG(PoolName, "connection closed", []),
     close(State, ClientState);
 handle_msg_close(_Socket, State, ClientState) ->
     {ok, {State, ClientState}}.
