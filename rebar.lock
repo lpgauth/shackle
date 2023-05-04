@@ -2,7 +2,7 @@
 [{<<"foil">>,{pkg,<<"foil">>,<<"0.1.3">>},0},
  {<<"granderl">>,
   {git,"https://github.com/tokenrove/granderl.git",
-       {ref,"e1ec2ea981e6aa9a36ad4bc291b0b56c39e1e646"}},
+       {ref,"baafd1bc825cb1fc022760eae913f774fa6af91b"}},
   0},
  {<<"metal">>,{pkg,<<"metal">>,<<"0.1.1">>},0}]}.
 [

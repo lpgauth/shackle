@@ -67,7 +67,8 @@ start(PoolOptions) ->
         {reconnect_time_min, 1},
         {socket_options, [
             binary,
-            {packet, raw}
+            {packet, raw},
+            {verify, verify_none}
         ]}
     ], PoolOptions).
 
