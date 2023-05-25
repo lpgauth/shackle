@@ -150,9 +150,9 @@ server(Name, #pool_options {
     case shackle_status:active(ServerId) of
         true ->
             {ok, Backlog} = shackle_pool_foil:lookup({Name, backlog}),
+            {ok, ServerName} = shackle_pool_foil:lookup(ServerId),
             case shackle_backlog:check(Backlog, ServerId, BacklogSize) of
                 true ->
-                    {ok, ServerName} = shackle_pool_foil:lookup(ServerId),
                     {ok, Client, ServerName};
                 false ->
                     ?METRICS(Client, counter, <<"backlog_full">>),

@@ -49,9 +49,10 @@ cast(PoolName, Request, Pid) ->
 
 cast(PoolName, Request, Pid, Timeout) ->
     Timestamp = os:timestamp(),
+    Ref = make_ref(),
     case shackle_pool:server(PoolName) of
         {ok, Client, Server} ->
-            RequestId = {Server, make_ref()},
+            RequestId = {Server, Ref},
             Server ! {Request, #cast {
                 client = Client,
                 pid = Pid,
