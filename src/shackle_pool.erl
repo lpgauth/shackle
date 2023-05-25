@@ -1,6 +1,8 @@
 -module(shackle_pool).
 -include("shackle_internal.hrl").
 
+-dialyzer({nowarn_function, options/1}).
+-dialyzer({nowarn_function, server/3}).
 -ignore_xref([
     {shackle_pool_foil, lookup, 1}
 ]).

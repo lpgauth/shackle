@@ -64,7 +64,7 @@
 -type server_name() :: atom().
 -type server_opts() :: {pool_name(), server_index(), client(), client_options()}.
 -type socket() :: inet:socket() | ssl:sslsocket().
--type socket_option() :: gen_tcp:connect_option() | gen_udp:option() | ssl:connect_option().
+-type socket_option() :: gen_tcp:connect_option() | gen_udp:option() | ssl:tls_client_option().
 -type socket_options() :: [socket_option()].
 -type table() :: atom().
 -type time() :: pos_integer().

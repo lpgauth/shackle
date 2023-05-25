@@ -1,6 +1,7 @@
 -module(shackle_hooks).
 -include("shackle_internal.hrl").
 
+-dialyzer({nowarn_function, metrics/4}).
 -ignore_xref([
     {shackle_hooks_foil, lookup, 1}
 ]).
