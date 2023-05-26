@@ -1,6 +1,8 @@
 -module(shackle_pool).
 -include("shackle_internal.hrl").
 
+-dialyzer({nowarn_function, options/1}).
+-dialyzer({nowarn_function, server/3}).
 -ignore_xref([
     {shackle_pool_foil, lookup, 1}
 ]).
@@ -150,9 +152,9 @@ server(Name, #pool_options {
     case shackle_status:active(ServerId) of
         true ->
             {ok, Backlog} = shackle_pool_foil:lookup({Name, backlog}),
+            {ok, ServerName} = shackle_pool_foil:lookup(ServerId),
             case shackle_backlog:check(Backlog, ServerId, BacklogSize) of
                 true ->
-                    {ok, ServerName} = shackle_pool_foil:lookup(ServerId),
                     {ok, Client, ServerName};
                 false ->
                     ?METRICS(Client, counter, <<"backlog_full">>),
