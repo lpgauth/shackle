@@ -7,8 +7,6 @@
 -define(GET_ENV(Key, Default), application:get_env(?APP, Key, Default)).
 -define(LOOKUP(Key, List), ?LOOKUP(Key, List, undefined)).
 -define(LOOKUP(Key, List, Default), shackle_utils:lookup(Key, List, Default)).
--define(METRICS(Client, Type, Key), shackle_hooks:metrics(Client, Type, Key, 1)).
--define(METRICS(Client, Type, Key, Value), shackle_hooks:metrics(Client, Type, Key, Value)).
 -define(MSG_CONNECT, connect).
 -define(SERVER, shackle_server).
 -define(SUPERVISOR, shackle_sup).

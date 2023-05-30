@@ -101,7 +101,7 @@ handle_msg({Request, #cast {
         {ok, ExtRequestId, Data, ClientState2} ->
             case Protocol:send(Socket, Data) of
                 ok ->
-                    ?METRICS(Client, counter, <<"send">>),
+                    shackle_telemetry:send(Client, size(Data)),
                     case ExtRequestId of
                         undefined ->
                             reply(ok, Cast, State);
@@ -184,7 +184,7 @@ handle_msg({timeout, ExtRequestId}, {#state {
         true ->
             try Client:handle_timeout(ExtRequestId, ClientState) of
                 {ok, Reply, ClientState2} ->
-                    ?METRICS(Client, counter, <<"handle_timeout">>),
+                    shackle_telemetry:handle_timeout(Client),
                     process_responses([Reply], State),
                     {ok, {State, ClientState2}};
                 {error, Reason, ClientState2} ->
@@ -201,7 +201,7 @@ handle_msg({timeout, ExtRequestId}, {#state {
         false ->
             case shackle_queue:remove(Queue, Id, ExtRequestId) of
                 {ok, Cast, _TimerRef} ->
-                    ?METRICS(Client, counter, <<"timeout">>),
+                    shackle_telemetry:timeout(Client),
                     reply({error, timeout}, Cast, State);
                 {error, not_found} ->
                     ok
@@ -325,7 +325,7 @@ handle_msg_data(Socket, Data, #state {
         socket = Socket
     } = State, ClientState) ->
 
-    ?METRICS(Client, counter, <<"recv">>),
+    shackle_telemetry:recv(Client, size(Data)),
     try Client:handle_data(Data, ClientState) of
         {ok, Replies, ClientState2} ->
             process_responses(Replies, State),
@@ -364,16 +364,16 @@ process_responses([{ExtRequestId, Reply} | T], #state {
         queue = Queue
     } = State) ->
 
-    ?METRICS(Client, counter, <<"replies">>),
+    shackle_telemetry:replies(Client),
     case shackle_queue:remove(Queue, Id, ExtRequestId) of
         {ok, #cast {timestamp = Timestamp} = Cast, TimerRef} ->
-            ?METRICS(Client, counter, <<"found">>),
+            shackle_telemetry:found(Client),
             Diff = timer:now_diff(os:timestamp(), Timestamp),
-            ?METRICS(Client, timing, <<"reply">>, Diff),
+            shackle_telemetry:reply(Client, Diff),
             erlang:cancel_timer(TimerRef),
             reply(Reply, Cast, State);
         {error, not_found} ->
-            ?METRICS(Client, counter, <<"not_found">>, 1),
+            shackle_telemetry:not_found(Client),
             ok
     end,
     process_responses(T, State).
