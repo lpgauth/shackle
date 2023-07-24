@@ -1,5 +1,4 @@
 -module(shackle_udp).
--include("shackle_internal.hrl").
 
 -behavior(shackle_protocol).
 -export([
@@ -10,14 +9,14 @@
 ]).
 
 %% callbacks
--spec close(socket()) ->
+-spec close(shackle:socket()) ->
     ok.
 
 close(Socket) ->
     gen_udp:close(Socket).
 
--spec connect(inet_address(), inet_port(), socket_options()) ->
-    {ok, socket()} | {error, atom()}.
+-spec connect(shackle:inet_address(), shackle:inet_port(), shackle:socket_options()) ->
+    {ok, shackle:socket()} | {error, atom()}.
 
 connect(Address, Port, SocketOptions) ->
     case gen_udp:open(0, SocketOptions) of
@@ -28,13 +27,13 @@ connect(Address, Port, SocketOptions) ->
             {error, Reason}
     end.
 
--spec send(socket(), iodata()) ->
+-spec send(shackle:socket(), iodata()) ->
     ok | {error, atom()}.
 
 send(Socket, Data) ->
     gen_udp:send(Socket, Data).
 
--spec setopts(socket(), [gen_udp:option()]) ->
+-spec setopts(shackle:socket(), [gen_udp:option()]) ->
     ok |
     {error, atom()}.
 

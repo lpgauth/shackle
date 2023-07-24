@@ -1,5 +1,4 @@
 -module(shackle_utils).
--include("shackle_internal.hrl").
 
 -compile(inline).
 -compile({inline_size, 512}).
@@ -37,7 +36,7 @@ ets_options() -> [
 
 -endif.
 
--spec info_msg(pool_name(), string(), [term()]) ->
+-spec info_msg(shackle_pool:name(), string(), [term()]) ->
     ok.
 
 info_msg(Pool, Format, Data) ->
@@ -68,7 +67,7 @@ random_element([_|_] = List) ->
     T = list_to_tuple(List),
     element(random(tuple_size(T)), T).
 
--spec warning_msg(pool_name(), string(), [term()]) ->
+-spec warning_msg(shackle_pool:name(), string(), [term()]) ->
     ok.
 
 warning_msg(Pool, Format, Data) ->

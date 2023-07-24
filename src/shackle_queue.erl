@@ -1,5 +1,4 @@
 -module(shackle_queue).
--include("shackle_internal.hrl").
 
 -compile(inline).
 -compile({inline_size, 512}).
@@ -15,7 +14,7 @@
 ]).
 
 %% internal
--spec add(table(), server_id(), external_request_id(), cast(), reference()) ->
+-spec add(shackle:table(), shackle_server:id(), shackle:external_request_id(), shackle:cast(), reference()) ->
     ok.
 
 add(Table, ServerId, ExtRequestId, Cast, TimerRef) ->
@@ -23,8 +22,8 @@ add(Table, ServerId, ExtRequestId, Cast, TimerRef) ->
     ets:insert(Table, Object),
     ok.
 
--spec clear(table(), server_id()) ->
-    [{cast(), reference()}].
+-spec clear(shackle:table(), shackle_server:id()) ->
+    [{shackle:cast(), reference()}].
 
 clear(Table, ServerId) ->
     Match = {{ServerId, '_'}, '_'},
@@ -35,14 +34,14 @@ clear(Table, ServerId) ->
             [{Cast, TimerRef} || {_, {Cast, TimerRef}} <- Objects]
     end.
 
--spec delete(pool_name()) ->
+-spec delete(shackle_pool:name()) ->
     ok.
 
 delete(PoolName) ->
     ets:delete(table_name(PoolName)),
     ok.
 
--spec new(pool_name()) ->
+-spec new(shackle_pool:name()) ->
     ok.
 
 new(PoolName) ->
@@ -50,8 +49,8 @@ new(PoolName) ->
     ets:give_away(Table, whereis(shackle_ets_manager), undefined),
     ok.
 
--spec remove(table(), server_id(), external_request_id()) ->
-    {ok, cast(), reference()} | {error, not_found}.
+-spec remove(shackle:table(), shackle_server:id(), shackle:external_request_id()) ->
+    {ok, shackle:cast(), reference()} | {error, not_found}.
 
 remove(Table, ServerId, ExtRequestId) ->
     case ets_take(Table, {ServerId, ExtRequestId}) of
@@ -89,8 +88,8 @@ ets_take(Table, Key) ->
 
 -endif.
 
--spec table_name(pool_name()) ->
-    table().
+-spec table_name(shackle_pool:name()) ->
+    shackle:table().
 
 table_name(PoolName) ->
     list_to_atom("shackle_queue_" ++ atom_to_list(PoolName)).

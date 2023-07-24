@@ -14,8 +14,38 @@
     receive_response/1
 ]).
 
+%% types
+-type cast() :: #cast {}.
+-type client() :: module().
+-type external_request_id() :: term().
+-type inet_address() :: inet:ip_address() | inet:hostname().
+-type inet_port() :: inet:port_number().
+-type protocol() :: shackle_ssl| shackle_tcp | shackle_udp.
+-type request_id() :: {shackle_server:name(), reference()}.
+-type response() :: {external_request_id(), term()}.
+-type socket() :: inet:socket() | ssl:sslsocket().
+-type socket_option() :: gen_tcp:connect_option() | gen_udp:option() | ssl:tls_client_option().
+-type socket_options() :: [socket_option()].
+-type table() :: atom().
+-type time() :: pos_integer().
+
+-export_type([
+    cast/0,
+    client/0,
+    external_request_id/0,
+    inet_address/0,
+    inet_port/0,
+    protocol/0,
+    request_id/0,
+    response/0,
+    socket/0,
+    socket_options/0,
+    table/0,
+    time/0
+]).
+
 %% public
--spec call(pool_name(), term()) ->
+-spec call(shackle_pool:name(), term()) ->
     term() | {error, term()}.
 
 call(PoolName, Request) ->
@@ -32,19 +62,19 @@ call(PoolName, Request, Timeout) ->
             {error, Reason}
     end.
 
--spec cast(pool_name(), term()) ->
+-spec cast(shackle_pool:name(), term()) ->
     {ok, request_id()} | {error, atom()}.
 
 cast(PoolName, Request) ->
     cast(PoolName, Request, self()).
 
--spec cast(pool_name(), term(), undefined | pid()) ->
+-spec cast(shackle_pool:name(), term(), undefined | pid()) ->
     {ok, request_id()} | {error, atom()}.
 
 cast(PoolName, Request, Pid) ->
     cast(PoolName, Request, Pid, ?DEFAULT_TIMEOUT).
 
--spec cast(pool_name(), term(), undefined | pid(), timeout()) ->
+-spec cast(shackle_pool:name(), term(), undefined | pid(), timeout()) ->
     {ok, request_id()} | {error, atom()}.
 
 cast(PoolName, Request, Pid, Timeout) ->

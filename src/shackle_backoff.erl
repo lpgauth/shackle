@@ -9,8 +9,8 @@
 ]).
 
 %% public
--spec timeout(reconnect_state()) ->
-    reconnect_state().
+-spec timeout(shackle_server:reconnect_state()) ->
+    shackle_server:reconnect_state().
 
 timeout(#reconnect_state {
         current = undefined,

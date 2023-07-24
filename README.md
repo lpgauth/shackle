@@ -108,7 +108,7 @@ terminate(_State) -> ok.
 #### Starting client pool
 
 ```erlang
-shackle_pool:start(pool_name(), client(), client_options(), pool_options())
+shackle_pool:start(shackle_pool:name(), client(), client_options(), pool_options())
 ```
 
 ##### client_options:

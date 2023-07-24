@@ -16,35 +16,49 @@
 ]).
 
 -record(state, {
-    address          :: inet_address(),
-    backlog          :: table(),
-    client           :: client(),
-    id               :: server_id(),
+    address          :: shackle:inet_address(),
+    backlog          :: shackle:table(),
+    client           :: shackle:client(),
+    id               :: id(),
     init_options     :: init_options(),
-    name             :: server_name(),
+    name             :: name(),
     parent           :: pid(),
-    pool_name        :: pool_name(),
-    port             :: inet_port(),
-    protocol         :: protocol(),
-    queue            :: table(),
+    pool_name        :: shackle_pool:name(),
+    port             :: shackle:inet_port(),
+    protocol         :: shackle:protocol(),
+    queue            :: shackle:table(),
     reconnect_state  :: undefined | reconnect_state(),
-    socket           :: undefined | socket(),
-    socket_options   :: socket_options(),
+    socket           :: undefined | shackle:socket(),
+    socket_options   :: shackle:socket_options(),
     timer_ref        :: undefined | reference()
 
 }).
 
 -type state() :: #state {}.
+-type client_state() :: term().
+-type init_options() :: term().
+-type id() :: {shackle_pool:name(), index()}.
+-type index() :: pos_integer().
+-type name() :: atom().
+-type opts() :: {shackle_pool:name(), index(), shackle:client(), shackle_client:options()}.
+-type reconnect_state() :: #reconnect_state{}.
+
+-export_type([
+    id/0,
+    init_options/0,
+    name/0,
+    reconnect_state/0
+]).
 
 %% public
--spec start_link(server_name(), server_opts()) ->
+-spec start_link(name(), opts()) ->
     {ok, pid()}.
 
 start_link(Name, Opts) ->
     metal:start_link(?MODULE, Name, Opts).
 
 %% metal callbacks
--spec init(server_name(), pid(), server_opts()) ->
+-spec init(name(), pid(), opts()) ->
     no_return().
 
 init(Name, Parent, Opts) ->
