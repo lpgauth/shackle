@@ -1,5 +1,4 @@
 -module(shackle_profile).
--include("test.hrl").
 
 -export([
     run/0
