@@ -212,50 +212,8 @@ shackle_pool:start(pool_name(), client(), client_options(), pool_options())
 {ok, <<"bar">>}
 ```
 
-## Environment variables
-
-<table width="100%">
-  <theader>
-    <th>Name</th>
-    <th>Type</th>
-    <th>Default</th>
-    <th>Description</th>
-  </theader>
-  <tr>
-    <td>hooks</td>
-    <td>[{atom(), {module(), atom()}}]</td>
-    <td>[]</td>
-    <td>used to receive events/metrics about your client</td>
-  </tr>
-</table>
-
-## Hooks
-Hooks allow you to receive events and metrics about your client. To do so you need to implement the `shackle_hooks` behaviour and then use the `hooks` environment variable.
-
-```erlang
--module(my_client_hooks).
-
--behaviour(shackle_hooks).
--export([
-    metrics/4
-]).
-
-metrics(Client, counter, Key, Value) ->
-    statsderl:increment(key(Client, Key), Value, 0.005);
-metrics(Client, timing, Key, Value) ->
-    statsderl:timing(key(Client, Key), Value, 0.005).
-
-key(Client, Key) ->
-    [<<"shackle.">>, atom_to_binary(Client, latin1), <<".">>, Key].
-```
-
-```erlang
-{shackle, [
-  {hooks, [
-    {metrics {my_client_hooks, metrics}}
-  ]}
-]}
-```
+## Telemetry
+Shackle integrates with the backend-agnostic [telemetry](https://hexdocs.pm/telemetry/) library. See `shackle_telemetry` for the list of telemetry events that shackle can emit.
 
 ## Tests
 

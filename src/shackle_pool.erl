@@ -139,7 +139,7 @@ server(_Name, #pool_options {
         client = Client
     }, 0) ->
 
-    ?METRICS(Client, counter, <<"no_server">>),
+    shackle_telemetry:no_server(Client),
     {error, no_server};
 server(Name, #pool_options {
         backlog_size = BacklogSize,
@@ -157,11 +157,11 @@ server(Name, #pool_options {
                 true ->
                     {ok, Client, ServerName};
                 false ->
-                    ?METRICS(Client, counter, <<"backlog_full">>),
+                    shackle_telemetry:backlog_full(Client),
                     server(Name, Options, N - 1)
             end;
         false ->
-            ?METRICS(Client, counter, <<"disabled">>),
+            shackle_telemetry:disabled(Client),
             server(Name, Options, N - 1)
     end.
 
