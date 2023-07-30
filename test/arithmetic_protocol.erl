@@ -1,5 +1,4 @@
 -module(arithmetic_protocol).
--include("shackle_internal.hrl").
 
 -export([
     opcode/1,
@@ -22,7 +21,7 @@ opcode(add) -> 1;
 opcode(multiply) -> 2;
 opcode(noop) -> 3.
 
--spec parse_replies(binary()) -> {[response()], binary()}.
+-spec parse_replies(binary()) -> {[shackle:response()], binary()}.
 
 parse_replies(Data) ->
     parse_replies(Data, []).

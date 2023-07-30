@@ -1,5 +1,4 @@
 -module(shackle_ets_manager).
--include("shackle_internal.hrl").
 
 -export([
     start_link/1

@@ -21,14 +21,40 @@
     terminate/0
 ]).
 
+%% records
+-record(pool_options, {
+    backlog_size  :: shackle_backlog:backlog_size(),
+    client        :: shackle:client(),
+    max_retries   :: max_retries(),
+    pool_size     :: pool_size(),
+    pool_strategy :: pool_strategy()
+}).
+
+%% types
+-type max_retries() :: non_neg_integer().
+-type name() :: atom().
+-type pool_size() :: pos_integer().
+-type pool_strategy() :: random | round_robin.
+-type option() :: {backlog_size, shackle_backlog:backlog_size()} |
+                  {max_retries, max_retries()} |
+                  {pool_size, pool_size()} |
+                  {pool_strategy, pool_strategy()}.
+-type options() :: [option()].
+
+-export_type([
+    name/0,
+    options/0,
+    pool_size/0
+]).
+
 %% public
--spec start(pool_name(), client(), client_options()) ->
+-spec start(shackle_pool:name(), shackle:client(), shackle_client:options()) ->
     ok | {error, shackle_not_started | pool_already_started}.
 
 start(Name, Client, ClientOptions) ->
     start(Name, Client, ClientOptions, []).
 
--spec start(pool_name(), client(), client_options(), pool_options()) ->
+-spec start(shackle_pool:name(), shackle:client(), shackle_client:options(), options()) ->
     ok | {error, shackle_not_started | pool_already_started}.
 
 start(Name, Client, ClientOptions, Options) ->
@@ -44,7 +70,7 @@ start(Name, Client, ClientOptions, Options) ->
             ok
     end.
 
--spec stop(pool_name()) ->
+-spec stop(shackle_pool:name()) ->
     ok | {error, shackle_not_started | pool_not_started}.
 
 stop(Name) ->
@@ -73,8 +99,8 @@ init() ->
     foil:new(?MODULE),
     foil:load(?MODULE).
 
--spec server(pool_name()) ->
-    {ok, client(), atom()} |
+-spec server(shackle_pool:name()) ->
+    {ok, shackle:client(), atom()} |
     {error, pool_not_started | no_server | shackle_not_started}.
 
 server(Name) ->

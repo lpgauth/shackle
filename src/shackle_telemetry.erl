@@ -1,5 +1,4 @@
 -module(shackle_telemetry).
--include("shackle_internal.hrl").
 
 -compile(inline).
 -compile({inline_size, 512}).
@@ -18,67 +17,67 @@
     timeout/1
 ]).
 
--spec backlog_full(client()) -> ok.
+-spec backlog_full(shackle:client()) -> ok.
 backlog_full(Client) ->
     Measurements = #{count => 1},
     Metadata = #{client => Client},
     telemetry:execute([shackle, backlog_full], Measurements, Metadata).
 
--spec disabled(client()) -> ok.
+-spec disabled(shackle:client()) -> ok.
 disabled(Client) ->
     Measurements = #{count => 1},
     Metadata = #{client => Client},
     telemetry:execute([shackle, disabled], Measurements, Metadata).
 
--spec found(client()) -> ok.
+-spec found(shackle:client()) -> ok.
 found(Client) ->
     Measurements = #{count => 1},
     Metadata = #{client => Client},
     telemetry:execute([shackle, found], Measurements, Metadata).
 
--spec handle_timeout(client()) -> ok.
+-spec handle_timeout(shackle:client()) -> ok.
 handle_timeout(Client) ->
     Measurements = #{count => 1},
     Metadata = #{client => Client},
     telemetry:execute([shackle, handle_timeout], Measurements, Metadata).
 
--spec no_server(client()) -> ok.
+-spec no_server(shackle:client()) -> ok.
 no_server(Client) ->
     Measurements = #{count => 1},
     Metadata = #{client => Client},
     telemetry:execute([shackle, no_server], Measurements, Metadata).
 
--spec not_found(client()) -> ok.
+-spec not_found(shackle:client()) -> ok.
 not_found(Client) ->
     Measurements = #{count => 1},
     Metadata = #{client => Client},
     telemetry:execute([shackle, not_found], Measurements, Metadata).
 
--spec recv(client(), non_neg_integer()) -> ok.
+-spec recv(shackle:client(), non_neg_integer()) -> ok.
 recv(Client, NBytes) ->
     Measurements = #{count => 1, bytes => NBytes},
     Metadata = #{client => Client},
     telemetry:execute([shackle, recv], Measurements, Metadata).
 
--spec replies(client()) -> ok.
+-spec replies(shackle:client()) -> ok.
 replies(Client) ->
     Measurements = #{count => 1},
     Metadata = #{client => Client},
     telemetry:execute([shackle, replies], Measurements, Metadata).
 
--spec reply(client(), non_neg_integer()) -> ok.
+-spec reply(shackle:client(), non_neg_integer()) -> ok.
 reply(Client, Microseconds) ->
     Measurements = #{duration => Microseconds},
     Metadata = #{client => Client},
     telemetry:execute([shackle, reply], Measurements, Metadata).
 
--spec send(client(), non_neg_integer()) -> ok.
+-spec send(shackle:client(), non_neg_integer()) -> ok.
 send(Client, NBytes) ->
     Measurements = #{count => 1, bytes => NBytes},
     Metadata = #{client => Client},
     telemetry:execute([shackle, send], Measurements, Metadata).
 
--spec timeout(client()) -> ok.
+-spec timeout(shackle:client()) -> ok.
 timeout(Client) ->
     Measurements = #{count => 1},
     Metadata = #{client => Client},

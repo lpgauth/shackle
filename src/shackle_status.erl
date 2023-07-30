@@ -16,7 +16,7 @@
 %% public
 -ifdef(ATOMICS).
 
--spec active(server_id()) ->
+-spec active(shackle_server:id()) ->
     boolean().
 
 active({PoolName, ServerIndex}) ->
@@ -27,14 +27,14 @@ active({PoolName, ServerIndex}) ->
             boolean(counters:get(Counters, ServerIndex))
     end.
 
--spec delete(pool_name()) ->
+-spec delete(shackle_pool:name()) ->
     ok.
 
 delete(PoolName) ->
     persistent_term:erase(PoolName),
     ok.
 
--spec disable(server_id()) ->
+-spec disable(shackle_server:id()) ->
     ok.
 
 disable({PoolName, ServerIndex}) ->
@@ -45,7 +45,7 @@ disable({PoolName, ServerIndex}) ->
             counters:put(Counters, ServerIndex, 0)
     end.
 
--spec enable(server_id()) ->
+-spec enable(shackle_server:id()) ->
     ok.
 
 enable({PoolName, ServerIndex}) ->
@@ -62,7 +62,7 @@ enable({PoolName, ServerIndex}) ->
 init() ->
     ok.
 
--spec new(pool_name(), pool_size()) ->
+-spec new(shackle_pool:name(), shackle_pool:pool_size()) ->
     ok.
 
 new(PoolName, PoolSize) ->
@@ -71,27 +71,27 @@ new(PoolName, PoolSize) ->
 
 -else.
 
--spec active(server_id()) ->
+-spec active(shackle_server:id()) ->
     boolean().
 
 active({PoolName, ServerIndex}) ->
     boolean(ets:lookup_element(?ETS_TABLE_STATUS, PoolName, ServerIndex + 1)).
 
--spec delete(pool_name()) ->
+-spec delete(shackle_pool:name()) ->
     ok.
 
 delete(PoolName) ->
     ets:delete(?ETS_TABLE_STATUS, PoolName),
     ok.
 
--spec disable(server_id()) ->
+-spec disable(shackle_server:id()) ->
     ok.
 
 disable({PoolName, ServerIndex}) ->
     ets:update_counter(?ETS_TABLE_STATUS, PoolName, {ServerIndex + 1, -1}),
     ok.
 
--spec enable(server_id()) ->
+-spec enable(shackle_server:id()) ->
     ok.
 
 enable({PoolName, ServerIndex}) ->
@@ -105,7 +105,7 @@ init() ->
     ets:new(?ETS_TABLE_STATUS, shackle_utils:ets_options()),
     ok.
 
--spec new(pool_name(), pool_size()) ->
+-spec new(shackle_pool:name(), shackle_pool:pool_size()) ->
     ok.
 
 new(PoolName, PoolSize) ->

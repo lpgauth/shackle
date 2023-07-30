@@ -1,20 +1,19 @@
 -module(shackle_protocol).
--include("shackle_internal.hrl").
 
 %% callbacks
--callback close(Socket :: socket()) ->
+-callback close(Socket :: shackle:socket()) ->
     ok.
 
--callback connect(Address :: inet_address(), Port :: inet_port(),
-    SocketOptions :: socket_options()) ->
+-callback connect(Address :: shackle:inet_address(), Port :: shackle:inet_port(),
+    SocketOptions :: shackle:socket_options()) ->
 
-    {ok, Socket :: socket()} |
+    {ok, Socket :: shackle:socket()} |
     {error, atom()}.
 
--callback send(Socket :: socket(), iodata()) ->
+-callback send(Socket :: shackle:socket(), iodata()) ->
     ok |
     {error, atom()}.
 
--callback setopts(Socket :: socket(), [gen_tcp:option() | gen_udp:option()]) ->
+-callback setopts(Socket :: shackle:socket(), [gen_tcp:option() | gen_udp:option()]) ->
     ok |
     {error, atom()}.
