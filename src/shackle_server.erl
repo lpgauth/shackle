@@ -167,7 +167,7 @@ handle_msg(?MSG_CONNECT, {#state {
         socket_options = SocketOptions
     } = State, ClientState}) ->
 
-    case connect(Protocol, Address, Port, SocketOptions, PoolName) of
+    case connect(Client, Protocol, Address, Port, SocketOptions, PoolName) of
         {ok, Socket} ->
             case client(Client, PoolName, Init, Protocol, Socket) of
                 {ok, ClientState2} ->
@@ -306,7 +306,7 @@ close(#state {id = Id} = State, ClientState) ->
     reply_all({error, socket_closed}, State),
     reconnect(State, ClientState).
 
-connect(Protocol, Address, Port, SocketOptions, PoolName) ->
+connect(Client, Protocol, Address, Port, SocketOptions, PoolName) ->
     case inet:getaddrs(Address, inet) of
         {ok, Ips} ->
             Ip = shackle_utils:random_element(Ips),
@@ -314,7 +314,7 @@ connect(Protocol, Address, Port, SocketOptions, PoolName) ->
                 {ok, Socket} ->
                     {ok, Socket};
                 {error, Reason} ->
-                    ?WARN(PoolName, "connect error: ~p", [Reason]),
+                    shackle_telemetry:connection_error(Client, PoolName, Reason),
                     {error, Reason}
             end;
         {error, Reason} ->
@@ -359,12 +359,12 @@ handle_msg_data(_Socket, _Data, State, ClientState) ->
     {ok, {State, ClientState}}.
 
 handle_msg_error(Socket, Reason, #state {
+        client = Client,
         socket = Socket,
         pool_name = PoolName,
         protocol = Protocol
     } = State, ClientState) ->
-
-    ?WARN(PoolName, "connection error: ~p", [Reason]),
+    shackle_telemetry:connection_error(Client, PoolName, Reason),
     Protocol:close(Socket),
     close(State, ClientState);
 handle_msg_error(_Socket, _Reason, State, ClientState) ->

@@ -5,6 +5,7 @@
 
 -export([
     backlog_full/1,
+    connection_error/3,
     disabled/1,
     found/1,
     handle_timeout/1,
@@ -22,6 +23,12 @@ backlog_full(Client) ->
     Measurements = #{count => 1},
     Metadata = #{client => Client},
     telemetry:execute([shackle, backlog_full], Measurements, Metadata).
+
+-spec connection_error(shackle:client(), shackle_pool:name(), any()) -> ok.
+connection_error(Client, PoolName, Reason) ->
+    Measurements = #{count => 1},
+    Metadata = #{client => Client, pool_name => PoolName, reason => Reason},
+    telemetry:execute([shackle, connection_error], Measurements, Metadata).
 
 -spec disabled(shackle:client()) -> ok.
 disabled(Client) ->
