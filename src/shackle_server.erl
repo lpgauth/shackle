@@ -307,11 +307,14 @@ close(#state {id = Id} = State, ClientState) ->
     reconnect(State, ClientState).
 
 connect(Client, Protocol, Address, Port, SocketOptions, PoolName) ->
+    StartTime = os:timestamp(),
     case inet:getaddrs(Address, inet) of
         {ok, Ips} ->
             Ip = shackle_utils:random_element(Ips),
             case Protocol:connect(Ip, Port, SocketOptions) of
                 {ok, Socket} ->
+                    Diff = timer:now_diff(os:timestamp(), StartTime),
+                    shackle_telemetry:connected(Client, PoolName, Diff),
                     {ok, Socket};
                 {error, Reason} ->
                     shackle_telemetry:connection_error(Client, PoolName, Reason),
