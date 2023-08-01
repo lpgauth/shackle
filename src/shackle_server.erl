@@ -115,7 +115,7 @@ handle_msg({Request, #cast {
         {ok, ExtRequestId, Data, ClientState2} ->
             case Protocol:send(Socket, Data) of
                 ok ->
-                    shackle_telemetry:send(Client, size(Data)),
+                    shackle_telemetry:send(Client, iolist_size(Data)),
                     case ExtRequestId of
                         undefined ->
                             reply(ok, Cast, State);
