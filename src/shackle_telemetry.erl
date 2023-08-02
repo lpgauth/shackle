@@ -14,7 +14,7 @@
     not_found/1,
     recv/2,
     replies/1,
-    reply/3,
+    reply/4,
     send/2,
     timeout/2
 ]).
@@ -79,10 +79,10 @@ replies(Client) ->
     Metadata = #{client => Client},
     telemetry:execute([shackle, replies], Measurements, Metadata).
 
--spec reply(shackle:client(), term(), non_neg_integer()) -> ok.
-reply(Client, Request, Microseconds) ->
+-spec reply(shackle:client(), term(), term(), non_neg_integer()) -> ok.
+reply(Client, Request, Response, Microseconds) ->
     Measurements = #{duration => Microseconds},
-    Metadata = #{client => Client, request => Request},
+    Metadata = #{client => Client, request => Request, response => Response},
     telemetry:execute([shackle, reply], Measurements, Metadata).
 
 -spec send(shackle:client(), non_neg_integer()) -> ok.

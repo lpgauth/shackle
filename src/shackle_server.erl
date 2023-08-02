@@ -386,7 +386,7 @@ process_responses([{ExtRequestId, Reply} | T], #state {
         {ok, #cast {timestamp = Timestamp} = Cast, Request, TimerRef} ->
             shackle_telemetry:found(Client),
             Diff = timer:now_diff(os:timestamp(), Timestamp),
-            shackle_telemetry:reply(Client, Request, Diff),
+            shackle_telemetry:reply(Client, Request, Reply, Diff),
             erlang:cancel_timer(TimerRef),
             reply(Reply, Cast, State);
         {error, not_found} ->
