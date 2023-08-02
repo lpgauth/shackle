@@ -4,7 +4,7 @@
     pid            :: undefined | pid(),
     request_id     :: shackle:request_id(),
     timeout        :: timeout(),
-    timestamp      :: erlang:timestamp()
+    timestamp      :: integer()
 }).
 
 -record(reconnect_state, {

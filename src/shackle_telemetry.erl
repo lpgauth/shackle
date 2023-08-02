@@ -27,8 +27,8 @@ backlog_full(Client) ->
     telemetry:execute([shackle, backlog_full], Measurements, Metadata).
 
 -spec connected(shackle:client(), shackle_pool:name(), non_neg_integer()) -> ok.
-connected(Client, PoolName, Microseconds) ->
-    Measurements = #{count => 1, duration => Microseconds},
+connected(Client, PoolName, Duration) ->
+    Measurements = #{count => 1, duration => Duration},
     Metadata = #{client => Client, pool_name => PoolName},
     telemetry:execute([shackle, connected], Measurements, Metadata).
 
@@ -69,8 +69,8 @@ not_found(Client) ->
     telemetry:execute([shackle, not_found], Measurements, Metadata).
 
 -spec queued_time(shackle:client(), non_neg_integer()) -> ok.
-queued_time(Client, Microseconds) ->
-    Measurements = #{duration => Microseconds},
+queued_time(Client, Duration) ->
+    Measurements = #{duration => Duration},
     Metadata = #{client => Client},
     telemetry:execute([shackle, queued_time], Measurements, Metadata).
 
@@ -87,8 +87,8 @@ replies(Client) ->
     telemetry:execute([shackle, replies], Measurements, Metadata).
 
 -spec reply(shackle:client(), term(), term(), non_neg_integer()) -> ok.
-reply(Client, Request, Response, Microseconds) ->
-    Measurements = #{duration => Microseconds},
+reply(Client, Request, Response, Duration) ->
+    Measurements = #{duration => Duration},
     Metadata = #{client => Client, request => Request, response => Response},
     telemetry:execute([shackle, reply], Measurements, Metadata).
 
