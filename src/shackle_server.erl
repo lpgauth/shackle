@@ -94,14 +94,16 @@ init(Name, Parent, Opts) ->
 -spec handle_msg(term(), {state(), client_state()}) ->
     {ok, term()}.
 
-handle_msg({_, #cast {} = Cast}, {#state {
-        socket = undefined
+handle_msg({_, #cast {timestamp = Timestamp} = Cast}, {#state {
+        socket = undefined,
+        client = Client
     } = State, ClientState}) ->
-
+    shackle_telemetry:queued_time(Client, microseconds_since(Timestamp)),
     reply({error, no_socket}, Cast, State),
     {ok, {State, ClientState}};
 handle_msg({Request, #cast {
-        timeout = Timeout
+        timeout = Timeout,
+        timestamp = Timestamp
     } = Cast}, {#state {
         client = Client,
         id = Id,
@@ -110,7 +112,7 @@ handle_msg({Request, #cast {
         queue = Queue,
         socket = Socket
     } = State, ClientState}) ->
-
+    shackle_telemetry:queued_time(Client, microseconds_since(Timestamp)),
     try Client:handle_request(Request, ClientState) of
         {ok, ExtRequestId, Data, ClientState2} ->
             case Protocol:send(Socket, Data) of
@@ -313,7 +315,7 @@ connect(Client, Protocol, Address, Port, SocketOptions, PoolName) ->
             Ip = shackle_utils:random_element(Ips),
             case Protocol:connect(Ip, Port, SocketOptions) of
                 {ok, Socket} ->
-                    Diff = timer:now_diff(os:timestamp(), StartTime),
+                    Diff = microseconds_since(StartTime),
                     shackle_telemetry:connected(Client, PoolName, Diff),
                     {ok, Socket};
                 {error, Reason} ->
@@ -385,7 +387,7 @@ process_responses([{ExtRequestId, Reply} | T], #state {
     case shackle_queue:remove(Queue, Id, ExtRequestId) of
         {ok, #cast {timestamp = Timestamp} = Cast, Request, TimerRef} ->
             shackle_telemetry:found(Client),
-            Diff = timer:now_diff(os:timestamp(), Timestamp),
+            Diff = microseconds_since(Timestamp),
             shackle_telemetry:reply(Client, Request, Reply, Diff),
             erlang:cancel_timer(TimerRef),
             reply(Reply, Cast, State);
@@ -485,3 +487,6 @@ reply_all(Reply, [{Cast, _Request, TimerRef} | T], State) ->
     erlang:cancel_timer(TimerRef),
     reply(Reply, Cast, State),
     reply_all(Reply, T, State).
+
+microseconds_since(Timestamp) ->
+    timer:now_diff(os:timestamp(), Timestamp).

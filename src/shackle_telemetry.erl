@@ -12,6 +12,7 @@
     handle_timeout/1,
     no_server/1,
     not_found/1,
+    queued_time/2,
     recv/2,
     replies/1,
     reply/4,
@@ -66,6 +67,12 @@ not_found(Client) ->
     Measurements = #{count => 1},
     Metadata = #{client => Client},
     telemetry:execute([shackle, not_found], Measurements, Metadata).
+
+-spec queued_time(shackle:client(), non_neg_integer()) -> ok.
+queued_time(Client, Microseconds) ->
+    Measurements = #{duration => Microseconds},
+    Metadata = #{client => Client},
+    telemetry:execute([shackle, queued_time], Measurements, Metadata).
 
 -spec recv(shackle:client(), non_neg_integer()) -> ok.
 recv(Client, NBytes) ->
