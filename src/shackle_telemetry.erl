@@ -14,9 +14,9 @@
     not_found/1,
     recv/2,
     replies/1,
-    reply/2,
+    reply/3,
     send/2,
-    timeout/1
+    timeout/2
 ]).
 
 -spec backlog_full(shackle:client()) -> ok.
@@ -79,10 +79,10 @@ replies(Client) ->
     Metadata = #{client => Client},
     telemetry:execute([shackle, replies], Measurements, Metadata).
 
--spec reply(shackle:client(), non_neg_integer()) -> ok.
-reply(Client, Microseconds) ->
+-spec reply(shackle:client(), term(), non_neg_integer()) -> ok.
+reply(Client, Request, Microseconds) ->
     Measurements = #{duration => Microseconds},
-    Metadata = #{client => Client},
+    Metadata = #{client => Client, request => Request},
     telemetry:execute([shackle, reply], Measurements, Metadata).
 
 -spec send(shackle:client(), non_neg_integer()) -> ok.
@@ -91,8 +91,8 @@ send(Client, NBytes) ->
     Metadata = #{client => Client},
     telemetry:execute([shackle, send], Measurements, Metadata).
 
--spec timeout(shackle:client()) -> ok.
-timeout(Client) ->
+-spec timeout(shackle:client(), term()) -> ok.
+timeout(Client, Request) ->
     Measurements = #{count => 1},
-    Metadata = #{client => Client},
+    Metadata = #{client => Client, request => Request},
     telemetry:execute([shackle, timeout], Measurements, Metadata).

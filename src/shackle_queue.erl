@@ -5,7 +5,7 @@
 
 %% internal
 -export([
-    add/5,
+    add/6,
     clear/2,
     delete/1,
     new/1,
@@ -14,16 +14,16 @@
 ]).
 
 %% internal
--spec add(shackle:table(), shackle_server:id(), shackle:external_request_id(), shackle:cast(), reference()) ->
+-spec add(shackle:table(), shackle_server:id(), shackle:external_request_id(), term(), shackle:cast(), reference()) ->
     ok.
 
-add(Table, ServerId, ExtRequestId, Cast, TimerRef) ->
-    Object = {{ServerId, ExtRequestId}, {Cast, TimerRef}},
+add(Table, ServerId, ExtRequestId, Request, Cast, TimerRef) ->
+    Object = {{ServerId, ExtRequestId}, {Cast, Request, TimerRef}},
     ets:insert(Table, Object),
     ok.
 
 -spec clear(shackle:table(), shackle_server:id()) ->
-    [{shackle:cast(), reference()}].
+    [{shackle:cast(), term(), reference()}].
 
 clear(Table, ServerId) ->
     Match = {{ServerId, '_'}, '_'},
@@ -31,7 +31,7 @@ clear(Table, ServerId) ->
         [] ->
             [];
         Objects ->
-            [{Cast, TimerRef} || {_, {Cast, TimerRef}} <- Objects]
+            [{Cast, Request, TimerRef} || {_, {Cast, Request, TimerRef}} <- Objects]
     end.
 
 -spec delete(shackle_pool:name()) ->
@@ -50,14 +50,14 @@ new(PoolName) ->
     ok.
 
 -spec remove(shackle:table(), shackle_server:id(), shackle:external_request_id()) ->
-    {ok, shackle:cast(), reference()} | {error, not_found}.
+    {ok, shackle:cast(), term(), reference()} | {error, not_found}.
 
 remove(Table, ServerId, ExtRequestId) ->
     case ets_take(Table, {ServerId, ExtRequestId}) of
         [] ->
             {error, not_found};
-        [{_, {Cast, TimerRef}}] ->
-            {ok, Cast, TimerRef}
+        [{_, {Cast, Request, TimerRef}}] ->
+            {ok, Cast, Request, TimerRef}
     end.
 
 %% private
