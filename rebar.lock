@@ -4,8 +4,7 @@
   {git,"https://github.com/tokenrove/granderl.git",
        {ref,"baafd1bc825cb1fc022760eae913f774fa6af91b"}},
   0},
- {<<"metal">>,{pkg,<<"metal">>,<<"0.1.1">>},0},
- {<<"telemetry">>,{pkg,<<"telemetry">>,<<"1.2.1">>},0}]}.
+ {<<"metal">>,{pkg,<<"metal">>,<<"0.1.1">>},0}]}.
 [
 {pkg_hash,[
  {<<"foil">>, <<"415835CA94A8D0A55AB3D334FE2D1A1DCF36E7A0F69789050765770B6BF5E6E9">>},

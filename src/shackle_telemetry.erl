@@ -24,82 +24,82 @@
 backlog_full(Client) ->
     Measurements = #{count => 1},
     Metadata = #{client => Client},
-    telemetry:execute([shackle, backlog_full], Measurements, Metadata).
+    shackle_hooks:event([shackle, backlog_full], Measurements, Metadata).
 
 -spec connected(shackle:client(), shackle_pool:name(), non_neg_integer()) -> ok.
 connected(Client, PoolName, Duration) ->
     Measurements = #{count => 1, duration => Duration},
     Metadata = #{client => Client, pool_name => PoolName},
-    telemetry:execute([shackle, connected], Measurements, Metadata).
+    shackle_hooks:event([shackle, connected], Measurements, Metadata).
 
 -spec connection_error(shackle:client(), shackle_pool:name(), any()) -> ok.
 connection_error(Client, PoolName, Reason) ->
     Measurements = #{count => 1},
     Metadata = #{client => Client, pool_name => PoolName, reason => Reason},
-    telemetry:execute([shackle, connection_error], Measurements, Metadata).
+    shackle_hooks:event([shackle, connection_error], Measurements, Metadata).
 
 -spec disabled(shackle:client()) -> ok.
 disabled(Client) ->
     Measurements = #{count => 1},
     Metadata = #{client => Client},
-    telemetry:execute([shackle, disabled], Measurements, Metadata).
+    shackle_hooks:event([shackle, disabled], Measurements, Metadata).
 
 -spec found(shackle:client()) -> ok.
 found(Client) ->
     Measurements = #{count => 1},
     Metadata = #{client => Client},
-    telemetry:execute([shackle, found], Measurements, Metadata).
+    shackle_hooks:event([shackle, found], Measurements, Metadata).
 
 -spec handle_timeout(shackle:client()) -> ok.
 handle_timeout(Client) ->
     Measurements = #{count => 1},
     Metadata = #{client => Client},
-    telemetry:execute([shackle, handle_timeout], Measurements, Metadata).
+    shackle_hooks:event([shackle, handle_timeout], Measurements, Metadata).
 
 -spec no_server(shackle:client()) -> ok.
 no_server(Client) ->
     Measurements = #{count => 1},
     Metadata = #{client => Client},
-    telemetry:execute([shackle, no_server], Measurements, Metadata).
+    shackle_hooks:event([shackle, no_server], Measurements, Metadata).
 
 -spec not_found(shackle:client()) -> ok.
 not_found(Client) ->
     Measurements = #{count => 1},
     Metadata = #{client => Client},
-    telemetry:execute([shackle, not_found], Measurements, Metadata).
+    shackle_hooks:event([shackle, not_found], Measurements, Metadata).
 
 -spec queued_time(shackle:client(), non_neg_integer()) -> ok.
 queued_time(Client, Duration) ->
     Measurements = #{duration => Duration},
     Metadata = #{client => Client},
-    telemetry:execute([shackle, queued_time], Measurements, Metadata).
+    shackle_hooks:event([shackle, queued_time], Measurements, Metadata).
 
 -spec recv(shackle:client(), non_neg_integer()) -> ok.
 recv(Client, NBytes) ->
     Measurements = #{count => 1, bytes => NBytes},
     Metadata = #{client => Client},
-    telemetry:execute([shackle, recv], Measurements, Metadata).
+    shackle_hooks:event([shackle, recv], Measurements, Metadata).
 
 -spec replies(shackle:client()) -> ok.
 replies(Client) ->
     Measurements = #{count => 1},
     Metadata = #{client => Client},
-    telemetry:execute([shackle, replies], Measurements, Metadata).
+    shackle_hooks:event([shackle, replies], Measurements, Metadata).
 
 -spec reply(shackle:client(), term(), term(), non_neg_integer()) -> ok.
 reply(Client, Request, Response, Duration) ->
     Measurements = #{duration => Duration},
     Metadata = #{client => Client, request => Request, response => Response},
-    telemetry:execute([shackle, reply], Measurements, Metadata).
+    shackle_hooks:event([shackle, reply], Measurements, Metadata).
 
 -spec send(shackle:client(), non_neg_integer()) -> ok.
 send(Client, NBytes) ->
     Measurements = #{count => 1, bytes => NBytes},
     Metadata = #{client => Client},
-    telemetry:execute([shackle, send], Measurements, Metadata).
+    shackle_hooks:event([shackle, send], Measurements, Metadata).
 
 -spec timeout(shackle:client(), term()) -> ok.
 timeout(Client, Request) ->
     Measurements = #{count => 1},
     Metadata = #{client => Client, request => Request},
-    telemetry:execute([shackle, timeout], Measurements, Metadata).
+    shackle_hooks:event([shackle, timeout], Measurements, Metadata).
