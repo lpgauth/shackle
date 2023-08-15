@@ -1,4 +1,4 @@
--module(shackle_telemetry).
+-module(shackle_events).
 
 -compile(inline).
 -compile({inline_size, 512}).

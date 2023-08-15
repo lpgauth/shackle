@@ -98,7 +98,7 @@ handle_msg({_, #cast {timestamp = Timestamp} = Cast}, {#state {
         socket = undefined,
         client = Client
     } = State, ClientState}) ->
-    shackle_telemetry:queued_time(Client, duration_since(Timestamp)),
+    shackle_events:queued_time(Client, duration_since(Timestamp)),
     reply({error, no_socket}, Cast, State),
     {ok, {State, ClientState}};
 handle_msg({Request, #cast {
@@ -112,12 +112,12 @@ handle_msg({Request, #cast {
         queue = Queue,
         socket = Socket
     } = State, ClientState}) ->
-    shackle_telemetry:queued_time(Client, duration_since(Timestamp)),
+    shackle_events:queued_time(Client, duration_since(Timestamp)),
     try Client:handle_request(Request, ClientState) of
         {ok, ExtRequestId, Data, ClientState2} ->
             case Protocol:send(Socket, Data) of
                 ok ->
-                    shackle_telemetry:send(Client, iolist_size(Data)),
+                    shackle_events:send(Client, iolist_size(Data)),
                     case ExtRequestId of
                         undefined ->
                             reply(ok, Cast, State);
@@ -200,7 +200,7 @@ handle_msg({timeout, ExtRequestId}, {#state {
         true ->
             try Client:handle_timeout(ExtRequestId, ClientState) of
                 {ok, Reply, ClientState2} ->
-                    shackle_telemetry:handle_timeout(Client),
+                    shackle_events:handle_timeout(Client),
                     process_responses([Reply], State),
                     {ok, {State, ClientState2}};
                 {error, Reason, ClientState2} ->
@@ -217,7 +217,7 @@ handle_msg({timeout, ExtRequestId}, {#state {
         false ->
             case shackle_queue:remove(Queue, Id, ExtRequestId) of
                 {ok, Cast, Request, _TimerRef} ->
-                    shackle_telemetry:timeout(Client, Request),
+                    shackle_events:timeout(Client, Request),
                     reply({error, timeout}, Cast, State);
                 {error, not_found} ->
                     ok
@@ -316,10 +316,10 @@ connect(Client, Protocol, Address, Port, SocketOptions, PoolName) ->
             case Protocol:connect(Ip, Port, SocketOptions) of
                 {ok, Socket} ->
                     Diff = duration_since(StartTime),
-                    shackle_telemetry:connected(Client, PoolName, Diff),
+                    shackle_events:connected(Client, PoolName, Diff),
                     {ok, Socket};
                 {error, Reason} ->
-                    shackle_telemetry:connection_error(Client, PoolName, Reason),
+                    shackle_events:connection_error(Client, PoolName, Reason),
                     {error, Reason}
             end;
         {error, Reason} ->
@@ -344,7 +344,7 @@ handle_msg_data(Socket, Data, #state {
         socket = Socket
     } = State, ClientState) ->
 
-    shackle_telemetry:recv(Client, size(Data)),
+    shackle_events:recv(Client, size(Data)),
     try Client:handle_data(Data, ClientState) of
         {ok, Replies, ClientState2} ->
             process_responses(Replies, State),
@@ -369,7 +369,7 @@ handle_msg_error(Socket, Reason, #state {
         pool_name = PoolName,
         protocol = Protocol
     } = State, ClientState) ->
-    shackle_telemetry:connection_error(Client, PoolName, Reason),
+    shackle_events:connection_error(Client, PoolName, Reason),
     Protocol:close(Socket),
     close(State, ClientState);
 handle_msg_error(_Socket, _Reason, State, ClientState) ->
@@ -383,16 +383,16 @@ process_responses([{ExtRequestId, Reply} | T], #state {
         queue = Queue
     } = State) ->
 
-    shackle_telemetry:replies(Client),
+    shackle_events:replies(Client),
     case shackle_queue:remove(Queue, Id, ExtRequestId) of
         {ok, #cast {timestamp = Timestamp} = Cast, Request, TimerRef} ->
-            shackle_telemetry:found(Client),
+            shackle_events:found(Client),
             Diff = duration_since(Timestamp),
-            shackle_telemetry:reply(Client, Request, Reply, Diff),
+            shackle_events:reply(Client, Request, Reply, Diff),
             erlang:cancel_timer(TimerRef),
             reply(Reply, Cast, State);
         {error, not_found} ->
-            shackle_telemetry:not_found(Client),
+            shackle_events:not_found(Client),
             ok
     end,
     process_responses(T, State).

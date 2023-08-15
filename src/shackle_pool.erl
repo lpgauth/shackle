@@ -165,7 +165,7 @@ server(_Name, #pool_options {
         client = Client
     }, 0) ->
 
-    shackle_telemetry:no_server(Client),
+    shackle_events:no_server(Client),
     {error, no_server};
 server(Name, #pool_options {
         backlog_size = BacklogSize,
@@ -183,11 +183,11 @@ server(Name, #pool_options {
                 true ->
                     {ok, Client, ServerName};
                 false ->
-                    shackle_telemetry:backlog_full(Client),
+                    shackle_events:backlog_full(Client),
                     server(Name, Options, N - 1)
             end;
         false ->
-            shackle_telemetry:disabled(Client),
+            shackle_events:disabled(Client),
             server(Name, Options, N - 1)
     end.
 
