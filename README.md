@@ -213,7 +213,17 @@ shackle_pool:start(shackle_pool:name(), client(), client_options(), pool_options
 ```
 
 ## Telemetry
-Shackle integrates with the backend-agnostic [telemetry](https://hexdocs.pm/telemetry/) library. See `shackle_telemetry` for the list of telemetry events that shackle can emit.
+
+It is straightforward to integrate Shackle with the backend-agnostic [telemetry](https://hexdocs.pm/telemetry/) library.
+Because the calling convention in `shackle_hooks` closely resembles `telemetry:execute`, it is possible configure Shackle like so:
+
+```
+{shackle, [
+  {hooks, [
+    {metrics, {telemetry, execute}}
+  ]}
+]}
+```
 
 ## Tests
 
