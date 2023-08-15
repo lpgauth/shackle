@@ -220,7 +220,7 @@ Because the calling convention in `shackle_hooks` closely resembles `telemetry:e
 ```
 {shackle, [
   {hooks, [
-    {metrics, {telemetry, execute}}
+    {events, {telemetry, execute}}
   ]}
 ]}
 ```

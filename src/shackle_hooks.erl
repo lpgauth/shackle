@@ -30,9 +30,9 @@
 
 init() ->
     Hooks = ?GET_ENV(hooks, []),
-    Metrics = ?LOOKUP(metrics, Hooks, undefined),
+    Events = ?LOOKUP(events, Hooks, undefined),
     foil:new(?MODULE),
-    foil:insert(?MODULE, metrics, Metrics),
+    foil:insert(?MODULE, events, Events),
     foil:load(?MODULE),
     ok.
 
@@ -40,7 +40,7 @@ init() ->
     ok.
 
 event(EventName, Measurements, Metadata) ->
-    case shackle_hooks_foil:lookup(metrics) of
+    case shackle_hooks_foil:lookup(events) of
         {ok, {M, F}} ->
             M:F(EventName, Measurements, Metadata);
         _ ->
