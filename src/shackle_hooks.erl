@@ -1,7 +1,7 @@
 -module(shackle_hooks).
 -include("shackle_internal.hrl").
 
--dialyzer({nowarn_function, event/3}).
+-dialyzer({nowarn_function, handler/0}).
 -ignore_xref([
     {shackle_hooks_foil, lookup, 1}
 ]).
@@ -11,7 +11,7 @@
 
 -export([
     init/0,
-    event/3
+    handler/0
 ]).
 
 %% callbacks
@@ -36,13 +36,9 @@ init() ->
     foil:load(?MODULE),
     ok.
 
--spec event(event_name(), event_measurements(), event_metadata()) ->
-    ok.
-
-event(EventName, Measurements, Metadata) ->
+-spec handler() -> {atom(), atom()} | undefined.
+handler() ->
     case shackle_hooks_foil:lookup(events) of
-        {ok, {M, F}} ->
-            M:F(EventName, Measurements, Metadata);
-        _ ->
-            ok
+        {ok, {M, F}} -> {M, F};
+        _ -> undefined
     end.

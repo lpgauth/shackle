@@ -98,7 +98,7 @@ handle_msg({_, #cast {timestamp = Timestamp} = Cast}, {#state {
         socket = undefined,
         client = Client
     } = State, ClientState}) ->
-    shackle_events:queued_time(Client, duration_since(Timestamp)),
+    shackle_events:queued_time(Client, Timestamp),
     reply({error, no_socket}, Cast, State),
     {ok, {State, ClientState}};
 handle_msg({Request, #cast {
@@ -112,12 +112,12 @@ handle_msg({Request, #cast {
         queue = Queue,
         socket = Socket
     } = State, ClientState}) ->
-    shackle_events:queued_time(Client, duration_since(Timestamp)),
+    shackle_events:queued_time(Client, Timestamp),
     try Client:handle_request(Request, ClientState) of
         {ok, ExtRequestId, Data, ClientState2} ->
             case Protocol:send(Socket, Data) of
                 ok ->
-                    shackle_events:send(Client, iolist_size(Data)),
+                    shackle_events:send(Client, Data),
                     case ExtRequestId of
                         undefined ->
                             reply(ok, Cast, State);
@@ -315,8 +315,7 @@ connect(Client, Protocol, Address, Port, SocketOptions, PoolName) ->
             Ip = shackle_utils:random_element(Ips),
             case Protocol:connect(Ip, Port, SocketOptions) of
                 {ok, Socket} ->
-                    Diff = duration_since(StartTime),
-                    shackle_events:connected(Client, PoolName, Diff),
+                    shackle_events:connected(Client, PoolName, StartTime),
                     {ok, Socket};
                 {error, Reason} ->
                     shackle_events:connection_error(Client, PoolName, Reason),
@@ -344,7 +343,7 @@ handle_msg_data(Socket, Data, #state {
         socket = Socket
     } = State, ClientState) ->
 
-    shackle_events:recv(Client, size(Data)),
+    shackle_events:recv(Client, Data),
     try Client:handle_data(Data, ClientState) of
         {ok, Replies, ClientState2} ->
             process_responses(Replies, State),
@@ -387,8 +386,7 @@ process_responses([{ExtRequestId, Reply} | T], #state {
     case shackle_queue:remove(Queue, Id, ExtRequestId) of
         {ok, #cast {timestamp = Timestamp} = Cast, Request, TimerRef} ->
             shackle_events:found(Client),
-            Diff = duration_since(Timestamp),
-            shackle_events:reply(Client, Request, Reply, Diff),
+            shackle_events:reply(Client, Request, Reply, Timestamp),
             erlang:cancel_timer(TimerRef),
             reply(Reply, Cast, State);
         {error, not_found} ->
@@ -487,6 +485,3 @@ reply_all(Reply, [{Cast, _Request, TimerRef} | T], State) ->
     erlang:cancel_timer(TimerRef),
     reply(Reply, Cast, State),
     reply_all(Reply, T, State).
-
-duration_since(Timestamp) ->
-    erlang:monotonic_time() - Timestamp.

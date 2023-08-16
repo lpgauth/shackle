@@ -20,86 +20,129 @@
     timeout/2
 ]).
 
+-define(EVENT(Block),
+    case shackle_hooks:handler() of
+        {M, F} ->
+            {EventName, Measurements, Metadata} = Block,
+            M:F(EventName, Measurements, Metadata);
+        _ ->
+            ok
+    end
+).
+
 -spec backlog_full(shackle:client()) -> ok.
 backlog_full(Client) ->
+?EVENT(begin
     Measurements = #{count => 1},
     Metadata = #{client => Client},
-    shackle_hooks:event([shackle, backlog_full], Measurements, Metadata).
+    {[shackle, backlog_full], Measurements, Metadata}
+end).
 
--spec connected(shackle:client(), shackle_pool:name(), non_neg_integer()) -> ok.
-connected(Client, PoolName, Duration) ->
-    Measurements = #{count => 1, duration => Duration},
+-spec connected(shackle:client(), shackle_pool:name(), integer()) -> ok.
+connected(Client, PoolName, StartTime) ->
+?EVENT(begin
+    Measurements = #{count => 1, duration => duration_since(StartTime)},
     Metadata = #{client => Client, pool_name => PoolName},
-    shackle_hooks:event([shackle, connected], Measurements, Metadata).
+    {[shackle, connected], Measurements, Metadata}
+end).
 
 -spec connection_error(shackle:client(), shackle_pool:name(), any()) -> ok.
 connection_error(Client, PoolName, Reason) ->
+?EVENT(begin
     Measurements = #{count => 1},
     Metadata = #{client => Client, pool_name => PoolName, reason => Reason},
-    shackle_hooks:event([shackle, connection_error], Measurements, Metadata).
+    {[shackle, connection_error], Measurements, Metadata}
+end).
 
 -spec disabled(shackle:client()) -> ok.
 disabled(Client) ->
+?EVENT(begin
     Measurements = #{count => 1},
     Metadata = #{client => Client},
-    shackle_hooks:event([shackle, disabled], Measurements, Metadata).
+    {[shackle, disabled], Measurements, Metadata}
+end).
 
 -spec found(shackle:client()) -> ok.
 found(Client) ->
+?EVENT(begin
     Measurements = #{count => 1},
     Metadata = #{client => Client},
-    shackle_hooks:event([shackle, found], Measurements, Metadata).
+    {[shackle, found], Measurements, Metadata}
+end).
 
 -spec handle_timeout(shackle:client()) -> ok.
 handle_timeout(Client) ->
+?EVENT(begin
     Measurements = #{count => 1},
     Metadata = #{client => Client},
-    shackle_hooks:event([shackle, handle_timeout], Measurements, Metadata).
+    {[shackle, handle_timeout], Measurements, Metadata}
+end).
 
 -spec no_server(shackle:client()) -> ok.
 no_server(Client) ->
+?EVENT(begin
     Measurements = #{count => 1},
     Metadata = #{client => Client},
-    shackle_hooks:event([shackle, no_server], Measurements, Metadata).
+    {[shackle, no_server], Measurements, Metadata}
+end).
 
 -spec not_found(shackle:client()) -> ok.
 not_found(Client) ->
+?EVENT(begin
     Measurements = #{count => 1},
     Metadata = #{client => Client},
-    shackle_hooks:event([shackle, not_found], Measurements, Metadata).
+    {[shackle, not_found], Measurements, Metadata}
+end).
 
 -spec queued_time(shackle:client(), non_neg_integer()) -> ok.
-queued_time(Client, Duration) ->
-    Measurements = #{duration => Duration},
+queued_time(Client, StartTime) ->
+?EVENT(begin
+    Measurements = #{duration => duration_since(StartTime)},
     Metadata = #{client => Client},
-    shackle_hooks:event([shackle, queued_time], Measurements, Metadata).
+    {[shackle, queued_time], Measurements, Metadata}
+end).
 
--spec recv(shackle:client(), non_neg_integer()) -> ok.
-recv(Client, NBytes) ->
-    Measurements = #{count => 1, bytes => NBytes},
+-spec recv(shackle:client(), iodata()) -> ok.
+recv(Client, Data) ->
+?EVENT(begin
+    Measurements = #{count => 1, bytes => iolist_size(Data)},
     Metadata = #{client => Client},
-    shackle_hooks:event([shackle, recv], Measurements, Metadata).
+    {[shackle, recv], Measurements, Metadata}
+end).
 
 -spec replies(shackle:client()) -> ok.
 replies(Client) ->
+?EVENT(begin
     Measurements = #{count => 1},
     Metadata = #{client => Client},
-    shackle_hooks:event([shackle, replies], Measurements, Metadata).
+    {[shackle, replies], Measurements, Metadata}
+end).
 
--spec reply(shackle:client(), term(), term(), non_neg_integer()) -> ok.
-reply(Client, Request, Response, Duration) ->
-    Measurements = #{duration => Duration},
+-spec reply(shackle:client(), term(), term(), integer()) -> ok.
+reply(Client, Request, Response, Timestamp) ->
+?EVENT(begin
+    Measurements = #{duration => duration_since(Timestamp)},
     Metadata = #{client => Client, request => Request, response => Response},
-    shackle_hooks:event([shackle, reply], Measurements, Metadata).
+    {[shackle, reply], Measurements, Metadata}
+end).
 
--spec send(shackle:client(), non_neg_integer()) -> ok.
-send(Client, NBytes) ->
-    Measurements = #{count => 1, bytes => NBytes},
+-spec send(shackle:client(), iodata()) -> ok.
+send(Client, Data) ->
+?EVENT(begin
+    Measurements = #{count => 1, bytes => iolist_size(Data)},
     Metadata = #{client => Client},
-    shackle_hooks:event([shackle, send], Measurements, Metadata).
+    {[shackle, send], Measurements, Metadata}
+end).
 
 -spec timeout(shackle:client(), term()) -> ok.
 timeout(Client, Request) ->
+?EVENT(begin
     Measurements = #{count => 1},
     Metadata = #{client => Client, request => Request},
-    shackle_hooks:event([shackle, timeout], Measurements, Metadata).
+    {[shackle, timeout], Measurements, Metadata}
+end).
+
+%% private
+
+duration_since(Timestamp) ->
+    erlang:monotonic_time() - Timestamp.
