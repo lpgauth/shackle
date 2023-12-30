@@ -250,6 +250,10 @@ make profile
     <td>Memcached Client</td>
   </tr>
   <tr>
+    <td><a href="https://github.com/vsavkov/aspike-node">aspike-node</a></td>
+    <td>Aerospike Client</td>
+  </tr>
+  <tr>
     <td><a href="https://github.com/lpgauth/buoy">buoy</a></td>
     <td>HTTP 1.1 Client</td>
   </tr>
