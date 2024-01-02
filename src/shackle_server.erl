@@ -94,14 +94,16 @@ init(Name, Parent, Opts) ->
 -spec handle_msg(term(), {state(), client_state()}) ->
     {ok, term()}.
 
-handle_msg({_, #cast {} = Cast}, {#state {
-        socket = undefined
+handle_msg({_, #cast {timestamp = Timestamp} = Cast}, {#state {
+        socket = undefined,
+        client = Client
     } = State, ClientState}) ->
-
+    shackle_events:queued_time(Client, Timestamp),
     reply({error, no_socket}, Cast, State),
     {ok, {State, ClientState}};
 handle_msg({Request, #cast {
-        timeout = Timeout
+        timeout = Timeout,
+        timestamp = Timestamp
     } = Cast}, {#state {
         client = Client,
         id = Id,
@@ -110,19 +112,19 @@ handle_msg({Request, #cast {
         queue = Queue,
         socket = Socket
     } = State, ClientState}) ->
-
+    shackle_events:queued_time(Client, Timestamp),
     try Client:handle_request(Request, ClientState) of
         {ok, ExtRequestId, Data, ClientState2} ->
             case Protocol:send(Socket, Data) of
                 ok ->
-                    shackle_telemetry:send(Client, iolist_size(Data)),
+                    shackle_events:send(Client, Data),
                     case ExtRequestId of
                         undefined ->
                             reply(ok, Cast, State);
                         _ ->
                             Msg = {timeout, ExtRequestId},
                             TimerRef = erlang:send_after(Timeout, self(), Msg),
-                            shackle_queue:add(Queue, Id, ExtRequestId, Cast,
+                            shackle_queue:add(Queue, Id, ExtRequestId, Request, Cast,
                                 TimerRef)
                     end,
                     {ok, {State, ClientState2}};
@@ -167,7 +169,7 @@ handle_msg(?MSG_CONNECT, {#state {
         socket_options = SocketOptions
     } = State, ClientState}) ->
 
-    case connect(Protocol, Address, Port, SocketOptions, PoolName) of
+    case connect(Client, Protocol, Address, Port, SocketOptions, PoolName) of
         {ok, Socket} ->
             case client(Client, PoolName, Init, Protocol, Socket) of
                 {ok, ClientState2} ->
@@ -198,7 +200,7 @@ handle_msg({timeout, ExtRequestId}, {#state {
         true ->
             try Client:handle_timeout(ExtRequestId, ClientState) of
                 {ok, Reply, ClientState2} ->
-                    shackle_telemetry:handle_timeout(Client),
+                    shackle_events:handle_timeout(Client),
                     process_responses([Reply], State),
                     {ok, {State, ClientState2}};
                 {error, Reason, ClientState2} ->
@@ -214,8 +216,8 @@ handle_msg({timeout, ExtRequestId}, {#state {
             end;
         false ->
             case shackle_queue:remove(Queue, Id, ExtRequestId) of
-                {ok, Cast, _TimerRef} ->
-                    shackle_telemetry:timeout(Client),
+                {ok, Cast, Request, _TimerRef} ->
+                    shackle_events:timeout(Client, Request),
                     reply({error, timeout}, Cast, State);
                 {error, not_found} ->
                     ok
@@ -306,15 +308,17 @@ close(#state {id = Id} = State, ClientState) ->
     reply_all({error, socket_closed}, State),
     reconnect(State, ClientState).
 
-connect(Protocol, Address, Port, SocketOptions, PoolName) ->
+connect(Client, Protocol, Address, Port, SocketOptions, PoolName) ->
+    StartTime = erlang:monotonic_time(),
     case inet:getaddrs(Address, inet) of
         {ok, Ips} ->
             Ip = shackle_utils:random_element(Ips),
             case Protocol:connect(Ip, Port, SocketOptions) of
                 {ok, Socket} ->
+                    shackle_events:connected(Client, PoolName, StartTime),
                     {ok, Socket};
                 {error, Reason} ->
-                    ?WARN(PoolName, "connect error: ~p", [Reason]),
+                    shackle_events:connection_error(Client, PoolName, Reason),
                     {error, Reason}
             end;
         {error, Reason} ->
@@ -339,7 +343,7 @@ handle_msg_data(Socket, Data, #state {
         socket = Socket
     } = State, ClientState) ->
 
-    shackle_telemetry:recv(Client, size(Data)),
+    shackle_events:recv(Client, Data),
     try Client:handle_data(Data, ClientState) of
         {ok, Replies, ClientState2} ->
             process_responses(Replies, State),
@@ -359,12 +363,12 @@ handle_msg_data(_Socket, _Data, State, ClientState) ->
     {ok, {State, ClientState}}.
 
 handle_msg_error(Socket, Reason, #state {
+        client = Client,
         socket = Socket,
         pool_name = PoolName,
         protocol = Protocol
     } = State, ClientState) ->
-
-    ?WARN(PoolName, "connection error: ~p", [Reason]),
+    shackle_events:connection_error(Client, PoolName, Reason),
     Protocol:close(Socket),
     close(State, ClientState);
 handle_msg_error(_Socket, _Reason, State, ClientState) ->
@@ -378,16 +382,15 @@ process_responses([{ExtRequestId, Reply} | T], #state {
         queue = Queue
     } = State) ->
 
-    shackle_telemetry:replies(Client),
+    shackle_events:replies(Client),
     case shackle_queue:remove(Queue, Id, ExtRequestId) of
-        {ok, #cast {timestamp = Timestamp} = Cast, TimerRef} ->
-            shackle_telemetry:found(Client),
-            Diff = timer:now_diff(os:timestamp(), Timestamp),
-            shackle_telemetry:reply(Client, Diff),
+        {ok, #cast {timestamp = Timestamp} = Cast, Request, TimerRef} ->
+            shackle_events:found(Client),
+            shackle_events:reply(Client, Request, Reply, Timestamp),
             erlang:cancel_timer(TimerRef),
             reply(Reply, Cast, State);
         {error, not_found} ->
-            shackle_telemetry:not_found(Client),
+            shackle_events:not_found(Client),
             ok
     end,
     process_responses(T, State).
@@ -478,7 +481,7 @@ reply_all(Reply, #state {
 
 reply_all(_Reply, [], _State) ->
     ok;
-reply_all(Reply, [{Cast, TimerRef} | T], State) ->
+reply_all(Reply, [{Cast, _Request, TimerRef} | T], State) ->
     erlang:cancel_timer(TimerRef),
     reply(Reply, Cast, State),
     reply_all(Reply, T, State).

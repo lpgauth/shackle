@@ -78,7 +78,7 @@ cast(PoolName, Request, Pid) ->
     {ok, request_id()} | {error, atom()}.
 
 cast(PoolName, Request, Pid, Timeout) ->
-    Timestamp = os:timestamp(),
+    Timestamp = erlang:monotonic_time(),
     Ref = make_ref(),
     case shackle_pool:server(PoolName) of
         {ok, Client, Server} ->
