@@ -14,8 +14,6 @@
 ]).
 
 %% public
--ifdef(ATOMICS).
-
 -spec active(shackle_server:id()) ->
     boolean().
 
@@ -68,53 +66,6 @@ init() ->
 new(PoolName, PoolSize) ->
     Counters = counters:new(PoolSize, []),
     persistent_term:put(PoolName, Counters).
-
--else.
-
--spec active(shackle_server:id()) ->
-    boolean().
-
-active({PoolName, ServerIndex}) ->
-    boolean(ets:lookup_element(?ETS_TABLE_STATUS, PoolName, ServerIndex + 1)).
-
--spec delete(shackle_pool:name()) ->
-    ok.
-
-delete(PoolName) ->
-    ets:delete(?ETS_TABLE_STATUS, PoolName),
-    ok.
-
--spec disable(shackle_server:id()) ->
-    ok.
-
-disable({PoolName, ServerIndex}) ->
-    ets:update_counter(?ETS_TABLE_STATUS, PoolName, {ServerIndex + 1, -1}),
-    ok.
-
--spec enable(shackle_server:id()) ->
-    ok.
-
-enable({PoolName, ServerIndex}) ->
-    ets:update_counter(?ETS_TABLE_STATUS, PoolName, {ServerIndex + 1, 1}),
-    ok.
-
--spec init() ->
-    ok.
-
-init() ->
-    ets:new(?ETS_TABLE_STATUS, shackle_utils:ets_options()),
-    ok.
-
--spec new(shackle_pool:name(), shackle_pool:pool_size()) ->
-    ok.
-
-new(PoolName, PoolSize) ->
-    Init = [0 || _ <- lists:seq(1, PoolSize)],
-    KeyValue = list_to_tuple([PoolName] ++ Init),
-    true = ets:insert(?ETS_TABLE_STATUS, [KeyValue]),
-    ok.
-
--endif.
 
 %% private
 boolean(0) ->
