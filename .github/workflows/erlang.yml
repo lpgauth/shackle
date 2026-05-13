@@ -11,7 +11,7 @@ jobs:
       image: erlang:${{ matrix.erlang }}
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     - name: Compile
       run: make compile
     - name: Run xref
