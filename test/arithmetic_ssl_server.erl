@@ -46,18 +46,8 @@ accept(LSocket) ->
             ok
     end.
 
--ifdef(SSL_HANDSHAKE).
-
 handshake(Socket) ->
     ssl:handshake(Socket).
-
--else.
-
-handshake(Socket) ->
-    ok = ssl:ssl_accept(Socket),
-    {ok, Socket}.
-
--endif.
 
 listen() ->
     Self = self(),
