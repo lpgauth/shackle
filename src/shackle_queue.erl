@@ -70,23 +70,8 @@ ets_match_take(Table, Match) ->
             Objects
     end.
 
--ifdef(ETS_TAKE).
-
 ets_take(Table, Key) ->
     ets:take(Table, Key).
-
--else.
-
-ets_take(Table, Key) ->
-    case ets:lookup(Table, Key) of
-        [] ->
-            [];
-        Objects ->
-            ets:delete(Table, Key),
-            Objects
-    end.
-
--endif.
 
 -spec table_name(shackle_pool:name()) ->
     shackle:table().
