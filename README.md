@@ -6,7 +6,7 @@ High-Performance Erlang Network Client Framework
 
 #### Requirements
 
-* Erlang 19.0+
+* Erlang/OTP 25+
 
 #### Features
 
@@ -213,7 +213,71 @@ shackle_pool:start(shackle_pool:name(), client(), client_options(), pool_options
 ```
 
 ## Telemetry
-Shackle integrates with the backend-agnostic [telemetry](https://hexdocs.pm/telemetry/) library. See `shackle_telemetry` for the list of telemetry events that shackle can emit.
+
+Shackle integrates with the backend-agnostic [telemetry](https://hexdocs.pm/telemetry/) library. All events carry `#{client => Client}` as metadata, where `Client` is the client module name.
+
+<table width="100%">
+  <theader>
+    <th>Event</th>
+    <th>Measurements</th>
+    <th>Meaning</th>
+  </theader>
+  <tr>
+    <td><code>[shackle, backlog_full]</code></td>
+    <td><code>#{count =&gt; 1}</code></td>
+    <td>Request rejected because the per-server backlog is full</td>
+  </tr>
+  <tr>
+    <td><code>[shackle, disabled]</code></td>
+    <td><code>#{count =&gt; 1}</code></td>
+    <td>Request rejected because the selected server is disabled</td>
+  </tr>
+  <tr>
+    <td><code>[shackle, found]</code></td>
+    <td><code>#{count =&gt; 1}</code></td>
+    <td>An active server was found for a request</td>
+  </tr>
+  <tr>
+    <td><code>[shackle, no_server]</code></td>
+    <td><code>#{count =&gt; 1}</code></td>
+    <td>No server is available for the pool</td>
+  </tr>
+  <tr>
+    <td><code>[shackle, not_found]</code></td>
+    <td><code>#{count =&gt; 1}</code></td>
+    <td>A reply arrived for a request that is no longer tracked</td>
+  </tr>
+  <tr>
+    <td><code>[shackle, handle_timeout]</code></td>
+    <td><code>#{count =&gt; 1}</code></td>
+    <td>The client's <code>handle_timeout/2</code> callback fired</td>
+  </tr>
+  <tr>
+    <td><code>[shackle, timeout]</code></td>
+    <td><code>#{count =&gt; 1}</code></td>
+    <td>A request timed out before a reply arrived</td>
+  </tr>
+  <tr>
+    <td><code>[shackle, recv]</code></td>
+    <td><code>#{count =&gt; 1, bytes =&gt; N}</code></td>
+    <td>Bytes received from the socket</td>
+  </tr>
+  <tr>
+    <td><code>[shackle, send]</code></td>
+    <td><code>#{count =&gt; 1, bytes =&gt; N}</code></td>
+    <td>Bytes sent to the socket</td>
+  </tr>
+  <tr>
+    <td><code>[shackle, replies]</code></td>
+    <td><code>#{count =&gt; 1}</code></td>
+    <td>A batch of replies was decoded</td>
+  </tr>
+  <tr>
+    <td><code>[shackle, reply]</code></td>
+    <td><code>#{duration =&gt; Microseconds}</code></td>
+    <td>A reply was delivered to the caller, with measured latency</td>
+  </tr>
+</table>
 
 ## Tests
 
@@ -276,7 +340,7 @@ make profile
 ```license
 The MIT License (MIT)
 
-Copyright (c) 2015-2023 Louis-Philippe Gauthier
+Copyright (c) 2015-2026 Louis-Philippe Gauthier
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
