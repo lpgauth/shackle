@@ -14,6 +14,14 @@ shackle_app_stop_start_test_() ->
         fun (_) -> cleanup(?CLIENT_TCP) end,
     [fun app_stop_start_subtest/0]}.
 
+shackle_receive_response_timeout_test() ->
+    %% receive_response/2 with a request id that will never get a reply
+    %% must fall through the `after Timeout' branch and return
+    %% {error, timeout}, regardless of shackle app state.
+    FakeRequestId = {fake_pool_server, make_ref()},
+    ?assertEqual({error, timeout},
+        shackle:receive_response(FakeRequestId, 5)).
+
 shackle_backlog_test_() ->
     {setup,
         fun () ->

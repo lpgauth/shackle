@@ -1,5 +1,45 @@
 # Changelog
 
+## 0.7.2
+
+### Added
+
+- `shackle:receive_response/2` — like `receive_response/1` but with
+  a millisecond timeout. Returns `{error, timeout}` if no reply
+  arrives within the window. The arity-1 variant still blocks
+  indefinitely (unchanged).
+
+- `cast_error/0` is now an exported type — the sum
+  `no_server | pool_not_started | shackle_not_started` of atoms
+  that `cast/2..4` can return.
+
+### Changed
+
+- `cast/2..4` and `call/2,3` error specs tightened from
+  `{error, atom()}` / `{error, term()}` to `{error, cast_error()}`.
+  No behavioural change; dialyzer now flags `{error, typo}` at
+  call sites that don't match the sum. Existing
+  `no_server | pool_not_started | shackle_not_started` were the
+  only atoms ever returned.
+
+- Latency measurement in `shackle_server` switched from
+  `os:timestamp/0` + `timer:now_diff/2` to
+  `erlang:monotonic_time(microsecond)` + subtraction. The
+  monotonic clock isn't NTP-jumpable and skips the kernel call,
+  so latency telemetry now stays accurate across clock skew
+  events and shaves ~50ns off per request.
+
+  The `#cast.timestamp` field type changed from
+  `erlang:timestamp/0` (the 3-tuple) to `integer()` (microsecond
+  monotonic). The field is internal — clients that don't
+  destructure the cast record see no impact. Custom
+  shackle_client behaviours that read `Cast#cast.timestamp`
+  receive an integer now.
+
+- `vsn` in `shackle.app.src` is now an explicit string
+  (`"0.7.2"`) — was `git`, which only resolved correctly when
+  building from a checkout.
+
 ## 0.7.1
 
 ### Changed

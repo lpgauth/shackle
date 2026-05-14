@@ -11,11 +11,13 @@
     cast/2,
     cast/3,
     cast/4,
-    receive_response/1
+    receive_response/1,
+    receive_response/2
 ]).
 
 %% types
 -type cast() :: #cast {}.
+-type cast_error() :: no_server | pool_not_started | shackle_not_started.
 -type client() :: module().
 -type external_request_id() :: term().
 -type inet_address() :: inet:ip_address() | inet:hostname().
@@ -31,6 +33,7 @@
 
 -export_type([
     cast/0,
+    cast_error/0,
     client/0,
     external_request_id/0,
     inet_address/0,
@@ -46,13 +49,13 @@
 
 %% public
 -spec call(shackle_pool:name(), term()) ->
-    term() | {error, term()}.
+    term() | {error, cast_error()}.
 
 call(PoolName, Request) ->
     call(PoolName, Request, ?DEFAULT_TIMEOUT).
 
 -spec call(atom(), term(), timeout()) ->
-    term() | {error, atom()}.
+    term() | {error, cast_error()}.
 
 call(PoolName, Request, Timeout) ->
     case cast(PoolName, Request, self(), Timeout) of
@@ -63,22 +66,22 @@ call(PoolName, Request, Timeout) ->
     end.
 
 -spec cast(shackle_pool:name(), term()) ->
-    {ok, request_id()} | {error, atom()}.
+    {ok, request_id()} | {error, cast_error()}.
 
 cast(PoolName, Request) ->
     cast(PoolName, Request, self()).
 
 -spec cast(shackle_pool:name(), term(), undefined | pid()) ->
-    {ok, request_id()} | {error, atom()}.
+    {ok, request_id()} | {error, cast_error()}.
 
 cast(PoolName, Request, Pid) ->
     cast(PoolName, Request, Pid, ?DEFAULT_TIMEOUT).
 
 -spec cast(shackle_pool:name(), term(), undefined | pid(), timeout()) ->
-    {ok, request_id()} | {error, atom()}.
+    {ok, request_id()} | {error, cast_error()}.
 
 cast(PoolName, Request, Pid, Timeout) ->
-    Timestamp = os:timestamp(),
+    Timestamp = erlang:monotonic_time(microsecond),
     Ref = make_ref(),
     case shackle_pool:server(PoolName) of
         {ok, Client, Server} ->
@@ -102,4 +105,15 @@ receive_response(RequestId) ->
     receive
         {#cast {request_id = RequestId}, Reply} ->
             Reply
+    end.
+
+-spec receive_response(request_id(), timeout()) ->
+    term() | {error, timeout | term()}.
+
+receive_response(RequestId, Timeout) ->
+    receive
+        {#cast {request_id = RequestId}, Reply} ->
+            Reply
+    after Timeout ->
+        {error, timeout}
     end.

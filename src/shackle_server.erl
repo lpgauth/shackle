@@ -382,7 +382,7 @@ process_responses([{ExtRequestId, Reply} | T], #state {
     case shackle_queue:remove(Queue, Id, ExtRequestId) of
         {ok, #cast {timestamp = Timestamp} = Cast, TimerRef} ->
             shackle_telemetry:found(Client),
-            Diff = timer:now_diff(os:timestamp(), Timestamp),
+            Diff = erlang:monotonic_time(microsecond) - Timestamp,
             shackle_telemetry:reply(Client, Diff),
             erlang:cancel_timer(TimerRef),
             reply(Reply, Cast, State);
