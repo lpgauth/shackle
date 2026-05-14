@@ -210,7 +210,22 @@ shackle_pool:start(shackle_pool:name(), client(), client_options(), pool_options
 
 3> shackle:receive_response(ReqId).
 {ok, <<"bar">>}
+
+4> shackle:receive_response(ReqId, 1000).
+{error, timeout}
 ```
+
+`receive_response/1` blocks indefinitely until a reply arrives. `receive_response/2` (added in 0.7.2) takes a millisecond timeout and returns `{error, timeout}` if no reply arrives within the window — useful for hand-rolled clients that don't want full `shackle:call` semantics but still need a bounded wait.
+
+#### Errors
+
+`shackle:cast/2..4` and `shackle:call/2,3` return `{error, cast_error()}` where `cast_error/0` is the exported sum type:
+
+```erlang
+no_server | pool_not_started | shackle_not_started
+```
+
+Plus `timeout` from `receive_response/2`. The closed sum (added in 0.7.2) lets dialyzer catch typos in error pattern matches.
 
 ## Telemetry
 
