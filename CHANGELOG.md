@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.7.1
+
+### Changed
+
+- Bumped `foil` dependency from `0.1.3` to `0.1.4` (CI/infrastructure
+  refresh; `error/0` type tightened; macro-based DRY refactor with
+  no perf change).
+- Bumped `metal` dependency from `0.1.1` to `0.1.2` (CI/infrastructure
+  refresh; one `system_continue/3` spec fix from `ok` to
+  `no_return()`).
+
+No source changes in shackle itself. Behaviour, API, and benchmarks
+are identical to 0.7.0.
+
 ## 0.7.0
 
 ### Breaking
