@@ -8,8 +8,27 @@
 
 ### Changed
 
-- CI matrix now covers OTP 25, 26, 27, and 28; `actions/checkout` upgraded to v4.
-- `granderl` dependency moved from a git ref to the hex 0.1.5 release.
+- Replaced the `granderl` dependency with **`knot`** (in-house C NIF
+  using wyrand). `shackle_utils:random/1` now calls `knot:uniform/1`
+  — same signature, same range guarantees, no behavioural difference
+  at call sites. `granderl 0.1.5` on hex.pm fails to build on OTP 27+
+  (its `preamble.sh` invokes `erl -noshell -s init stop -eval ...`
+  with options in an order that causes the node to terminate before
+  `-eval` runs, leaving `ERTS_INCLUDE_DIR` empty); the fix exists in
+  granderl's master but its hex package is not under our ownership,
+  so we couldn't release a fix. `knot` is a tiny C NIF (~80 LOC)
+  that builds correctly on every supported OTP and matches
+  hand-written C dispatch overhead. Benchmarks (Apple Silicon, OTP
+  29, 10M iterations of `uniform(254)`, median of 5 runs):
+
+  | conc | rand:uniform/1 | granderl:uniform/1 | knot:uniform/1 |
+  |---|---|---|---|
+  | 1   | 34 ns | 13 ns  | **12 ns**  |
+  | 8   | 9 ns  | 7 ns   | **3.3 ns** |
+  | 32  | 6 ns  | 8 ns   | **3.2 ns** |
+  | 128 | 6 ns  | 8.5 ns | **3.1 ns** |
+
+- CI matrix now covers OTP 25, 26, 27, and 28; `actions/checkout` upgraded to v5.
 - `telemetry` dependency bumped from 1.2.1 to 1.4.2.
 - README documents the full set of telemetry events shackle emits and their measurement shapes.
 
