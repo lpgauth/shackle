@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.7.3
+
+### Changed
+
+- Upgrade foil to 0.1.6 and knot to 0.1.2.
+- Remove bench and profile tooling.
+
 ## 0.7.2
 
 ### Added
