@@ -302,21 +302,6 @@ make eunit
 make xref
 ```
 
-## Performance testing
-
-To run performance testing targets you must first start the server:
-
-```
-./bin/server.sh
-```
-
-Then you can run the `bench` or `profile` target:
-
-```makefile
-make bench
-make profile
-```
-
 ## Clients
 
 <table width="100%">
