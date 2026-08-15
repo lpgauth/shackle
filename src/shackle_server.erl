@@ -139,6 +139,24 @@ handle_msg({Request, #cast {
             reply({error, client_crash}, Cast, State),
             {ok, {State, ClientState}}
     end;
+handle_msg({'$socket', Socket, select, _Handle}, {#state {
+        socket = Socket
+    } = State, ClientState}) ->
+
+    case shackle_socket:recv(Socket) of
+        {ok, Data} ->
+            handle_msg_data(Socket, Data, State, ClientState);
+        wait ->
+            {ok, {State, ClientState}};
+        {error, closed} ->
+            handle_msg_close(Socket, State, ClientState);
+        {error, Reason} ->
+            handle_msg_error(Socket, Reason, State, ClientState)
+    end;
+handle_msg({'$socket', _Socket, select, _Handle}, {State, ClientState}) ->
+    {ok, {State, ClientState}};
+handle_msg({'$socket', Socket, abort, _Info}, {State, ClientState}) ->
+    handle_msg_close(Socket, State, ClientState);
 handle_msg({ssl, Socket, Data}, {State, ClientState}) ->
     handle_msg_data(Socket, Data, State, ClientState);
 handle_msg({ssl_closed, Socket}, {State, ClientState}) ->

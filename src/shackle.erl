@@ -22,10 +22,10 @@
 -type external_request_id() :: term().
 -type inet_address() :: inet:ip_address() | inet:hostname().
 -type inet_port() :: inet:port_number().
--type protocol() :: shackle_ssl| shackle_tcp | shackle_udp.
+-type protocol() :: shackle_socket | shackle_ssl | shackle_tcp | shackle_udp.
 -type request_id() :: {shackle_server:name(), reference()}.
 -type response() :: {external_request_id(), term()}.
--type socket() :: inet:socket() | ssl:sslsocket().
+-type socket() :: inet:socket() | socket:socket() | ssl:sslsocket().
 -type socket_option() :: gen_tcp:connect_option() | gen_udp:option() | ssl:tls_client_option().
 -type socket_options() :: [socket_option()].
 -type table() :: atom().
