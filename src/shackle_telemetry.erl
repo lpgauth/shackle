@@ -1,8 +1,5 @@
 -module(shackle_telemetry).
 
--compile(inline).
--compile({inline_size, 512}).
-
 -export([
     backlog_full/1,
     disabled/1,

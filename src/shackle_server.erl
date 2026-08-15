@@ -1,9 +1,6 @@
 -module(shackle_server).
 -include("shackle_internal.hrl").
 
--compile(inline).
--compile({inline_size, 512}).
-
 -export([
     start_link/2
 ]).

@@ -1,9 +1,6 @@
 -module(shackle).
 -include("shackle_internal.hrl").
 
--compile(inline).
--compile({inline_size, 512}).
-
 %% public
 -export([
     call/2,

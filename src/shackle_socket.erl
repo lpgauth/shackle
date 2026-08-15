@@ -1,9 +1,6 @@
 -module(shackle_socket).
 -include("shackle_internal.hrl").
 
--compile(inline).
--compile({inline_size, 512}).
-
 %% The socket specs on OTP < 28 predate {otp, select_read} and its
 %% recv return shapes, although both work at runtime from OTP 27.3.
 -dialyzer({nowarn_function, [recv/1, setopts/2]}).

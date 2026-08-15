@@ -1,8 +1,5 @@
 -module(shackle_utils).
 
--compile(inline).
--compile({inline_size, 512}).
-
 %% public
 -export([
     ets_options/0,

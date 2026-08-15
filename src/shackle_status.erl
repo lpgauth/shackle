@@ -1,9 +1,6 @@
 -module(shackle_status).
 -include("shackle_internal.hrl").
 
--compile(inline).
--compile({inline_size, 512}).
-
 -export([
     active/1,
     delete/1,
