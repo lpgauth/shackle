@@ -26,7 +26,8 @@
     pool_name        :: shackle_pool:name(),
     port             :: shackle:inet_port(),
     protocol         :: shackle:protocol(),
-    queue            :: shackle:table(),
+    queue = #{}      :: #{shackle:external_request_id() =>
+                              {shackle:cast(), reference()}},
     reconnect_state  :: undefined | reconnect_state(),
     socket           :: undefined | shackle:socket(),
     socket_options   :: shackle:socket_options(),
@@ -86,7 +87,6 @@ init(Name, Parent, Opts) ->
         pool_name = PoolName,
         port = Port,
         protocol = Protocol,
-        queue = shackle_queue:table_name(PoolName),
         reconnect_state = ReconnectState,
         socket_options = SocketOptions
     }, undefined}}.
@@ -104,7 +104,6 @@ handle_msg({Request, #cast {
         timeout = Timeout
     } = Cast}, {#state {
         client = Client,
-        id = Id,
         pool_name = PoolName,
         protocol = Protocol,
         queue = Queue,
@@ -118,14 +117,15 @@ handle_msg({Request, #cast {
                     shackle_telemetry:send(Client, iolist_size(Data)),
                     case ExtRequestId of
                         undefined ->
-                            reply(ok, Cast, State);
+                            reply(ok, Cast, State),
+                            {ok, {State, ClientState2}};
                         _ ->
                             Msg = {timeout, ExtRequestId},
                             TimerRef = erlang:send_after(Timeout, self(), Msg),
-                            shackle_queue:add(Queue, Id, ExtRequestId, Cast,
-                                TimerRef)
-                    end,
-                    {ok, {State, ClientState2}};
+                            Queue2 = maps:put(ExtRequestId, {Cast, TimerRef},
+                                Queue),
+                            {ok, {State#state {queue = Queue2}, ClientState2}}
+                    end;
                 {error, Reason} ->
                     ?WARN(PoolName, "send error: ~p", [Reason]),
                     Protocol:close(Socket),
@@ -187,7 +187,6 @@ handle_msg(?MSG_CONNECT, {#state {
     end;
 handle_msg({timeout, ExtRequestId}, {#state {
         client = Client,
-        id = Id,
         pool_name = PoolName,
         protocol = Protocol,
         queue = Queue,
@@ -199,8 +198,8 @@ handle_msg({timeout, ExtRequestId}, {#state {
             try Client:handle_timeout(ExtRequestId, ClientState) of
                 {ok, Reply, ClientState2} ->
                     shackle_telemetry:handle_timeout(Client),
-                    process_responses([Reply], State),
-                    {ok, {State, ClientState2}};
+                    State2 = process_responses([Reply], State),
+                    {ok, {State2, ClientState2}};
                 {error, Reason, ClientState2} ->
                     ?WARN(PoolName, "handle_timeout error: ~p", [Reason]),
                     Protocol:close(Socket),
@@ -213,14 +212,14 @@ handle_msg({timeout, ExtRequestId}, {#state {
                     close(State, ClientState)
             end;
         false ->
-            case shackle_queue:remove(Queue, Id, ExtRequestId) of
-                {ok, Cast, _TimerRef} ->
+            case maps:take(ExtRequestId, Queue) of
+                {{Cast, _TimerRef}, Queue2} ->
                     shackle_telemetry:timeout(Client),
-                    reply({error, timeout}, Cast, State);
-                {error, not_found} ->
-                    ok
-            end,
-            {ok, {State, ClientState}}
+                    reply({error, timeout}, Cast, State),
+                    {ok, {State#state {queue = Queue2}, ClientState}};
+                error ->
+                    {ok, {State, ClientState}}
+            end
     end;
 handle_msg(Msg, {#state {
         pool_name = PoolName
@@ -303,8 +302,8 @@ client_setup(Client, PoolName, Protocol, Socket, ClientState) ->
 
 close(#state {id = Id} = State, ClientState) ->
     shackle_status:disable(Id),
-    reply_all({error, socket_closed}, State),
-    reconnect(State, ClientState).
+    State2 = reply_all({error, socket_closed}, State),
+    reconnect(State2, ClientState).
 
 connect(Protocol, Address, Port, SocketOptions, PoolName) ->
     case inet:getaddrs(Address, inet) of
@@ -342,8 +341,8 @@ handle_msg_data(Socket, Data, #state {
     shackle_telemetry:recv(Client, size(Data)),
     try Client:handle_data(Data, ClientState) of
         {ok, Replies, ClientState2} ->
-            process_responses(Replies, State),
-            {ok, {State, ClientState2}};
+            State2 = process_responses(Replies, State),
+            {ok, {State2, ClientState2}};
         {error, Reason, ClientState2} ->
             ?WARN(PoolName, "handle_data error: ~p", [Reason]),
             Protocol:close(Socket),
@@ -370,27 +369,26 @@ handle_msg_error(Socket, Reason, #state {
 handle_msg_error(_Socket, _Reason, State, ClientState) ->
     {ok, {State, ClientState}}.
 
-process_responses([], _State) ->
-    ok;
+process_responses([], State) ->
+    State;
 process_responses([{ExtRequestId, Reply} | T], #state {
         client = Client,
-        id = Id,
         queue = Queue
     } = State) ->
 
     shackle_telemetry:replies(Client),
-    case shackle_queue:remove(Queue, Id, ExtRequestId) of
-        {ok, #cast {timestamp = Timestamp} = Cast, TimerRef} ->
+    case maps:take(ExtRequestId, Queue) of
+        {{#cast {timestamp = Timestamp} = Cast, TimerRef}, Queue2} ->
             shackle_telemetry:found(Client),
             Diff = erlang:monotonic_time(microsecond) - Timestamp,
             shackle_telemetry:reply(Client, Diff),
             erlang:cancel_timer(TimerRef),
-            reply(Reply, Cast, State);
-        {error, not_found} ->
+            reply(Reply, Cast, State),
+            process_responses(T, State#state {queue = Queue2});
+        error ->
             shackle_telemetry:not_found(Client),
-            ok
-    end,
-    process_responses(T, State).
+            process_responses(T, State)
+    end.
 
 reconnect(State, undefined) ->
     reconnect_timer(State, undefined);
@@ -459,22 +457,18 @@ reply(_Reply, #cast {pid = undefined}, #state {
 
     shackle_backlog:decrement(Backlog, Id),
     ok;
-reply(Reply, #cast {pid = Pid} = Cast, #state {
+reply(Reply, #cast {pid = Pid, request_id = RequestId}, #state {
         backlog = Backlog,
         id = Id
     }) ->
 
     shackle_backlog:decrement(Backlog, Id),
-    Pid ! {Cast, Reply},
+    Pid ! {shackle_reply, RequestId, Reply},
     ok.
 
-reply_all(Reply, #state {
-        id = Id,
-        queue = Queue
-    } = State) ->
-
-    Requests = shackle_queue:clear(Queue, Id),
-    reply_all(Reply, Requests, State).
+reply_all(Reply, #state {queue = Queue} = State) ->
+    reply_all(Reply, maps:values(Queue), State),
+    State#state {queue = #{}}.
 
 reply_all(_Reply, [], _State) ->
     ok;

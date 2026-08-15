@@ -120,7 +120,6 @@ terminate() ->
 %% private
 cleanup(Name, OptionsRec) ->
     shackle_backlog:delete(Name),
-    shackle_queue:delete(Name),
     shackle_status:delete(Name),
     cleanup_ets(Name, OptionsRec),
     cleanup_foil(Name, OptionsRec).
@@ -201,7 +200,6 @@ server_id(Name, PoolSize, round_robin) ->
 
 setup(Name, #pool_options {pool_size = PoolSize} = OptionsRec) ->
     shackle_backlog:new(Name),
-    shackle_queue:new(Name),
     shackle_status:new(Name, PoolSize),
     setup_ets(Name, OptionsRec),
     setup_foil(Name, OptionsRec).

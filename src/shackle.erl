@@ -103,7 +103,7 @@ cast(PoolName, Request, Pid, Timeout) ->
 
 receive_response(RequestId) ->
     receive
-        {#cast {request_id = RequestId}, Reply} ->
+        {shackle_reply, RequestId, Reply} ->
             Reply
     end.
 
@@ -112,7 +112,7 @@ receive_response(RequestId) ->
 
 receive_response(RequestId, Timeout) ->
     receive
-        {#cast {request_id = RequestId}, Reply} ->
+        {shackle_reply, RequestId, Reply} ->
             Reply
     after Timeout ->
         {error, timeout}
