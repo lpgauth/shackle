@@ -4,12 +4,15 @@ High-Performance Erlang Network Client Framework
 
 ![Build Status](https://github.com/lpgauth/shackle/workflows/Erlang%20CI/badge.svg)
 
+This project is an open-source connection connection-pooling library.
+
 #### Requirements
 
 * Erlang 19.0+
 
 #### Features
 
+* Automatic failover and high availability with multi-server support
 * Backpressure via backlog (OOM protection)
 * Fast pool implementation (random, round_robin)
 * Managed timeouts
@@ -346,6 +349,14 @@ make profile
     <td>StatsD Client</td>
   </tr>
 </table>
+
+## Advanced Features
+
+For more advanced features, check out the following documentation:
+
+- [Multi-Server Support](multi-server.md) - Automatic failover and high availability with multiple server addresses
+- [DNS Resolution](dns-resolution.md) - Enhanced hostname resolution with caching and Kubernetes service discovery
+- [Observability](observability.md) - Monitoring and observability features
 
 ## License
 

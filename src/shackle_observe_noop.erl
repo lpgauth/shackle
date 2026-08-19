@@ -1,5 +1,7 @@
 -module(shackle_observe_noop).
 
+-behaviour(shackle_observe_dispatcher).
+
 -doc """
 No-op observability dispatcher used when no backend is configured.
 Each function calls through directly without any span wrapping or event emission.

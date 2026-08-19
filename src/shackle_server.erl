@@ -77,6 +77,7 @@
     protocol         :: shackle:protocol(),
     queue            :: #{shackle:external_request_id() => shackle:cast()},
     reconnect_state  :: undefined | reconnect_state(),
+    servers          :: undefined | shackle_servers:state(),  %% Multi-server failover state
     socket           :: undefined | shackle:socket(),
     socket_options   :: shackle:socket_options(),
     bounce_interval  :: infinity  | pos_integer(),  %% # of ms for conn bounce
@@ -274,6 +275,15 @@ init(Name, Parent, Opts) ->
                 fun(Event) -> M:F(PoolName, Index, Event) end
         end,
 
+    % Initialize multi-server state if servers list is provided
+    ServersState = case ?LOOKUP(servers, ServerOpts1, undefined) of
+        undefined ->
+            % Fallback to single address/port
+            undefined;
+        ServersList ->
+            shackle_servers:new(ServersList, Port)
+    end,
+
     lists:member(Port, [undefined, 0]) andalso
         erlang:error({missing_port_option, Name, ServerOpts1}),
 
@@ -291,6 +301,7 @@ init(Name, Parent, Opts) ->
         protocol = Protocol,
         queue = queue_new(),
         reconnect_state = ReconnectState,
+        servers = ServersState,
         socket_options = SocketOptions,
         bounce_interval = BounceInt,
         on_bounce_event = OnBounceEvent,
@@ -666,7 +677,8 @@ close_socket(#state{socket = Socket, protocol = Protocol,
     inc_metrics(State, shackle_socket_total, MetricsReason),
     State#state{socket = undefined}.
 
-connect(#state {
+connect(#state{
+    servers = undefined,
     address = Address,
     srv_idx = ID,
     pool_name = PoolName,
@@ -674,6 +686,7 @@ connect(#state {
     protocol = Protocol,
     socket_options = SocketOptions
 } = State) ->
+    %% Single server mode (backwards compatibility)
     case inet:getaddrs(Address, inet) of
         {ok, Ips} when Ips /= [] ->
             Ip = shackle_utils:random_element(Ips),
@@ -692,6 +705,68 @@ connect(#state {
             ?WARN(PoolName, "getaddrs ~p error: ~p", [Address, Reason]),
             trace(State#state{sock_id = State#state.sock_id+1}, getaddr_error, {Reason, ?LINE}),
             {error, Reason}
+    end;
+connect(#state{
+    servers = ServersState,
+    protocol = Protocol,
+    socket_options = SocketOptions
+} = State) when ServersState /= undefined ->
+    %% Multi-server mode with failover
+    try_servers(State, ServersState, Protocol, SocketOptions).
+
+%% @private
+%% Try to connect to servers in the list, one by one.
+%% Returns {ok, UpdatedState} on success, or {error, Reason} after all servers fail.
+try_servers(State, ServersState, Protocol, SocketOptions) ->
+    try_servers_loop(State, ServersState, Protocol, SocketOptions).
+
+%% @private
+%% Iterate through servers using round-robin failover.
+try_servers_loop(#state{
+    srv_idx = ID,
+    pool_name = PoolName
+} = State, ServersState, Protocol, SocketOpts) ->
+    %% Check if we've tried all servers
+    case shackle_servers:all_failed(ServersState) of
+        true ->
+            %% All servers have been tried, fail
+            {error, all_servers_failed};
+        false ->
+            %% Try to connect to the current server
+            {Address, Port} = shackle_servers:current(ServersState),
+            case inet:getaddrs(Address, inet) of
+                {ok, Ips} when Ips /= [] ->
+                    Ip = shackle_utils:random_element(Ips),
+                    case Protocol:connect(Ip, Port, SocketOpts) of
+                        {ok, Socket} ->
+                            %% Connection successful
+                            inc_metrics(State, shackle_socket_total, <<"created">>),
+                            State1 = State#state{
+                                socket = Socket,
+                                sock_id = State#state.sock_id + 1,
+                                servers = shackle_servers:reset_failed(ServersState)
+                            },
+                            trace(State1, connect, {ok, ?LINE}),
+                            {ok, State1};
+                        {error, Reason} ->
+                            %% Connection failed, try next server
+                            ?WARN(PoolName, "#~s ~s:~w ~w connect error (~w): ~p",
+                                  [ID, Address, Port, Protocol, Ip, Reason]),
+                            trace(State#state{sock_id = State#state.sock_id+1},
+                                  connect_failed, {Reason, ?LINE}),
+                            NewServersState = shackle_servers:next(ServersState),
+                            try_servers_loop(State#state{servers = NewServersState},
+                                           NewServersState, Protocol, SocketOpts)
+                    end;
+                {error, Reason} ->
+                    %% DNS resolution failed, try next server
+                    ?WARN(PoolName, "getaddrs ~p error: ~p", [Address, Reason]),
+                    trace(State#state{sock_id = State#state.sock_id+1},
+                          getaddr_error, {Reason, ?LINE}),
+                    NewServersState = shackle_servers:next(ServersState),
+                    try_servers_loop(State#state{servers = NewServersState},
+                                   NewServersState, Protocol, SocketOpts)
+            end
     end.
 
 handle_msg_close(S, #state {socket = S} = State, ClientState) ->

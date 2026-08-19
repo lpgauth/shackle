@@ -75,8 +75,10 @@ start(Name, Client, ClientOptions, Options) ->
             {error, shackle_not_started};
         {error, pool_not_started} ->
             OptionsRec = options_rec(Client, Options),
+            % Normalize servers configuration
+            NormalizedClientOpts = normalize_client_options(ClientOptions),
             setup(Name, OptionsRec),
-            start_children(Name, Client, ClientOptions, OptionsRec),
+            start_children(Name, Client, NormalizedClientOpts, OptionsRec),
             ok
     end.
 
@@ -352,3 +354,30 @@ stop_children(Name, [Index | T]) ->
     supervisor:terminate_child(?SUPERVISOR, ServerName),
     supervisor:delete_child(?SUPERVISOR, ServerName),
     stop_children(Name, T).
+
+%%--------------------------------------------------------------------
+%% @private
+%% Normalize client options to support both single server and multi-server configs.
+%%
+%% If 'servers' list is provided, it normalizes it using shackle_servers:new/2.
+%% If only 'address' and 'port' are provided, converts them to 'servers' list format.
+%% @end
+normalize_client_options(ClientOptions) ->
+    case ?LOOKUP(servers, ClientOptions, undefined) of
+        undefined ->
+            % No servers list - return as-is for backwards compatibility
+            % The validation will happen at shackle_server:init time
+            ClientOptions;
+        ServersList ->
+            % Servers list provided, normalize it
+            Port = ?LOOKUP(port, ClientOptions),
+            try shackle_servers:new(ServersList, Port) of
+                ServersState ->
+                    NormalizedServers = maps:get(servers, ServersState),
+                    [{servers, NormalizedServers} |
+                     lists:keydelete(servers, 1, ClientOptions)]
+            catch
+                error:Error ->
+                    error({invalid_servers_config, Error, ServersList})
+            end
+    end.

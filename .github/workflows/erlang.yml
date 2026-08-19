@@ -15,12 +15,12 @@ jobs:
     steps:
     - uses: actions/checkout@v1
     - name: Compile
-      run: make compile
+      run:  make compile
     - name: Lint
-      run: make lint
+      run:  make lint
     - name: Run xref
-      run: make xref
-    - name: Run eunit
-      run: make eunit
+      run:  make xref
     - name: Run dialyzer
-      run: make dialyzer
+      run:  make dialyzer
+    - name: Run eunit
+      run:  make eunit

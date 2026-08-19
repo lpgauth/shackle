@@ -38,13 +38,16 @@ stop() ->
         internal -> application:stop(telemetry);
         _        -> ok
     end,
-    persistent_term:erase(?MODULE).
+    persistent_term:erase(?MODULE),
+    ok.
 
 -doc "Forwards the event to `telemetry:execute/3` unchanged.".
 -spec event([atom()], map(), map()) -> ok.
 event(EventName, Measurements, Metadata) ->
     ensure_started(),
-    telemetry:execute(EventName, Measurements, Metadata).
+    %% telemetry is an optional dependency; we only call this if the app started successfully
+    telemetry:execute(EventName, Measurements, Metadata),
+    ok.
 
 %%% Internal
 

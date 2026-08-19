@@ -29,9 +29,9 @@
 
 -define(SERVER, ?MODULE).
 
--record(state, {
-    backend :: module() | nil
-}).
+-type state() :: module() | nil.
+
+-export_type([state/0]).
 
 %%% Public API
 
@@ -108,20 +108,21 @@ event(EventNameSuffix, Measurements, Metadata) when is_list(EventNameSuffix) ->
 
 %%% gen_server callbacks
 
+-spec init({module() | undefined | nil, map()}) -> {ok, state()}.
 init({Module, Options}) ->
     process_flag(trap_exit, true),
     ResolvedModule = resolve_module(Module),
     case ResolvedModule of
         nil ->
             persistent_term:put(?SERVER, nil),
-            {ok, #state{backend = nil}};
+            {ok, _Backend = nil};
         _ ->
             case code:ensure_loaded(ResolvedModule) of
                 {module, ResolvedModule} ->
                     try
                         ok = ResolvedModule:start(Options),
                         persistent_term:put(?SERVER, ResolvedModule),
-                        {ok, #state{backend = ResolvedModule}}
+                        {ok, ResolvedModule}
                     catch E:R:ST ->
                         ?LOG_ERROR("Failed to start observability backend ~p: ~p:~p",
                                   [ResolvedModule, E, R]),
@@ -131,26 +132,30 @@ init({Module, Options}) ->
                     ?LOG_WARNING("Observability backend module ~p not found, disabling observability",
                                 [ResolvedModule]),
                     persistent_term:put(?SERVER, nil),
-                    {ok, #state{backend = nil}}
+                    {ok, _Backend = nil}
             end
     end.
 
+-spec handle_call(term(), {pid(), reference()}, state()) -> {reply, {error, not_supported}, state()}.
 handle_call(_Request, _From, State) ->
     {reply, {error, not_supported}, State}.
 
+-spec handle_cast(term(), state()) -> {noreply, state()}.
 handle_cast(_Request, State) ->
     {noreply, State}.
 
-handle_info({'EXIT', _Pid, Reason}, #state{backend = Backend} = State) when Reason == normal; Reason == shutdown ->
+-spec handle_info(term(), state()) -> {stop, term(), state()} | {noreply, state()}.
+handle_info({'EXIT', _Pid, Reason}, Backend) when Reason == normal; Reason == shutdown ->
     stop_backend(Backend),
-    {stop, Reason, State};
-handle_info({'EXIT', _Pid, Reason}, #state{backend = Backend} = State) ->
+    {stop, Reason, Backend};
+handle_info({'EXIT', _Pid, Reason}, Backend) ->
     stop_backend(Backend),
-    {stop, {error, Reason}, State};
-handle_info(_Info, State) ->
-    {noreply, State}.
+    {stop, {error, Reason}, Backend};
+handle_info(_Info, Backend) ->
+    {noreply, Backend}.
 
-terminate(_Reason, #state{backend = Backend}) ->
+-spec terminate(term(), state()) -> ok.
+terminate(_Reason, Backend) ->
     stop_backend(Backend),
     ok.
 

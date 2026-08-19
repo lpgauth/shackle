@@ -48,7 +48,7 @@ metrics (a no-op).
 -spec start(map()) -> ok.
 start(Opts) ->
     _ = ensure_started(),
-    Buckets = maps:get(buckets, Opts, prometheus_histogram:default_buckets()),
+    Buckets = maps:get(buckets, Opts, prometheus_buckets:default()),
 
     % Histograms (latency measurements)
     try prometheus_histogram:declare([
@@ -111,7 +111,8 @@ stop() ->
         internal -> application:stop(prometheus);
         _        -> ok
     end,
-    persistent_term:erase(?MODULE).
+    persistent_term:erase(?MODULE),
+    ok.
 
 -doc "Records the event as appropriate Prometheus metric observations.".
 -spec event([atom()], map(), map()) -> ok.

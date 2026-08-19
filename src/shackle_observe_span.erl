@@ -1,5 +1,7 @@
 -module(shackle_observe_span).
 
+-behaviour(shackle_observe_dispatcher).
+
 -doc """
 Observability dispatcher used when a backend is configured.
 Each function wraps the operation in `shackle_observe:span/3`, emitting start/stop events.
