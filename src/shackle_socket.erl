@@ -2,8 +2,12 @@
 -include("shackle_internal.hrl").
 
 %% The socket specs on OTP < 28 predate {otp, select_read} and its
-%% recv return shapes, although both work at runtime from OTP 27.3.
--dialyzer({nowarn_function, [recv/1, setopts/2]}).
+%% recv return shapes, and socket:sendv only exists from OTP 27,
+%% although everything works at runtime from OTP 27.3.
+-dialyzer({nowarn_function, [recv/1, send/2, sendv/2, setopts/2]}).
+-ignore_xref([
+    {socket, sendv, 2}
+]).
 
 -behavior(shackle_protocol).
 -export([
@@ -78,7 +82,7 @@ recv(Socket) ->
 -spec send(shackle:socket(), iodata()) ->
     ok | {error, atom()}.
 
-send(Socket, Data) ->
+send(Socket, Data) when is_binary(Data) ->
     case socket:send(Socket, Data) of
         ok ->
             ok;
@@ -86,7 +90,11 @@ send(Socket, Data) ->
             {error, Reason};
         {error, Reason} ->
             {error, Reason}
-    end.
+    end;
+%% socket:send flattens iolists with list_to_binary; sendv keeps the
+%% iovec and writes it in one NIF call
+send(Socket, Data) ->
+    sendv(Socket, erlang:iolist_to_iovec(Data)).
 
 -spec setopts(shackle:socket(), [gen_tcp:option()]) ->
     ok |
@@ -112,6 +120,18 @@ setopts(Socket, Opts) ->
     connect_opts(Socket, Opts).
 
 %% private
+sendv(Socket, IOV) ->
+    case socket:sendv(Socket, IOV) of
+        ok ->
+            ok;
+        {ok, RestIOV} ->
+            sendv(Socket, RestIOV);
+        {error, {Reason, _RestIOV}} ->
+            {error, Reason};
+        {error, Reason} ->
+            {error, Reason}
+    end.
+
 connect_opts(_Socket, []) ->
     ok;
 connect_opts(Socket, [{nodelay, Bool} | T]) ->
