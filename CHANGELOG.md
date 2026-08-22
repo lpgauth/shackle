@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.7.4
+
+### Added
+
+- `shackle_socket`, an alternative protocol to `shackle_tcp` built on
+  the `socket` NIF module. Accepted sockets run with
+  `{otp, select_read}`, so the server gets one `$socket` message plus
+  one recv per wake instead of the inet driver's active mode delivery,
+  and send is a single NIF call. Roughly +2.5% throughput over
+  `shackle_tcp` in the arithmetic benchmark. Requires OTP 27.3; the
+  default protocol is unchanged.
+
+- Telemetry can be disabled with the shackle `telemetry` app env,
+  skipping the handler-table lookup on every event.
+
+### Changed
+
+- The in-flight request queue moved from a shared ETS table into the
+  server state as a map, and reply messages now carry just the request
+  id instead of the whole cast record. Roughly +7% throughput in the
+  arithmetic benchmark.
+
+- Removed inline compiler pragmas; with the JIT they had no measurable
+  effect while growing the beams and hiding frames from stack traces.
+
 ## 0.7.3
 
 ### Changed
