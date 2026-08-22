@@ -54,6 +54,20 @@ shackle_call_crash_test_() ->
         fun (_) -> cleanup(?CLIENT_TCP) end,
     [fun call_crash_subtest/0]}.
 
+shackle_random_socket_test_() ->
+    otp_28({setup,
+        fun () ->
+            setup(?CLIENT_SOCKET, [
+                {pool_size, 1},
+                {pool_strategy, random}
+        ]) end,
+        fun (_) -> cleanup(?CLIENT_SOCKET) end,
+    {inparallel, [
+        fun () -> add_subtest(?CLIENT_SOCKET) end,
+        fun () -> multiply_subtest(?CLIENT_SOCKET) end,
+        fun () -> noop_subtest(?CLIENT_SOCKET) end
+    ]}}).
+
 shackle_random_ssl_test_() ->
     {setup,
         fun () ->
@@ -111,6 +125,15 @@ shackle_random_udp_test_() ->
         fun () -> multiply_subtest(?CLIENT_UDP) end,
         fun () -> noop_subtest(?CLIENT_UDP) end
     ]}}.
+
+shackle_reconnect_socket_test_() ->
+    otp_28({setup,
+        fun () ->
+            setup(),
+            ?CLIENT_SOCKET:start()
+        end,
+        fun (_) -> cleanup(?CLIENT_SOCKET) end,
+    [fun () -> reconnect_subtest(?CLIENT_SOCKET) end]}).
 
 shackle_reconnect_ssl_test_() ->
     {setup,
@@ -174,6 +197,17 @@ shackle_round_robin_udp_test_() ->
         fun () -> multiply_subtest(?CLIENT_UDP) end,
         fun () -> noop_subtest(?CLIENT_UDP) end
     ]}}.
+
+shackle_timeout_socket_test_() ->
+    otp_28({setup,
+        fun () ->
+            setup(?CLIENT_SOCKET, [
+                {pool_size, 1},
+                {pool_strategy, random}
+            ])
+        end,
+        fun (_) -> cleanup(?CLIENT_SOCKET) end,
+    [fun () -> timeout_subtest(?CLIENT_SOCKET) end]}).
 
 shackle_timeout_ssl_test_() ->
     {setup,
@@ -314,6 +348,8 @@ receive_loop(N) ->
             [X | receive_loop(N - 1)]
     end.
 
+server(?CLIENT_SOCKET) ->
+    arithmetic_tcp_server;
 server(?CLIENT_SSL) ->
     arithmetic_ssl_server;
 server(?CLIENT_SSL_SOCKET) ->

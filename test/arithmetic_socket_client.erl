@@ -3,6 +3,8 @@
 
 -export([
     add/2,
+    multiply/2,
+    noop/0,
     start/0,
     start/1,
     stop/0
@@ -14,6 +16,7 @@
     setup/2,
     handle_request/2,
     handle_data/2,
+    handle_timeout/2,
     terminate/1
 ]).
 
@@ -30,6 +33,18 @@
 
 add(A, B) ->
     shackle:call(?POOL_NAME, {add, A, B}, ?TIMEOUT).
+
+-spec multiply(tiny_int(), tiny_int()) ->
+    pos_integer().
+
+multiply(A, B) ->
+    shackle:call(?POOL_NAME, {multiply, A, B}, ?TIMEOUT).
+
+-spec noop() ->
+    ok.
+
+noop() ->
+    shackle:call(?POOL_NAME, noop).
 
 -spec start() ->
     ok | {error, shackle_not_started | pool_already_started}.
@@ -86,6 +101,13 @@ handle_data(Data, #state {
         buffer = Buffer2
     }}.
 
+handle_timeout(RequestId, State) ->
+    {ok, {RequestId, {error, timeout_handled}}, State}.
+
+handle_request(noop, State) ->
+    Data = arithmetic_protocol:request(0, noop, 0, 0),
+
+    {ok, undefined, Data, State};
 handle_request({Operation, A, B}, #state {
         request_counter = RequestCounter
     } = State) ->
