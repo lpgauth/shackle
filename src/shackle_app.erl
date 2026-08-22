@@ -31,6 +31,8 @@ stop() ->
     {ok, pid()}.
 
 start(_StartType, _StartArgs) ->
+    persistent_term:put({shackle, telemetry},
+        application:get_env(?APP, telemetry, true)),
     shackle_sup:start_link().
 
 -spec stop(term()) ->

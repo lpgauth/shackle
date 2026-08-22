@@ -1,8 +1,5 @@
 -module(shackle_telemetry).
 
--compile(inline).
--compile({inline_size, 512}).
-
 -export([
     backlog_full/1,
     disabled/1,
@@ -19,66 +16,53 @@
 
 -spec backlog_full(shackle:client()) -> ok.
 backlog_full(Client) ->
-    Measurements = #{count => 1},
-    Metadata = #{client => Client},
-    telemetry:execute([shackle, backlog_full], Measurements, Metadata).
+    execute([shackle, backlog_full], #{count => 1}, Client).
 
 -spec disabled(shackle:client()) -> ok.
 disabled(Client) ->
-    Measurements = #{count => 1},
-    Metadata = #{client => Client},
-    telemetry:execute([shackle, disabled], Measurements, Metadata).
+    execute([shackle, disabled], #{count => 1}, Client).
 
 -spec found(shackle:client()) -> ok.
 found(Client) ->
-    Measurements = #{count => 1},
-    Metadata = #{client => Client},
-    telemetry:execute([shackle, found], Measurements, Metadata).
+    execute([shackle, found], #{count => 1}, Client).
 
 -spec handle_timeout(shackle:client()) -> ok.
 handle_timeout(Client) ->
-    Measurements = #{count => 1},
-    Metadata = #{client => Client},
-    telemetry:execute([shackle, handle_timeout], Measurements, Metadata).
+    execute([shackle, handle_timeout], #{count => 1}, Client).
 
 -spec no_server(shackle:client()) -> ok.
 no_server(Client) ->
-    Measurements = #{count => 1},
-    Metadata = #{client => Client},
-    telemetry:execute([shackle, no_server], Measurements, Metadata).
+    execute([shackle, no_server], #{count => 1}, Client).
 
 -spec not_found(shackle:client()) -> ok.
 not_found(Client) ->
-    Measurements = #{count => 1},
-    Metadata = #{client => Client},
-    telemetry:execute([shackle, not_found], Measurements, Metadata).
+    execute([shackle, not_found], #{count => 1}, Client).
 
 -spec recv(shackle:client(), non_neg_integer()) -> ok.
 recv(Client, NBytes) ->
-    Measurements = #{count => 1, bytes => NBytes},
-    Metadata = #{client => Client},
-    telemetry:execute([shackle, recv], Measurements, Metadata).
+    execute([shackle, recv], #{count => 1, bytes => NBytes}, Client).
 
 -spec replies(shackle:client()) -> ok.
 replies(Client) ->
-    Measurements = #{count => 1},
-    Metadata = #{client => Client},
-    telemetry:execute([shackle, replies], Measurements, Metadata).
+    execute([shackle, replies], #{count => 1}, Client).
 
 -spec reply(shackle:client(), non_neg_integer()) -> ok.
 reply(Client, Microseconds) ->
-    Measurements = #{duration => Microseconds},
-    Metadata = #{client => Client},
-    telemetry:execute([shackle, reply], Measurements, Metadata).
+    execute([shackle, reply], #{duration => Microseconds}, Client).
 
 -spec send(shackle:client(), non_neg_integer()) -> ok.
 send(Client, NBytes) ->
-    Measurements = #{count => 1, bytes => NBytes},
-    Metadata = #{client => Client},
-    telemetry:execute([shackle, send], Measurements, Metadata).
+    execute([shackle, send], #{count => 1, bytes => NBytes}, Client).
 
 -spec timeout(shackle:client()) -> ok.
 timeout(Client) ->
-    Measurements = #{count => 1},
-    Metadata = #{client => Client},
-    telemetry:execute([shackle, timeout], Measurements, Metadata).
+    execute([shackle, timeout], #{count => 1}, Client).
+
+%% private
+execute(Event, Measurements, Client) ->
+    case persistent_term:get({shackle, telemetry}, true) of
+        true ->
+            telemetry:execute(Event, Measurements, #{client => Client});
+        false ->
+            ok
+    end.
