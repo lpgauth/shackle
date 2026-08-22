@@ -2,8 +2,9 @@
 -include("shackle_internal.hrl").
 
 %% The socket specs on OTP < 28 predate {otp, select_read} and its
-%% recv return shapes, and socket:sendv only exists from OTP 27,
-%% although everything works at runtime from OTP 27.3.
+%% recv return shapes, and socket:sendv only exists from OTP 27.
+%% {otp, select_read} lands in OTP 28.0, so that is the runtime
+%% floor for this protocol.
 -dialyzer({nowarn_function, [recv/1, send/2, sendv/2, setopts/2]}).
 -ignore_xref([
     {socket, sendv, 2}
