@@ -4,6 +4,7 @@
 -define(DEFAULT_INIT_OPTS, undefined).
 -define(DEFAULT_CONNECT_TIMEOUT, 500).
 -define(DEFAULT_MAX_RETRIES, 0).
+-define(MAX_CAST_BATCH, 64).
 -define(DEFAULT_POOL_SIZE, 16).
 -define(DEFAULT_POOL_STRATEGY, random).
 -define(DEFAULT_PROTOCOL, shackle_tcp).
