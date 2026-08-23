@@ -54,6 +54,27 @@ shackle_call_crash_test_() ->
         fun (_) -> cleanup(?CLIENT_TCP) end,
     [fun call_crash_subtest/0]}.
 
+shackle_max_requests_test_() ->
+    {setup,
+        fun () ->
+            setup(),
+            arithmetic_tcp_server:start(),
+            timer:sleep(100),
+            shackle_pool:start(?POOL_NAME, ?CLIENT_TCP, [
+                {max_requests, 20},
+                {port, ?PORT},
+                {reconnect, true},
+                {reconnect_time_min, 1},
+                {socket_options, [
+                    binary,
+                    {packet, raw}
+                ]}
+            ], [{pool_size, 1}]),
+            timer:sleep(500)
+        end,
+        fun (_) -> cleanup(?CLIENT_TCP) end,
+    [fun max_requests_subtest/0]}.
+
 shackle_random_socket_test_() ->
     otp_28({setup,
         fun () ->
@@ -287,6 +308,15 @@ call_crash_subtest() ->
     ?assertEqual({error, client_crash}, arithmetic_tcp_client:add(a, b)),
     ?assertEqual(2, arithmetic_tcp_client:add(1, 1)).
 
+max_requests_subtest() ->
+    Socket1 = connected_socket(),
+    [?assertEqual(2, arithmetic_tcp_client:add(1, 1)) ||
+        _ <- lists:seq(1, 20)],
+    timer:sleep(200),
+    Socket2 = connected_socket(),
+    ?assertNotEqual(Socket1, Socket2),
+    ?assertEqual(2, arithmetic_tcp_client:add(1, 1)).
+
 multiply_subtest(Client) ->
     [assert_random_multiply(Client) || _ <- lists:seq(1, ?N)].
 
@@ -328,6 +358,12 @@ cleanup(Client) ->
     Server = server(Client),
     Server:stop(),
     cleanup().
+
+connected_socket() ->
+    ServerName = list_to_atom(atom_to_list(?POOL_NAME) ++ "_1"),
+    {links, Links} = erlang:process_info(whereis(ServerName), links),
+    [Socket] = [Port || Port <- Links, is_port(Port)],
+    Socket.
 
 otp_28(Tests) ->
     case list_to_integer(erlang:system_info(otp_release)) >= 28 of
