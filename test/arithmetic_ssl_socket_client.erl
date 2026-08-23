@@ -1,4 +1,4 @@
--module(arithmetic_socket_client).
+-module(arithmetic_ssl_socket_client).
 -include("test.hrl").
 
 -export([
@@ -61,10 +61,14 @@ start() ->
 start(PoolOptions) ->
     shackle_pool:start(?POOL_NAME, ?MODULE, [
         {port, ?PORT},
-        {protocol, shackle_socket},
+        {protocol, shackle_ssl_socket},
         {reconnect, true},
         {reconnect_time_min, 1},
-        {socket_options, []}
+        {socket_options, [
+            binary,
+            {packet, raw},
+            {verify, verify_none}
+        ]}
     ], PoolOptions).
 
 -spec stop() ->
@@ -78,9 +82,9 @@ init(_) ->
     {ok, #state {}}.
 
 setup(Socket, State) ->
-    case socket:send(Socket, <<"INIT">>) of
+    case ssl:send(Socket, <<"INIT">>) of
         ok ->
-            case socket:recv(Socket, 0, ?TIMEOUT) of
+            case ssl:recv(Socket, 0, ?TIMEOUT) of
                 {ok, <<"OK">>} ->
                     {ok, State};
                 {error, Reason} ->

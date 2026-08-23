@@ -134,9 +134,9 @@ shackle_pool:start(shackle_pool:name(), client(), client_options(), pool_options
   </tr>
   <tr>
     <td>protocol</td>
-    <td>shackle_tcp | shackle_udp | shackle_ssl</td>
+    <td>shackle_socket | shackle_ssl | shackle_ssl_socket | shackle_tcp | shackle_udp</td>
     <td>shackle_tcp</td>
-    <td>server protocol</td>
+    <td>server protocol (shackle_socket and shackle_ssl_socket require OTP 28+)</td>
   </tr>
   <tr>
     <td>reconnect</td>
@@ -158,7 +158,7 @@ shackle_pool:start(shackle_pool:name(), client(), client_options(), pool_options
   </tr>
   <tr>
     <td>socket_options</td>
-    <td>[gen_tcp:connect_option() | gen_udp:option()]</td>
+    <td>[gen_tcp:connect_option() | gen_udp:option() | ssl:tls_client_option()]</td>
     <td>[]</td>
     <td>options passed to the socket</td>
   </tr>

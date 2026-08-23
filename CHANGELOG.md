@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.7.5
+
+### Added
+
+- `shackle_ssl_socket`, an opt-in TLS protocol built on the `socket`
+  NIF module. connect/3 opens and connects a raw socket, applies the
+  inet-level options, then hands it to `ssl:connect/3`, which runs
+  TLS over OTP's `tls_socket_tcp` transport; everything after the
+  handshake behaves like `shackle_ssl`. Requires OTP 28 (28.1
+  recommended for send-side buffering); the default protocol is
+  unchanged.
+
 ## 0.7.4
 
 ### Added
