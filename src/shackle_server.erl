@@ -14,7 +14,7 @@
 
 -record(state, {
     address          :: shackle:inet_address(),
-    backlog          :: shackle:table(),
+    backlog          :: atomics:atomics_ref(),
     client           :: shackle:client(),
     id               :: id(),
     init_options     :: init_options(),
@@ -24,10 +24,13 @@
     port             :: shackle:inet_port(),
     protocol         :: shackle:protocol(),
     queue = #{}      :: #{shackle:external_request_id() =>
-                              {shackle:cast(), reference()}},
+                              {shackle:cast(), integer()}},
     reconnect_state  :: undefined | reconnect_state(),
     socket           :: undefined | shackle:socket(),
     socket_options   :: shackle:socket_options(),
+    sweep_deadline = 0 :: integer(),
+    sweep_ref        :: undefined | reference(),
+    telemetry = true :: boolean(),
     timer_ref        :: undefined | reference()
 
 }).
@@ -63,7 +66,7 @@ init(Name, Parent, Opts) ->
     {PoolName, Index, Client, ClientOptions} = Opts,
     self() ! ?MSG_CONNECT,
     Id = {PoolName, Index},
-    ok = shackle_backlog:new(PoolName, Id),
+    ok = shackle_backlog:reset(PoolName, Id),
 
     InitOptions = ?LOOKUP(init_options, ClientOptions, ?DEFAULT_INIT_OPTS),
     Address = address(ClientOptions),
@@ -75,7 +78,7 @@ init(Name, Parent, Opts) ->
 
     {ok, {#state {
         address = Address,
-        backlog = shackle_backlog:table_name(PoolName),
+        backlog = shackle_backlog:ref(PoolName),
         client = Client,
         id = Id,
         init_options = InitOptions,
@@ -85,7 +88,8 @@ init(Name, Parent, Opts) ->
         port = Port,
         protocol = Protocol,
         reconnect_state = ReconnectState,
-        socket_options = SocketOptions
+        socket_options = SocketOptions,
+        telemetry = persistent_term:get({shackle, telemetry}, true)
     }, undefined}}.
 
 -spec handle_msg(term(), {state(), client_state()}) ->
@@ -97,45 +101,14 @@ handle_msg({_, #cast {} = Cast}, {#state {
 
     reply({error, no_socket}, Cast, State),
     {ok, {State, ClientState}};
-handle_msg({Request, #cast {
-        timeout = Timeout
-    } = Cast}, {#state {
-        client = Client,
-        pool_name = PoolName,
-        protocol = Protocol,
-        queue = Queue,
-        socket = Socket
+handle_msg({Request, #cast {} = Cast}, {#state {
+        protocol = shackle_udp
     } = State, ClientState}) ->
 
-    try Client:handle_request(Request, ClientState) of
-        {ok, ExtRequestId, Data, ClientState2} ->
-            case Protocol:send(Socket, Data) of
-                ok ->
-                    shackle_telemetry:send(Client, iolist_size(Data)),
-                    case ExtRequestId of
-                        undefined ->
-                            reply(ok, Cast, State),
-                            {ok, {State, ClientState2}};
-                        _ ->
-                            Msg = {timeout, ExtRequestId},
-                            TimerRef = erlang:send_after(Timeout, self(), Msg),
-                            Queue2 = maps:put(ExtRequestId, {Cast, TimerRef},
-                                Queue),
-                            {ok, {State#state {queue = Queue2}, ClientState2}}
-                    end;
-                {error, Reason} ->
-                    ?WARN(PoolName, "send error: ~p", [Reason]),
-                    Protocol:close(Socket),
-                    reply({error, socket_closed}, Cast, State),
-                    close(State, ClientState2)
-            end
-    catch
-        ?EXCEPTION(E, R, Stacktrace) ->
-            ?WARN(PoolName, "handle_request crash: ~p:~p~n~p~n",
-                [E, R, ?GET_STACK(Stacktrace)]),
-            reply({error, client_crash}, Cast, State),
-            {ok, {State, ClientState}}
-    end;
+    handle_casts([{Request, Cast}], State, ClientState);
+handle_msg({Request, #cast {} = Cast}, {State, ClientState}) ->
+    RequestCasts = drain_casts([{Request, Cast}], ?MAX_CAST_BATCH - 1),
+    handle_casts(RequestCasts, State, ClientState);
 handle_msg({'$socket', Socket, select, _Handle}, {#state {
         socket = Socket
     } = State, ClientState}) ->
@@ -200,41 +173,29 @@ handle_msg(?MSG_CONNECT, {#state {
         {error, _Reason} ->
             reconnect(State, ClientState)
     end;
-handle_msg({timeout, ExtRequestId}, {#state {
-        client = Client,
-        pool_name = PoolName,
-        protocol = Protocol,
-        queue = Queue,
-        socket = Socket
+handle_msg(?MSG_SWEEP, {#state {
+        queue = Queue
+    } = State, ClientState}) when map_size(Queue) =:= 0 ->
+
+    {ok, {State#state {sweep_ref = undefined}, ClientState}};
+handle_msg(?MSG_SWEEP, {#state {
+        queue = Queue
     } = State, ClientState}) ->
 
-    case erlang:function_exported(Client, handle_timeout, 2) of
-        true ->
-            try Client:handle_timeout(ExtRequestId, ClientState) of
-                {ok, Reply, ClientState2} ->
-                    shackle_telemetry:handle_timeout(Client),
-                    State2 = process_responses([Reply], State),
-                    {ok, {State2, ClientState2}};
-                {error, Reason, ClientState2} ->
-                    ?WARN(PoolName, "handle_timeout error: ~p", [Reason]),
-                    Protocol:close(Socket),
-                    close(State, ClientState2)
-            catch
-                ?EXCEPTION(E, R, Stacktrace) ->
-                    ?WARN(PoolName, "handle_timeout error: ~p:~p~n~p~n",
-                        [E, R, ?GET_STACK(Stacktrace)]),
-                    Protocol:close(Socket),
-                    close(State, ClientState)
-            end;
-        false ->
-            case maps:take(ExtRequestId, Queue) of
-                {{Cast, _TimerRef}, Queue2} ->
-                    shackle_telemetry:timeout(Client),
-                    reply({error, timeout}, Cast, State),
-                    {ok, {State#state {queue = Queue2}, ClientState}};
-                error ->
-                    {ok, {State, ClientState}}
-            end
+    Now = erlang:monotonic_time(millisecond),
+    {Expired, NextDeadline} = maps:fold(fun
+        (ExtRequestId, {_Cast, Deadline}, {ExpiredAcc, MinAcc})
+                when Deadline =< Now ->
+            {[ExtRequestId | ExpiredAcc], MinAcc};
+        (_ExtRequestId, {_Cast, Deadline}, {ExpiredAcc, MinAcc}) ->
+            {ExpiredAcc, min(Deadline, MinAcc)}
+    end, {[], infinity}, Queue),
+
+    case expire(Expired, State#state {sweep_ref = undefined}, ClientState) of
+        {ok, {State2, ClientState2}} when is_integer(NextDeadline) ->
+            {ok, {arm_sweep(Now, NextDeadline, State2), ClientState2}};
+        Result ->
+            Result
     end;
 handle_msg(Msg, {#state {
         pool_name = PoolName
@@ -250,9 +211,11 @@ terminate(_Reason, {#state {
         client = Client,
         id = Id,
         pool_name = PoolName,
+        sweep_ref = SweepRef,
         timer_ref = TimerRef
     } = State, ClientState}) ->
 
+    cancel_timer(SweepRef),
     cancel_timer(TimerRef),
     try Client:terminate(ClientState)
     catch
@@ -261,9 +224,141 @@ terminate(_Reason, {#state {
                 [E, R, ?GET_STACK(Stacktrace)])
     end,
     reply_all({error, shutdown}, State),
-    shackle_backlog:delete(PoolName, Id).
+    shackle_backlog:reset(PoolName, Id).
 
 %% private
+%% A single armed timer covers the earliest deadline in the queue;
+%% replies never cancel it, so an idle fire sweeps nothing and
+%% re-arms to the new minimum.
+arm_sweep(Now, Deadline, #state {sweep_ref = undefined} = State) ->
+    SweepRef = erlang:send_after(max(0, Deadline - Now), self(), ?MSG_SWEEP),
+    State#state {
+        sweep_deadline = Deadline,
+        sweep_ref = SweepRef
+    };
+arm_sweep(_Now, Deadline, #state {
+        sweep_deadline = Armed
+    } = State) when Deadline >= Armed ->
+
+    State;
+arm_sweep(Now, Deadline, #state {sweep_ref = SweepRef} = State) ->
+    erlang:cancel_timer(SweepRef),
+    arm_sweep(Now, Deadline, State#state {sweep_ref = undefined}).
+
+%% Casts already sitting in the mailbox are drained and written with
+%% a single send; socket messages behind them were queued after the
+%% casts, so replies are never reordered ahead of their requests.
+drain_casts(Acc, 0) ->
+    lists:reverse(Acc);
+drain_casts(Acc, N) ->
+    receive
+        {Request, #cast {} = Cast} ->
+            drain_casts([{Request, Cast} | Acc], N - 1)
+    after 0 ->
+        lists:reverse(Acc)
+    end.
+
+encode_casts([], _State, ClientState, Entries, Data) ->
+    {lists:reverse(Entries), lists:reverse(Data), ClientState};
+encode_casts([{Request, Cast} | T], #state {
+        client = Client,
+        pool_name = PoolName
+    } = State, ClientState, Entries, Data) ->
+
+    try Client:handle_request(Request, ClientState) of
+        {ok, ExtRequestId, RequestData, ClientState2} ->
+            encode_casts(T, State, ClientState2,
+                [{Cast, ExtRequestId} | Entries], [RequestData | Data])
+    catch
+        ?EXCEPTION(E, R, Stacktrace) ->
+            ?WARN(PoolName, "handle_request crash: ~p:~p~n~p~n",
+                [E, R, ?GET_STACK(Stacktrace)]),
+            reply({error, client_crash}, Cast, State),
+            encode_casts(T, State, ClientState, Entries, Data)
+    end.
+
+enqueue_casts([], _Now, State) ->
+    State;
+enqueue_casts([{Cast, undefined} | T], Now, State) ->
+    reply(ok, Cast, State),
+    enqueue_casts(T, Now, State);
+enqueue_casts([{#cast {timeout = Timeout} = Cast, ExtRequestId} | T], Now,
+        #state {queue = Queue} = State) ->
+
+    Deadline = Now + Timeout,
+    Queue2 = maps:put(ExtRequestId, {Cast, Deadline}, Queue),
+    State2 = arm_sweep(Now, Deadline, State#state {queue = Queue2}),
+    enqueue_casts(T, Now, State2).
+
+handle_casts(RequestCasts, #state {
+        client = Client,
+        pool_name = PoolName,
+        protocol = Protocol,
+        socket = Socket,
+        telemetry = Telemetry
+    } = State, ClientState) ->
+
+    {Entries, Data, ClientState2} =
+        encode_casts(RequestCasts, State, ClientState, [], []),
+    case Entries of
+        [] ->
+            {ok, {State, ClientState2}};
+        _ ->
+            case Protocol:send(Socket, Data) of
+                ok ->
+                    Telemetry andalso
+                        shackle_telemetry:send(Client, iolist_size(Data)),
+                    Now = erlang:monotonic_time(millisecond),
+                    {ok, {enqueue_casts(Entries, Now, State), ClientState2}};
+                {error, Reason} ->
+                    ?WARN(PoolName, "send error: ~p", [Reason]),
+                    Protocol:close(Socket),
+                    [reply({error, socket_closed}, Cast, State) ||
+                        {Cast, _ExtRequestId} <- Entries],
+                    close(State, ClientState2)
+            end
+    end.
+
+expire([], State, ClientState) ->
+    {ok, {State, ClientState}};
+expire([ExtRequestId | T], #state {
+        client = Client,
+        pool_name = PoolName,
+        protocol = Protocol,
+        queue = Queue,
+        socket = Socket,
+        telemetry = Telemetry
+    } = State, ClientState) ->
+
+    case erlang:function_exported(Client, handle_timeout, 2) of
+        true ->
+            try Client:handle_timeout(ExtRequestId, ClientState) of
+                {ok, Reply, ClientState2} ->
+                    Telemetry andalso shackle_telemetry:handle_timeout(Client),
+                    State2 = process_responses([Reply], State),
+                    expire(T, State2, ClientState2);
+                {error, Reason, ClientState2} ->
+                    ?WARN(PoolName, "handle_timeout error: ~p", [Reason]),
+                    Protocol:close(Socket),
+                    close(State, ClientState2)
+            catch
+                ?EXCEPTION(E, R, Stacktrace) ->
+                    ?WARN(PoolName, "handle_timeout error: ~p:~p~n~p~n",
+                        [E, R, ?GET_STACK(Stacktrace)]),
+                    Protocol:close(Socket),
+                    close(State, ClientState)
+            end;
+        false ->
+            case maps:take(ExtRequestId, Queue) of
+                {{Cast, _Deadline}, Queue2} ->
+                    Telemetry andalso shackle_telemetry:timeout(Client),
+                    reply({error, timeout}, Cast, State),
+                    expire(T, State#state {queue = Queue2}, ClientState);
+                error ->
+                    expire(T, State, ClientState)
+            end
+    end.
+
 address(ClientOptions) ->
     case ?LOOKUP(address, ClientOptions) of
         undefined ->
@@ -350,10 +445,11 @@ handle_msg_data(Socket, Data, #state {
         client = Client,
         pool_name = PoolName,
         protocol = Protocol,
-        socket = Socket
+        socket = Socket,
+        telemetry = Telemetry
     } = State, ClientState) ->
 
-    shackle_telemetry:recv(Client, size(Data)),
+    Telemetry andalso shackle_telemetry:recv(Client, size(Data)),
     try Client:handle_data(Data, ClientState) of
         {ok, Replies, ClientState2} ->
             State2 = process_responses(Replies, State),
@@ -388,20 +484,25 @@ process_responses([], State) ->
     State;
 process_responses([{ExtRequestId, Reply} | T], #state {
         client = Client,
-        queue = Queue
+        queue = Queue,
+        telemetry = Telemetry
     } = State) ->
 
-    shackle_telemetry:replies(Client),
+    Telemetry andalso shackle_telemetry:replies(Client),
     case maps:take(ExtRequestId, Queue) of
-        {{#cast {timestamp = Timestamp} = Cast, TimerRef}, Queue2} ->
-            shackle_telemetry:found(Client),
-            Diff = erlang:monotonic_time(microsecond) - Timestamp,
-            shackle_telemetry:reply(Client, Diff),
-            erlang:cancel_timer(TimerRef),
+        {{#cast {timestamp = Timestamp} = Cast, _Deadline}, Queue2} ->
+            case Telemetry of
+                true ->
+                    shackle_telemetry:found(Client),
+                    Diff = erlang:monotonic_time(microsecond) - Timestamp,
+                    shackle_telemetry:reply(Client, Diff);
+                false ->
+                    ok
+            end,
             reply(Reply, Cast, State),
             process_responses(T, State#state {queue = Queue2});
         error ->
-            shackle_telemetry:not_found(Client),
+            Telemetry andalso shackle_telemetry:not_found(Client),
             process_responses(T, State)
     end.
 
@@ -482,12 +583,7 @@ reply(Reply, #cast {pid = Pid, request_id = RequestId}, #state {
     ok.
 
 reply_all(Reply, #state {queue = Queue} = State) ->
-    reply_all(Reply, maps:values(Queue), State),
+    maps:foreach(fun (_ExtRequestId, {Cast, _Deadline}) ->
+        reply(Reply, Cast, State)
+    end, Queue),
     State#state {queue = #{}}.
-
-reply_all(_Reply, [], _State) ->
-    ok;
-reply_all(Reply, [{Cast, TimerRef} | T], State) ->
-    erlang:cancel_timer(TimerRef),
-    reply(Reply, Cast, State),
-    reply_all(Reply, T, State).

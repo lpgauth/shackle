@@ -8,6 +8,7 @@
 -define(LOOKUP(Key, List), ?LOOKUP(Key, List, undefined)).
 -define(LOOKUP(Key, List, Default), shackle_utils:lookup(Key, List, Default)).
 -define(MSG_CONNECT, connect).
+-define(MSG_SWEEP, sweep).
 -define(SERVER, shackle_server).
 -define(SUPERVISOR, shackle_sup).
 

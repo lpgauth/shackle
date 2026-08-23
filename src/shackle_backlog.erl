@@ -3,18 +3,12 @@
 %% internal
 -export([
     check/3,
-    check/4,
     decrement/2,
-    decrement/3,
     delete/1,
-    delete/2,
-    new/1,
     new/2,
-    table_name/1
+    ref/1,
+    reset/2
 ]).
-
--define(DEFAULT_DECREMENT, -1).
--define(DEFAULT_INCREMENT, 1).
 
 %% types
 -type backlog_size() :: pos_integer() | infinity.
@@ -24,73 +18,61 @@
 ]).
 
 %% internal
--spec check(shackle:table(), shackle_server:id(), backlog_size()) ->
+-spec check(atomics:atomics_ref(), shackle_server:id(), backlog_size()) ->
     boolean().
 
-check(Table, ServerId, BacklogSize) ->
-    check(Table, ServerId, BacklogSize, ?DEFAULT_INCREMENT).
-
--spec check(shackle:table(), shackle_server:id(), backlog_size(), pos_integer()) ->
-    boolean().
-
-check(_Table, _ServerId, infinity, _Increment) ->
+check(_Ref, _ServerId, infinity) ->
     true;
-check(Table, ServerId, BacklogSize, Increment) ->
-    case increment(Table, ServerId, BacklogSize, Increment) of
-        [BacklogSize, BacklogSize] ->
-            false;
-        [_, Value] when Value =< BacklogSize ->
-            true
+check(Ref, {_PoolName, Index}, BacklogSize) ->
+    case atomics:add_get(Ref, Index, 1) of
+        Value when Value =< BacklogSize ->
+            true;
+        _Value ->
+            atomics:sub(Ref, Index, 1),
+            false
     end.
 
--spec decrement(shackle:table(), shackle_server:id()) ->
-    non_neg_integer().
+-spec decrement(atomics:atomics_ref(), shackle_server:id()) ->
+    integer().
 
-decrement(Table, ServerId) ->
-    decrement(Table, ServerId, ?DEFAULT_DECREMENT).
-
--spec decrement(shackle:table(), shackle_server:id(), neg_integer()) ->
-    non_neg_integer().
-
-decrement(Table, ServerId, Decrement) ->
-    ets:update_counter(Table, ServerId, {2, Decrement, 0, 0}).
+decrement(Ref, {_PoolName, Index}) ->
+    case atomics:sub_get(Ref, Index, 1) of
+        Value when Value < 0 ->
+            %% reset or infinity backlog: never go below empty
+            atomics:add(Ref, Index, 1),
+            0;
+        Value ->
+            Value
+    end.
 
 -spec delete(shackle_pool:name()) ->
     ok.
 
 delete(PoolName) ->
-    ets:delete(table_name(PoolName)),
+    persistent_term:erase({?MODULE, PoolName}),
     ok.
 
--spec delete(shackle_pool:name(), shackle_server:id()) ->
+-spec new(shackle_pool:name(), shackle_pool:pool_size()) ->
     ok.
 
-delete(PoolName, ServerId) ->
-    ets:delete(table_name(PoolName), ServerId),
+new(PoolName, PoolSize) ->
+    Ref = atomics:new(PoolSize, []),
+    persistent_term:put({?MODULE, PoolName}, Ref),
     ok.
 
--spec new(shackle_pool:name()) ->
+-spec ref(shackle_pool:name()) ->
+    atomics:atomics_ref().
+
+ref(PoolName) ->
+    persistent_term:get({?MODULE, PoolName}).
+
+-spec reset(shackle_pool:name(), shackle_server:id()) ->
     ok.
 
-new(PoolName) ->
-    Table = ets:new(table_name(PoolName), shackle_utils:ets_options()),
-    ets:give_away(Table, whereis(shackle_ets_manager), undefined),
-    ok.
-
--spec new(shackle_pool:name(), shackle_server:id()) ->
-    ok.
-
-new(PoolName, ServerId) ->
-    ets:insert(table_name(PoolName), {ServerId, 0}),
-    ok.
-
--spec table_name(shackle_pool:name()) ->
-    shackle:table().
-
-table_name(PoolName) ->
-    list_to_atom("shackle_backlog_" ++ atom_to_list(PoolName)).
-
-%% private
-increment(Table, ServerId, BacklogSize, Increment) ->
-    UpdateOps = [{2, 0}, {2, Increment, BacklogSize, BacklogSize}],
-    ets:update_counter(Table, ServerId, UpdateOps).
+reset(PoolName, {_PoolName, Index}) ->
+    case persistent_term:get({?MODULE, PoolName}, undefined) of
+        undefined ->
+            ok;
+        Ref ->
+            atomics:put(Ref, Index, 0)
+    end.
