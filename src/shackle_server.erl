@@ -18,6 +18,7 @@
     client           :: shackle:client(),
     id               :: id(),
     init_options     :: init_options(),
+    max_requests     :: pos_integer() | infinity,
     name             :: name(),
     parent           :: pid(),
     pool_name        :: shackle_pool:name(),
@@ -26,6 +27,7 @@
     queue = #{}      :: #{shackle:external_request_id() =>
                               {shackle:cast(), integer()}},
     reconnect_state  :: undefined | reconnect_state(),
+    requests_left    :: non_neg_integer() | infinity,
     socket           :: undefined | shackle:socket(),
     socket_options   :: shackle:socket_options(),
     sweep_deadline = 0 :: integer(),
@@ -70,6 +72,8 @@ init(Name, Parent, Opts) ->
 
     InitOptions = ?LOOKUP(init_options, ClientOptions, ?DEFAULT_INIT_OPTS),
     Address = address(ClientOptions),
+    MaxRequests = ?LOOKUP(max_requests, ClientOptions,
+        ?DEFAULT_MAX_REQUESTS),
     Port = ?LOOKUP(port, ClientOptions),
     Protocol = ?LOOKUP(protocol, ClientOptions, ?DEFAULT_PROTOCOL),
     ReconnectState = reconnect_state(ClientOptions),
@@ -82,12 +86,14 @@ init(Name, Parent, Opts) ->
         client = Client,
         id = Id,
         init_options = InitOptions,
+        max_requests = MaxRequests,
         name = Name,
         parent = Parent,
         pool_name = PoolName,
         port = Port,
         protocol = Protocol,
         reconnect_state = ReconnectState,
+        requests_left = MaxRequests,
         socket_options = SocketOptions,
         telemetry = persistent_term:get({shackle, telemetry}, true)
     }, undefined}}.
@@ -148,6 +154,7 @@ handle_msg(?MSG_CONNECT, {#state {
         client = Client,
         id = Id,
         init_options = Init,
+        max_requests = MaxRequests,
         pool_name = PoolName,
         port = Port,
         protocol = Protocol,
@@ -164,6 +171,7 @@ handle_msg(?MSG_CONNECT, {#state {
 
                     {ok, {State#state {
                         reconnect_state = ReconnectState2,
+                        requests_left = MaxRequests,
                         socket = Socket
                     }, ClientState2}};
                 {error, _Reason, ClientState2} ->
@@ -194,8 +202,8 @@ handle_msg(?MSG_SWEEP, {#state {
     case expire(Expired, State#state {sweep_ref = undefined}, ClientState) of
         {ok, {State2, ClientState2}} when is_integer(NextDeadline) ->
             {ok, {arm_sweep(Now, NextDeadline, State2), ClientState2}};
-        Result ->
-            Result
+        {ok, {State2, ClientState2}} ->
+            maybe_recycle(State2, ClientState2)
     end;
 handle_msg(Msg, {#state {
         pool_name = PoolName
@@ -309,7 +317,9 @@ handle_casts(RequestCasts, #state {
                     Telemetry andalso
                         shackle_telemetry:send(Client, iolist_size(Data)),
                     Now = erlang:monotonic_time(millisecond),
-                    {ok, {enqueue_casts(Entries, Now, State), ClientState2}};
+                    State2 = enqueue_casts(Entries, Now, State),
+                    State3 = requests_sent(length(Entries), State2),
+                    maybe_recycle(State3, ClientState2);
                 {error, Reason} ->
                     ?WARN(PoolName, "send error: ~p", [Reason]),
                     Protocol:close(Socket),
@@ -453,7 +463,7 @@ handle_msg_data(Socket, Data, #state {
     try Client:handle_data(Data, ClientState) of
         {ok, Replies, ClientState2} ->
             State2 = process_responses(Replies, State),
-            {ok, {State2, ClientState2}};
+            maybe_recycle(State2, ClientState2);
         {error, Reason, ClientState2} ->
             ?WARN(PoolName, "handle_data error: ~p", [Reason]),
             Protocol:close(Socket),
@@ -478,6 +488,29 @@ handle_msg_error(Socket, Reason, #state {
     Protocol:close(Socket),
     close(State, ClientState);
 handle_msg_error(_Socket, _Reason, State, ClientState) ->
+    {ok, {State, ClientState}}.
+
+maybe_recycle(#state {
+        client = Client,
+        pool_name = PoolName,
+        protocol = Protocol,
+        queue = Queue,
+        requests_left = 0,
+        socket = Socket
+    } = State, ClientState) when map_size(Queue) =:= 0,
+        Socket =/= undefined ->
+
+    ?DEBUG(PoolName, "max_requests reached, recycling connection", []),
+    Protocol:close(Socket),
+    try Client:terminate(ClientState)
+    catch
+        ?EXCEPTION(E, R, Stacktrace) ->
+            ?WARN(PoolName, "terminate crash: ~p:~p~n~p~n",
+                [E, R, ?GET_STACK(Stacktrace)])
+    end,
+    self() ! ?MSG_CONNECT,
+    {ok, {State#state {socket = undefined}, ClientState}};
+maybe_recycle(State, ClientState) ->
     {ok, {State, ClientState}}.
 
 process_responses([], State) ->
@@ -587,3 +620,15 @@ reply_all(Reply, #state {queue = Queue} = State) ->
         reply(Reply, Cast, State)
     end, Queue),
     State#state {queue = #{}}.
+
+%% Disabling at the cap keeps new requests off this server so the
+%% in-flight tail can drain; the recycle then reconnects immediately.
+requests_sent(_N, #state {requests_left = infinity} = State) ->
+    State;
+requests_sent(N, #state {requests_left = Left} = State) when Left > N ->
+    State#state {requests_left = Left - N};
+requests_sent(_N, #state {requests_left = 0} = State) ->
+    State;
+requests_sent(_N, #state {id = Id} = State) ->
+    shackle_status:disable(Id),
+    State#state {requests_left = 0}.

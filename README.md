@@ -127,6 +127,12 @@ shackle_pool:start(shackle_pool:name(), client(), client_options(), pool_options
     <td>server address (formerly ip)</td>
   </tr>
   <tr>
+    <td>max_requests</td>
+    <td>pos_integer() | infinity</td>
+    <td>infinity</td>
+    <td>requests per connection before it is recycled (reconnect re-resolves DNS)</td>
+  </tr>
+  <tr>
     <td>port</td>
     <td>inet:port_number()</td>
     <td>undefined</td>

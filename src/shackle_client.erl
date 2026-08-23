@@ -27,6 +27,7 @@
 -type option() :: {address, shackle:inet_address()} |
                   {init_options, shackle_server:init_options()} |
                   {ip, shackle:inet_address()} |
+                  {max_requests, pos_integer() | infinity} |
                   {port, shackle:inet_port()} |
                   {protocol, shackle:protocol()} |
                   {reconnect, boolean()} |
