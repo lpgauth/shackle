@@ -1,8 +1,16 @@
 # Changelog
 
-## 0.7.5
+## 0.8.0
 
 ### Added
+
+- `max_requests` client option (`pos_integer() | infinity`, default
+  `infinity`): limits how many requests a connection handles before
+  it is recycled. At the cap the server is disabled in the pool so no
+  new requests are routed to it, in-flight requests drain normally,
+  then the socket is closed and reconnected immediately (skipping the
+  reconnect backoff). Reconnecting re-resolves DNS, allowing periodic
+  rebalancing across DNS-based load balancers.
 
 - `shackle_ssl_socket`, an opt-in TLS protocol built on the `socket`
   NIF module. connect/3 opens and connects a raw socket, applies the
@@ -11,6 +19,26 @@
   handshake behaves like `shackle_ssl`. Requires OTP 28 (28.1
   recommended for send-side buffering); the default protocol is
   unchanged.
+
+### Changed
+
+- Per-request overhead in the server loop trimmed, driven by eprof
+  and perf under load: the backlog moved from ETS to an atomics
+  array, per-request BIF timers were replaced by a single sweep
+  timer per server armed to the earliest deadline, the telemetry
+  enabled-flag is read once per connection, and casts already queued
+  in the server mailbox are drained (up to 64) and written with one
+  send. buoy benchmark (Linux, 8 client cores, telemetry off):
+  shackle_tcp 222k -> 273k requests/s, shackle_socket 261k -> 292k,
+  combined with the sendv change below.
+
+- `shackle_socket` sends iolists with `socket:sendv/2` instead of
+  `socket:send/2`, which flattens them with list_to_binary on every
+  call; binaries keep using send.
+
+- `shackle_socket`'s runtime floor corrected to OTP 28:
+  `{otp, select_read}` lands in 28.0, and on 27.3 the setopt returns
+  an error. 0.7.4 documented the floor as 27.3.
 
 ## 0.7.4
 
