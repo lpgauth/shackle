@@ -1,9 +1,10 @@
 -module(shackle_pool).
 
 -include("shackle_internal.hrl").
+-include("shackle_pool.hrl").
 
 -dialyzer({nowarn_function, options/1}).
--dialyzer({nowarn_function, server/4}).
+-dialyzer({nowarn_function, server/3}).
 -ignore_xref([
     {shackle_pool_foil, lookup, 1}
 ]).
@@ -34,28 +35,10 @@
 ]).
 
 %% records
--record(pool_options, {
-    backlog_size  :: shackle_backlog:backlog_size(),
-    client        :: shackle:client(),
-    max_retries   :: max_retries(),
-    pool_size     :: pool_size(),
-    pool_strategy :: pool_strategy()
-}).
-
-%% types
--type max_retries() :: non_neg_integer().
--type name() :: atom().
--type pool_size() :: pos_integer().
--type pool_strategy() :: random | round_robin.
--type pool_options() :: #pool_options{}.
--type option() :: {backlog_size, shackle_backlog:backlog_size()} |
-                  {max_retries, max_retries()} |
-                  {pool_size, pool_size()} |
-                  {pool_strategy, pool_strategy()}.
--type options() :: [option()].
 
 -export_type([
     name/0,
+    pool_options/0,
     options/0,
     pool_size/0
 ]).
@@ -75,10 +58,10 @@ start(Name, Client, ClientOptions, Options) ->
         {error, shackle_not_started} ->
             {error, shackle_not_started};
         {error, pool_not_started} ->
-            OptionsRec = options_rec(Client, Options),
+            OptionsRec = options_rec(Name, Client, Options),
             % Normalize servers configuration
             NormalizedClientOpts = normalize_client_options(ClientOptions),
-            setup(Name, OptionsRec),
+            setup(OptionsRec),
             start_children(Name, Client, NormalizedClientOpts, OptionsRec),
             ok
     end.
@@ -194,27 +177,31 @@ init() ->
     foil:new(?MODULE),
     foil:load(?MODULE).
 
--spec server(shackle_pool:name()) ->
+-spec server(name() | pool_options()) ->
     {ok, shackle:client(), atom(), shackle_sema:sema_ref()} |
     {error, atom()}.
-server(Name) ->
+server(Name) when is_atom(Name) ->
     case options(Name) of
         {ok, #pool_options{max_retries = MaxRetries} = Options} ->
-            server(Name, 1, Options, MaxRetries + 1);
-        {error, Reson} ->
-            {error, Reson}
-    end.
+            server(1, Options, MaxRetries + 1);
+        {error, Reason} ->
+            {error, Reason}
+    end;
+server(#pool_options{max_retries = MaxRetries} = Options) ->
+    server(1, Options, MaxRetries + 1).
 
--spec server(shackle_pool:name(), pos_integer()) ->
+-spec server(name() | pool_options(), pos_integer()) ->
     {ok, shackle:client(), atom(), shackle_sema:sema_ref()} |
     {error, atom()}.
-server(Name, Count) ->
+server(Name, Count) when is_atom(Name) ->
     case options(Name) of
         {ok, #pool_options{max_retries = MaxRetries} = Options} ->
-            server(Name, Count, Options, MaxRetries + 1);
-        {error, Reson} ->
-            {error, Reson}
-    end.
+            server(Count, Options, MaxRetries + 1);
+        {error, Reason} ->
+            {error, Reason}
+    end;
+server(#pool_options{max_retries = MaxRetries} = Options, Count) ->
+    server(Count, Options, MaxRetries + 1).
 
 -spec terminate() -> ok.
 terminate() ->
@@ -261,13 +248,14 @@ client(Name) ->
             {error, Reason}
     end.
 
-options_rec(Client, Options) ->
+options_rec(PoolName, Client, Options) ->
     Options1 = shackle_utils:default_options(pool, Options),
     BacklogSize = ?LOOKUP(backlog_size, Options1, ?DEFAULT_BACKLOG_SIZE),
     MaxRetries = ?LOOKUP(max_retries, Options1, ?DEFAULT_MAX_RETRIES),
     PoolSize = ?LOOKUP(pool_size, Options1, ?DEFAULT_POOL_SIZE),
     PoolStrategy = ?LOOKUP(pool_strategy, Options1, ?DEFAULT_POOL_STRATEGY),
     #pool_options {
+        name = PoolName,
         backlog_size = BacklogSize,
         client = Client,
         max_retries = MaxRetries,
@@ -275,13 +263,13 @@ options_rec(Client, Options) ->
         pool_strategy = PoolStrategy
     }.
 
-server(Name, _Count, #pool_options{ client = Client }, 0) ->
+server(_Count, #pool_options{name = Name, client = Client}, 0) ->
     observe_pool_metric(Client, Name, shackle_error_total, <<"no server">>),
     {error, no_server};
 server(
-    Name,
     Count,
     #pool_options{
+        name = Name,
         backlog_size = BacklogSize,
         client = Client,
         pool_size = PoolSize,
@@ -301,11 +289,11 @@ server(
                     {ok, Client, ServerName, Sema};
                 error ->
                     observe_pool_metric(Client, Name, shackle_attempt_total, <<"backlog full">>),
-                    server(Name, Count, Options, N - 1)
+                    server(Count, Options, N - 1)
             end;
         false ->
             observe_pool_metric(Client, Name, shackle_attempt_total, <<"disabled">>),
-            server(Name, Count, Options, N - 1)
+            server(Count, Options, N - 1)
     end.
 
 -doc "Emit observability event for pool metrics".
@@ -313,7 +301,7 @@ observe_pool_metric(Client, Pool, Metric, Reason) ->
     shackle_observe:event([metric, counter], #{count => 1}, #{
         metric => Metric,
         client => Client,
-        pool => Pool,
+        pool   => Pool,
         reason => Reason
     }).
 
@@ -325,9 +313,10 @@ server_id(Name, PoolSize, round_robin) ->
     [ServerId] = ets:update_counter(?ETS_TABLE_POOL_INDEX, Key, UpdateOps),
     {Name, ServerId}.
 
-setup(Name, #pool_options {
+setup(#pool_options {
+        name         = Name,
         backlog_size = BacklogSize,
-        pool_size = PoolSize
+        pool_size    = PoolSize
     } = OptionsRec) ->
     shackle_sema:new(Name, PoolSize, BacklogSize),
     %% Create a semaphore for this pool name to be used for checking if a

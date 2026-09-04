@@ -1,5 +1,6 @@
 -module(shackle).
 -include("shackle_internal.hrl").
+-include("shackle_pool.hrl").
 
 -compile(inline).
 -compile({inline_size, 512}).
@@ -84,8 +85,8 @@
 -doc """
 Processes a request. Parameters:
 
-- `PoolName` — The name of connection pool
-- `Request` — The request to process
+- `PoolName` - The name of connection pool
+- `Request` - The request to process
 
 Returns:
 
@@ -99,9 +100,9 @@ call(PoolName, Request) ->
 -doc """
 Processes a request. Parameters:
 
-- `PoolName` — The name of connection pool
-- `Request` — The request to process
-- `Timeout` — The time period allocated to process the requests
+- `PoolName` - The name of connection pool
+- `Request` - The request to process
+- `Timeout` - The time period allocated to process the requests
 
 Returns:
 
@@ -117,11 +118,19 @@ call(PoolName, Request, Timeout) ->
 -spec call(atom(), term(), timeout_x(), timeout_x()) ->
     term() | {error, atom()}.
 call(PoolName, Request, Timeout, RecvTimeout) ->
-    Dispatcher = shackle_observe:dispatcher(),
-    ClientName = get_pool_client(PoolName),
-    Dispatcher:call(PoolName, ClientName, fun() ->
+    case shackle_pool:options(PoolName) of
+        {ok, #pool_options{client = Client} = PoolOpts} ->
+            Fun = cast_impl_fun(PoolOpts, Request, Timeout, RecvTimeout),
+            Dispatcher = shackle_observe:dispatcher(),
+            Dispatcher:call(PoolName, Client, Fun);
+        {error, Reason} ->
+            {error, Reason}
+    end.
+
+cast_impl_fun(PoolOpts, Request, Timeout, RecvTimeout) ->
+    fun() ->
         Now = now_time(),
-        case cast(PoolName, Request, self(), Timeout, Now) of
+        case cast_impl(PoolOpts, Request, self(), Timeout, Now) of
             {ok, RequestId} ->
                 try
                     receive_response(RequestId, RecvTimeout)
@@ -131,13 +140,13 @@ call(PoolName, Request, Timeout, RecvTimeout) ->
             {error, Reason} ->
                 {error, Reason}
         end
-    end).
+    end.
 
 -doc """
 Processes a request. Parameters:
 
-- `PoolName` — The name of connection pool
-- `Request` — The request to process
+- `PoolName` - The name of connection pool
+- `Request` - The request to process
 
 Returns:
 
@@ -151,9 +160,9 @@ cast(PoolName, Request) ->
 -doc """
 Processes a request. Parameters:
 
-- `PoolName` — The name of connection pool
-- `Request` — The request to process
-- `Pid` — The process identifier to process the requests
+- `PoolName` - The name of connection pool
+- `Request` - The request to process
+- `Pid` - The process identifier to process the requests
 
 Returns:
 
@@ -168,10 +177,10 @@ cast(PoolName, Request, Pid) when is_pid(Pid); Pid == undefined ->
 -doc """
 Processes a request. Parameters:
 
-- `PoolName` — The name of connection pool
-- `Request` — The request to process
-- `Pid` — The process identifier to process the requests
-- `Timeout` — The time period allocated to process the requests
+- `PoolName` - The name of connection pool
+- `Request`  - The request to process
+- `Pid`      - The process identifier to process the requests
+- `Timeout`  - The time period allocated to process the requests
 
 Returns:
 
@@ -181,17 +190,20 @@ The request ID of the request being processed or error:
 -spec cast(shackle_pool:name(), term(), undefined | pid(), timeout_x()) ->
     {ok, request_id()} | {error, atom()}.
 cast(PoolName, Request, Pid, Timeout) ->
-    Dispatcher = shackle_observe:dispatcher(),
-    ClientName = get_pool_client(PoolName),
-    Dispatcher:cast(PoolName, ClientName, fun() ->
-        Now = now_time(),
-        cast(PoolName, Request, Pid, Timeout, Now)
-    end).
+    case shackle_pool:options(PoolName) of
+        {ok, #pool_options{client = Client} = PoolOpts} ->
+            Dispatcher = shackle_observe:dispatcher(),
+            Dispatcher:cast(PoolName, Client, fun() ->
+                cast_impl(PoolOpts, Request, Pid, Timeout, now_time())
+            end);
+        {error, Reason} ->
+            {error, Reason}
+    end.
 
--spec cast(shackle_pool:name(), term(), undefined | pid(), timeout_x(), non_neg_integer()) ->
+-spec cast_impl(shackle_pool:pool_options(), term(), undefined | pid(), timeout_x(), non_neg_integer()) ->
     {ok, request_id()} | {error, atom()}.
-cast(PoolName, Request, Pid, Timeout, Timestamp) ->
-    case shackle_pool:server(PoolName) of
+cast_impl(PoolOpts, Request, Pid, Timeout, Timestamp) ->
+    case shackle_pool:server(PoolOpts) of
         {ok, Client, Server, Sema} ->
             Cast = mk_cast(Client, Server, Pid, Sema, Timestamp, Timeout),
             try
@@ -207,8 +219,8 @@ cast(PoolName, Request, Pid, Timeout, Timestamp) ->
 -doc """
 Processes a list of requests. Parameters:
 
-- `PoolName` — The name of connection pool
-- `Requests` — The list of requests
+- `PoolName` - The name of connection pool
+- `Requests` - The list of requests
 
 Returns:
 
@@ -224,9 +236,9 @@ batch_call(PoolName, Requests) ->
 -doc """
 Processes a list of requests. Parameters:
 
-- `PoolName` — The name of connection pool
-- `Requests` — The list of requests
-- `Timeout` — The time period allocated to process the requests
+- `PoolName` - The name of connection pool
+- `Requests` - The list of requests
+- `Timeout` - The time period allocated to process the requests
 
 Returns:
 
@@ -268,8 +280,8 @@ Reason}`.
 
 Parameters:
 
-- `PoolName` — The name of connection pool
-- `Requests` — The list of requests
+- `PoolName` - The name of connection pool
+- `Requests` - The list of requests
 
 Returns:
 
@@ -298,9 +310,9 @@ Reason}`.
 
 Parameters:
 
-- `PoolName` — The name of connection pool
-- `Requests` — The list of requests
-- `Timeout` — The time period allocated to process the requests
+- `PoolName` - The name of connection pool
+- `Requests` - The list of requests
+- `Timeout` - The time period allocated to process the requests
 
 Returns:
 
@@ -323,8 +335,8 @@ Processes a list of requests.
 
 Parameters:
 
-- `PoolName` — The name of connection pool
-- `Requests` — The list of requests
+- `PoolName` - The name of connection pool
+- `Requests` - The list of requests
 
 Returns:
 
@@ -340,9 +352,9 @@ Processes a list of requests.
 
 Parameters:
 
-- `PoolName` — The name of connection pool
-- `Requests` — The list of requests
-- `Pid` — The process identifier to process the requests
+- `PoolName` - The name of connection pool
+- `Requests` - The list of requests
+- `Pid` - The process identifier to process the requests
 
 Returns:
 
@@ -358,10 +370,10 @@ Processes a list of requests.
 
 Parameters:
 
-- `PoolName` — The name of connection pool
-- `Requests` — The list of requests
-- `Pid` — The process identifier to process the requests
-- `Timeout` — The time period allocated to process the requests
+- `PoolName` - The name of connection pool
+- `Requests` - The list of requests
+- `Pid` - The process identifier to process the requests
+- `Timeout` - The time period allocated to process the requests
 
 Returns:
 
@@ -373,19 +385,23 @@ The state of the list of requests being processed: `{ok, State} | {errror, Reaso
 batch_cast(_, [], _, _) ->
     {ok, {undefined, 0, []}};
 batch_cast(PoolName, Requests, Pid, Timeout) when is_list(Requests) ->
-    Dispatcher = shackle_observe:dispatcher(),
-    ClientName = get_pool_client(PoolName),
-    Dispatcher:cast(PoolName, ClientName, fun() ->
-        batch_cast_impl(PoolName, Requests, Pid, Timeout)
-    end).
+    case shackle_pool:options(PoolName) of
+        {ok, #pool_options{client = Client} = PoolOpts} ->
+            Dispatcher = shackle_observe:dispatcher(),
+            Dispatcher:cast(PoolName, Client, fun() ->
+                batch_cast_impl(PoolOpts, Requests, Pid, Timeout)
+            end);
+        {error, Reason} ->
+            {error, Reason}
+    end.
 
 -spec batch_cast_impl(
-        shackle_pool:name(), [request()], undefined | pid(), timeout_x()) ->
+        shackle_pool:pool_options(), [request()], undefined | pid(), timeout_x()) ->
     {ok, batch_state()} | {error, atom()}.
-batch_cast_impl(PoolName, Requests, Pid, Timeout) ->
+batch_cast_impl(#pool_options{} = PoolOpts, Requests, Pid, Timeout) ->
     Timestamp = now_time(),
     Count = length(Requests),
-    case shackle_pool:server(PoolName, Count) of
+    case shackle_pool:server(PoolOpts, Count) of
         {ok, Client, Server, Sema} ->
             BatchRef = make_ref(),
             CastsRequestRefs = [begin
@@ -413,7 +429,7 @@ returned.
 
 Parameters:
 
-- `BatchState` — The state of the list of requests being processed
+- `BatchState` - The state of the list of requests being processed
 
 Returns:
 
@@ -427,7 +443,7 @@ receive_batch_expect_ordered_replies(BatchState) ->
 -doc """
 Receive response for the list of requests. Parameters:
 
-- `BatchState` — The state of the list of requests being processed
+- `BatchState` - The state of the list of requests being processed
 
 Returns:
 
@@ -446,7 +462,7 @@ receive_batch_response(BatchState, Timeout) when is_integer(Timeout); Timeout==i
 -doc """
 Receive response for the list of requests. Parameters:
 
-- `RequestId` — The request ID of the request being processed
+- `RequestId` - The request ID of the request being processed
 
 Returns:
 
@@ -462,7 +478,7 @@ Receive response for the list of requests.
 
 Parameters:
 
-- `RequestId` — The request ID of the request being processed
+- `RequestId` - The request ID of the request being processed
 
 Returns:
 
@@ -716,9 +732,11 @@ place_call({PoolName, Request, ProcFun, Timeout}, Expiration, Acc, State) when
     is_function(ProcFun, 3),
     Timeout =:= infinity orelse is_integer(Timeout) andalso Timeout > 0
 ->
-    case cast(PoolName, Request, self(), timeout(Timeout, Expiration), now_time()) of
-        {ok, Id} ->
-            safe_apply(send, ProcFun, ok, Expiration, Acc, State#{Id => ProcFun});
+    maybe
+        {ok, #pool_options{} = PoolOpts} ?= shackle_pool:options(PoolName),
+        {ok, Id} ?= cast_impl(PoolOpts, Request, self(), timeout(Timeout, Expiration), now_time()),
+        safe_apply(send, ProcFun, ok, Expiration, Acc, State#{Id => ProcFun})
+    else
         {error, Error} ->
             safe_apply(send, ProcFun, {error, Error}, Expiration, Acc, State)
     end;
@@ -748,11 +766,4 @@ timeout({at, StoptimeMs}) ->
             TimeoutMs;
         _ ->
             0
-    end.
-
-%% Helper to get pool client name, falling back to unknown if pool not found
-get_pool_client(PoolName) ->
-    case shackle_pool:client(PoolName) of
-        {ok, Client} -> Client;
-        {error, _} -> unknown
     end.
