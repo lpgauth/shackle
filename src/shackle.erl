@@ -349,3 +349,12 @@ get_recv_timeout(Options) ->
     Timeout ->
       Timeout
   end.
+
+now_time_msec() ->
+    os:system_time(millisecond).
+
+get_recv_timeout(Options) ->
+    case maps:get(recv_timeout, Options, undefined) of
+        undefined -> maps:get(timeout, Options, ?DEFAULT_TIMEOUT);
+        Val       -> Val
+    end.
