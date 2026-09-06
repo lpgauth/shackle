@@ -14,7 +14,7 @@ clients and servers.
 
 * Automatic failover and high availability with multi-server support
 * Backpressure via backlog (OOM protection)
-* Fast pool implementation (random, round_robin)
+* Advanced pool strategies (random, round_robin, power_of_two, least_connections, random_without_replacement, consistent_hash)
 * Managed timeouts
 * Multi-protocol support (SSL / TCP / UDP)
 * Performance-optimized
@@ -132,120 +132,127 @@ shackle_pool:start(pool_name(), client(), client_options(), pool_options())
 
 ##### client_options:
 
-<table width="100%">
-  <theader>
-    <th>Name</th>
-    <th>Type</th>
-    <th>Default</th>
-    <th>Description</th>
-  </theader>
-  <tr>
-    <td>address</td>
-    <td>inet:ip_address() | inet:hostname()</td>
-    <td>"127.0.0.1"</td>
-    <td>server address (formerly ip)</td>
-  </tr>
-  <tr>
-    <td>port</td>
-    <td>inet:port_number()</td>
-    <td>undefined</td>
-    <td>server port</td>
-  </tr>
-  <tr>
-    <td>protocol</td>
-    <td>shackle_tcp | shackle_udp | shackle_ssl</td>
-    <td>shackle_tcp</td>
-    <td>server protocol</td>
-  </tr>
-  <tr>
-    <td>reconnect</td>
-    <td>boolean()</td>
-    <td>true</td>
-    <td>reconnect closed connections</td>
-  </tr>
-  <tr>
-    <td>reconnect_time_max</td>
-    <td>pos_integer() | infinity</td>
-    <td>120000</td>
-    <td>maximum reconnect time in milliseconds</td>
-  </tr>
-  <tr>
-    <td>reconnect_time_min</td>
-    <td>pos_integer()</td>
-    <td>1000</td>
-    <td>minimum reconnect time in milliseconds</td>
-  </tr>
-  <tr>
-    <td>socket_options</td>
-    <td>[gen_tcp:connect_option() | gen_udp:option()]</td>
-    <td>[]</td>
-    <td>options passed to the socket</td>
-  </tr>
-  <tr>
-    <td>bounce_interval_secs</td>
-    <td>pos_integer() | infinity</td>
-    <td>infinity</td>
-    <td>number of seconds between forcing a connection bounce for every
-        connection in a pool</td>
-  </tr>
-  <tr>
-    <td>bounce_udp</td>
-    <td>boolean()</td>
-    <td>false</td>
-    <td>When connection bouncing is enabled (`bounce_interval_secs` is
-        an integer) UDP connections by default are not bounced unless
-        this option is `true`</td>
-  </tr>
-  <tr>
-    <td>on_bounce_event</td>
-    <td>{Module::atom(), Function::atom()}</td>
-    <td></td>
-    <td>Module:Function/3 to call on connection bounce events. The
-        function will receive three arguments: `PoolName::atom()`, `ServerInstance::integer()`, and `Event::map()`. This is
-        useful for troubleshooting and logging.</td>
-  </tr>
-  <tr>
-    <td>servers</td>
-    <td>[string() | {string(), inet:port_number()}]</td>
-    <td>undefined</td>
-    <td>list of server addresses for multi-server failover (see below)</td>
-  </tr>
-</table>
+| Name | Type | Default | Description |
+|------|------|---------|-------------|
+| address | `inet:ip_address() \| inet:hostname()` | `"127.0.0.1"` | server address (formerly ip) |
+| port | `inet:port_number()` | undefined | server port |
+| protocol | `shackle_tcp \| shackle_udp \| shackle_ssl` | shackle_tcp | server protocol |
+| reconnect | `boolean()` | true | reconnect closed connections |
+| reconnect_time_max | `pos_integer() \| infinity` | 120000 | maximum reconnect time in milliseconds |
+| reconnect_time_min | `pos_integer()` | 1000 | minimum reconnect time in milliseconds |
+| socket_options | `[gen_tcp:connect_option() \| gen_udp:option()]` | `[]` | options passed to the socket |
+| bounce_interval_secs | `pos_integer() \| infinity` | infinity | number of seconds between forcing a connection bounce for every connection in a pool |
+| bounce_udp | `boolean()` | false | When connection bouncing is enabled (`bounce_interval_secs` is an integer) UDP connections by default are not bounced unless this option is `true` |
+| on_bounce_event | `{Module::atom(), Function::atom()}` | — | Module:Function/3 to call on connection bounce events. The function will receive three arguments: `PoolName::atom()`, `ServerInstance::integer()`, and `Event::map()`. This is useful for troubleshooting and logging. |
+| servers | `[string() \| {string(), inet:port_number()}]` | undefined | list of server addresses for multi-server failover (see below) |
 
 ##### pool_options:
 
-<table width="100%">
-  <theader>
-    <th>Name</th>
-    <th>Type</th>
-    <th>Default</th>
-    <th>Description</th>
-  </theader>
-  <tr>
-    <td>backlog_size</td>
-    <td>pos_integer() | infinity</td>
-    <td>1024</td>
-    <td>maximum number of concurrent requests per connection</td>
-  </tr>
-  <tr>
-    <td>max_retries</td>
-    <td>non_neg_integer()</td>
-    <td>3</td>
-    <td>maximum number of tries to find an active server</td>
-  </tr>
-  <tr>
-    <td>pool_size</td>
-    <td>pos_integer()</td>
-    <td>16</td>
-    <td>number of connections</td>
-  </tr>
-  <tr>
-    <td>pool_strategy</td>
-    <td>random | round_robin</td>
-    <td>random</td>
-    <td>connection selection strategy</td>
-  </tr>
-</table>
+| Name | Type | Default | Description |
+|------|------|---------|-------------|
+| backlog_size | `pos_integer() \| infinity` | 1024 | maximum number of concurrent requests per connection |
+| max_retries | `non_neg_integer()` | 3 | maximum number of tries to find an active server |
+| pool_size | `pos_integer()` | 16 | number of connections |
+| pool_strategy | `random \| round_robin \| power_of_two \| least_connections \| random_without_replacement \| consistent_hash` | random | connection selection strategy (see Pool Strategies below) |
+
+#### Pool Strategies
+
+The pool strategy determines how connections are selected when serving requests:
+
+**`random` (default)**
+- Selects a random connection from the pool
+- Time: O(1), Space: O(1)
+- Best for: General-purpose use
+- Note: May select same connection multiple times on retries in small pools
+
+```erlang
+shackle_pool:start(my_pool, my_client, ClientOpts, [{pool_strategy, random}]).
+```
+
+**`round_robin`**
+- Cycles through connections in order
+- Time: O(1), Space: O(1)
+- Best for: Uniform load distribution when request durations are predictable
+- Deterministic: guaranteed to distribute requests evenly
+
+```erlang
+shackle_pool:start(my_pool, my_client, ClientOpts, [{pool_strategy, round_robin}]).
+```
+
+**`power_of_two` (Recommended)**
+- Samples 2 random connections and selects the one with fewer active requests
+- Time: O(1), Space: O(n) (load tracking)
+- Best for: General-purpose workloads with variable request durations
+- Advantages: Near-optimal load balancing with minimal computational overhead
+- Popular in production systems (Nginx, HAProxy)
+
+```erlang
+shackle_pool:start(my_pool, my_client, ClientOpts,
+    [{pool_strategy, power_of_two}, {pool_size, 16}]).
+```
+
+**`least_connections`**
+- Scans all active connections and selects the one with the lowest backlog
+- Time: O(n), Space: O(n) (load tracking)
+- Best for: Applications requiring strict load balancing
+- Advantages: Guarantees optimal load distribution
+- Trade-off: Slightly higher CPU cost
+
+```erlang
+shackle_pool:start(my_pool, my_client, ClientOpts,
+    [{pool_strategy, least_connections}, {pool_size, 8}]).
+```
+
+**`random_without_replacement`**
+- Generates a random permutation of connections; retries select different connections
+- Time: O(n) shuffle + O(1) per selection, Space: O(n)
+- Best for: Applications with aggressive retry logic
+- Advantages: Guarantees trying all different connections before repeating
+- Solves: Random strategy issue where same connection may be tried multiple times
+
+```erlang
+shackle_pool:start(my_pool, my_client, ClientOpts,
+    [{pool_strategy, random_without_replacement}, {max_retries, 5}]).
+```
+
+Example with retries:
+```erlang
+%% With pool size 4 and max_retries = 3:
+%% Permutation: [3, 1, 4, 2]
+%% Attempt 1: Try server 3 (fails)
+%% Attempt 2: Try server 1 (fails)
+%% Attempt 3: Try server 4 (fails)
+%% Attempt 4: Try server 2 (succeeds)
+%% All 4 different servers tried before repeating
+```
+
+**`consistent_hash`**
+- Uses deterministic hashing for consistent connection selection
+- Time: O(1), Space: O(1)
+- Best for: Applications needing predictable routing (e.g., stateful backends)
+- Advantages: Same hash input always selects same connection
+- Foundation: Enables session affinity via caller-provided hash keys
+
+```erlang
+% Start pool with consistent_hash strategy
+shackle_pool:start(my_pool, my_client, ClientOpts,
+    [{pool_strategy, consistent_hash}, {pool_size, 32}]).
+
+% Route requests by hash key - same key always goes to same server
+shackle:call(my_pool, {get, "session123"}, #{hash_key => "session123"}).
+shackle:cast(my_pool, {set, "session123", Data}, #{hash_key => "session123", timeout => 1000}).
+```
+
+##### Strategy Comparison
+
+| Strategy | Time | Space | Load Balance | Predictable | Use Case |
+|----------|------|-------|--------------|-------------|----------|
+| random | O(1) | O(1) | Poor | ✗ | Default, simple use |
+| round_robin | O(1) | O(1) | Perfect | ✓ | Uniform workloads |
+| **power_of_two** | O(1) | O(n) | Excellent | ✗ | **General purpose (recommended)** |
+| least_connections | O(n) | O(n) | Perfect | ✓ | Critical applications |
+| random_without_replacement | O(n) | O(n) | Good | ✗ | Retry-heavy workloads |
+| consistent_hash | O(1) | O(1) | Variable | ✓ | Stateful backends |
 
 #### Multi-server failover
 
@@ -288,60 +295,43 @@ Existing single-server configurations (`{address, Host}` + `{port, Port}`) conti
 #### Calling / Casting client
 
 ```erlang
+%% Basic calls and casts
 1> shackle:call(pool_name, {get, <<"test">>}).
 {ok, <<"bar">>}
 
-2> {ok, ReqId} = shackle:cast(pool_name, {get, <<"foo">>}, 500).
+2> {ok, ReqId} = shackle:cast(pool_name, {get, <<"foo">>}, self()).
 {ok, {anchor, anchor_client, #Ref<0.0.0.2407>}}
 
 3> shackle:receive_response(ReqId).
 {ok, <<"bar">>}
+
+%% Using options for timeout and hash key
+4> shackle:call(my_pool, {get, <<"key">>}, #{timeout => 1000}).
+{ok, <<"value">>}
+
+5> shackle:call(my_pool, {get, <<"key">>}, #{hash_key => "session123"}).
+{ok, <<"value">>}
+
+6> shackle:cast(my_pool, {set, <<"key">>, <<"value">>}, #{
+     hash_key => "session123",
+     timeout => 2000
+   }).
+{ok, ReqId}
+
+%% With specific destination process
+7> shackle:cast(my_pool, {get, <<"test">>}, DestPid, #{timeout => 1000}).
+{ok, ReqId}
 ```
 
-## Environment variables
+## Observability
 
-<table width="100%">
-  <theader>
-    <th>Name</th>
-    <th>Type</th>
-    <th>Default</th>
-    <th>Description</th>
-  </theader>
-  <tr>
-    <td>hooks</td>
-    <td>[{atom(), {module(), atom()}}]</td>
-    <td>[]</td>
-    <td>used to receive events/metrics about your client</td>
-  </tr>
-</table>
+Shackle includes a production-grade observability system that replaced the legacy hooks mechanism. For metrics collection and monitoring, use the modern observability backend system.
 
-## Hooks
-Hooks allow you to receive events and metrics about your client. To do so you need to implement the `shackle_hooks` behaviour and then use the `hooks` environment variable.
-
-```erlang
--module(my_client_hooks).
-
--behaviour(shackle_hooks).
--export([
-    metrics/4
-]).
-
-metrics(Client, counter, Key, Value) ->
-    statsderl:increment(key(Client, Key), Value, 0.005);
-metrics(Client, timing, Key, Value) ->
-    statsderl:timing(key(Client, Key), Value, 0.005).
-
-key(Client, Key) ->
-    [<<"shackle.">>, atom_to_binary(Client, latin1), <<".">>, Key].
-```
-
-```erlang
-{shackle, [
-  {hooks, [
-    {metrics {my_client_hooks, metrics}}
-  ]}
-]}
-```
+See [Observability](observability.md) for detailed documentation on:
+- Prometheus metrics backend
+- Telemetry integration
+- Custom backend implementation
+- Event catalog and integration points
 
 ## Tests
 
@@ -369,32 +359,13 @@ make profile
 
 ## Clients
 
-<table width="100%">
-  <theader>
-    <th>Name</th>
-    <th>Description</th>
-  </theader>
-  <tr>
-    <td><a href="https://github.com/lpgauth/anchor">anchor</a></td>
-    <td>Memcached Client</td>
-  </tr>
-  <tr>
-    <td><a href="https://github.com/lpgauth/buoy">buoy</a></td>
-    <td>HTTP 1.1 Client</td>
-  </tr>
-  <tr>
-    <td><a href="https://github.com/lpgauth/flare">flare</a></td>
-    <td>Kafka Producer</td>
-  </tr>
-  <tr>
-    <td><a href="https://github.com/lpgauth/marina">marina</a></td>
-    <td>Cassandra CQL Client</td>
-  </tr>
-  <tr>
-    <td><a href="https://github.com/lpgauth/statsderl">statsderl</a></td>
-    <td>StatsD Client</td>
-  </tr>
-</table>
+| Name | Description |
+|------|-------------|
+| [anchor](https://github.com/lpgauth/anchor) | Memcached Client |
+| [buoy](https://github.com/lpgauth/buoy) | HTTP 1.1 Client |
+| [flare](https://github.com/lpgauth/flare) | Kafka Producer |
+| [marina](https://github.com/lpgauth/marina) | Cassandra CQL Client |
+| [statsderl](https://github.com/lpgauth/statsderl) | StatsD Client |
 
 ## Advanced Features
 

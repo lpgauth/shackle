@@ -11,7 +11,12 @@
 -type max_retries() :: non_neg_integer().
 -type name() :: atom().
 -type pool_size() :: pos_integer().
--type pool_strategy() :: random | round_robin.
+-type pool_strategy() :: random |
+                         round_robin |
+                         power_of_two |
+                         least_connections |
+                         random_without_replacement |
+                         consistent_hash.
 -type pool_options() :: #pool_options{}.
 -type option() :: {backlog_size, shackle_backlog:backlog_size()} |
                   {max_retries, max_retries()} |

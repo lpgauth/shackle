@@ -136,6 +136,86 @@ shackle_round_robin_udp_test_() ->
         fun () -> noop_subtest(?CLIENT_UDP) end
     ]}}.
 
+shackle_power_of_two_tcp_test_() ->
+    {setup,
+        fun () -> setup(?CLIENT_TCP, [{pool_strategy, power_of_two}]) end,
+        fun (Cleanup) -> cleanup(?CLIENT_TCP, Cleanup) end,
+    {inparallel, [
+        fun () -> add_subtest(?CLIENT_TCP) end,
+        fun () -> multiply_subtest(?CLIENT_TCP) end,
+        fun () -> noop_subtest(?CLIENT_TCP) end
+    ]}}.
+
+shackle_power_of_two_udp_test_() ->
+    {setup,
+        fun () -> setup(?CLIENT_UDP, [{pool_strategy, power_of_two}]) end,
+        fun (Cleanup) -> cleanup(?CLIENT_UDP, Cleanup) end,
+    {inparallel, [
+        fun () -> add_subtest(?CLIENT_UDP) end,
+        fun () -> multiply_subtest(?CLIENT_UDP) end,
+        fun () -> noop_subtest(?CLIENT_UDP) end
+    ]}}.
+
+shackle_least_connections_tcp_test_() ->
+    {setup,
+        fun () -> setup(?CLIENT_TCP, [{pool_strategy, least_connections}]) end,
+        fun (Cleanup) -> cleanup(?CLIENT_TCP, Cleanup) end,
+    {inparallel, [
+        fun () -> add_subtest(?CLIENT_TCP) end,
+        fun () -> multiply_subtest(?CLIENT_TCP) end,
+        fun () -> noop_subtest(?CLIENT_TCP) end
+    ]}}.
+
+shackle_least_connections_udp_test_() ->
+    {setup,
+        fun () -> setup(?CLIENT_UDP, [{pool_strategy, least_connections}]) end,
+        fun (Cleanup) -> cleanup(?CLIENT_UDP, Cleanup) end,
+    {inparallel, [
+        fun () -> add_subtest(?CLIENT_UDP) end,
+        fun () -> multiply_subtest(?CLIENT_UDP) end,
+        fun () -> noop_subtest(?CLIENT_UDP) end
+    ]}}.
+
+shackle_random_without_replacement_tcp_test_() ->
+    {setup,
+        fun () -> setup(?CLIENT_TCP, [{pool_strategy, random_without_replacement}]) end,
+        fun (Cleanup) -> cleanup(?CLIENT_TCP, Cleanup) end,
+    {inparallel, [
+        fun () -> add_subtest(?CLIENT_TCP) end,
+        fun () -> multiply_subtest(?CLIENT_TCP) end,
+        fun () -> noop_subtest(?CLIENT_TCP) end
+    ]}}.
+
+shackle_random_without_replacement_udp_test_() ->
+    {setup,
+        fun () -> setup(?CLIENT_UDP, [{pool_strategy, random_without_replacement}]) end,
+        fun (Cleanup) -> cleanup(?CLIENT_UDP, Cleanup) end,
+    {inparallel, [
+        fun () -> add_subtest(?CLIENT_UDP) end,
+        fun () -> multiply_subtest(?CLIENT_UDP) end,
+        fun () -> noop_subtest(?CLIENT_UDP) end
+    ]}}.
+
+shackle_consistent_hash_tcp_test_() ->
+    {setup,
+        fun () -> setup(?CLIENT_TCP, [{pool_strategy, consistent_hash}]) end,
+        fun (Cleanup) -> cleanup(?CLIENT_TCP, Cleanup) end,
+    {inparallel, [
+        fun () -> add_subtest(?CLIENT_TCP) end,
+        fun () -> multiply_subtest(?CLIENT_TCP) end,
+        fun () -> noop_subtest(?CLIENT_TCP) end
+    ]}}.
+
+shackle_consistent_hash_udp_test_() ->
+    {setup,
+        fun () -> setup(?CLIENT_UDP, [{pool_strategy, consistent_hash}]) end,
+        fun (Cleanup) -> cleanup(?CLIENT_UDP, Cleanup) end,
+    {inparallel, [
+        fun () -> add_subtest(?CLIENT_UDP) end,
+        fun () -> multiply_subtest(?CLIENT_UDP) end,
+        fun () -> noop_subtest(?CLIENT_UDP) end
+    ]}}.
+
 shackle_timeout_ssl_test_() ->
     {setup,
         fun () ->

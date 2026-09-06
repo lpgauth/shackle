@@ -22,8 +22,6 @@
 ]).
 
 %% types
--type batch_ref() :: undefined | reference().
--type batch_state() :: {batch_ref(), pos_integer(), [{request_ref(), term()}]}.
 -type cast() :: #cast {}.
 -type client() :: module().
 -type external_request_id() :: term().
@@ -46,8 +44,6 @@
 -type metric_value() :: integer().
 
 -export_type([
-    batch_ref/0,
-    batch_state/0,
     cast/0,
     client/0,
     external_request_id/0,
@@ -77,56 +73,71 @@ Processes a request. Parameters:
 
 Returns:
 
-A reply term.
+A reply term or error.
 """.
 -spec call(shackle_pool:name(), term()) ->
     term() | {error, term()}.
 call(PoolName, Request) ->
-    call(PoolName, Request, ?DEFAULT_TIMEOUT, infinity).
+    call(PoolName, Request, #{}).
 
 -doc """
-Processes a request. Parameters:
-
-- `PoolName` - The name of connection pool
-- `Request` - The request to process
-- `Timeout` - The time period allocated to process the requests
+Processes a request. Parameters can be:
+- Timeout (integer/infinity): `call(Pool, Request, Timeout)` - old API
+- Options (map): `call(Pool, Request, #{timeout => 1000})` - new API
 
 Returns:
 
-A reply term
-""".
--spec call(atom(), term(), timeout_x()) ->
-    term() | {error, atom()}.
-call(PoolName, Request, Timeout) ->
-    call(PoolName, Request, Timeout, Timeout).
+A reply term or error.
 
-%% @private
-%% Reserved for testing
--spec call(atom(), term(), timeout_x(), timeout_x()) ->
+Examples:
+```erlang
+% Old API with timeout
+shackle:call(my_pool, {get, "key"}, 1000).
+
+% New API with options map
+shackle:call(my_pool, {get, "key"}, #{timeout => 1000}).
+
+% With hash_key for consistent_hash strategy
+shackle:call(my_pool, {get, "key"}, #{hash_key => "key"}).
+
+% With both timeout and hash_key
+shackle:call(my_pool, {get, "key"}, #{timeout => 1000, hash_key => "key"}).
+```
+""".
+-spec call(atom(), term(), timeout_x() | map()) ->
     term() | {error, atom()}.
-call(PoolName, Request, Timeout, RecvTimeout) ->
+call(PoolName, Request, Options) when is_map(Options) ->
     case shackle_pool:options(PoolName) of
         {ok, #pool_options{client = Client} = PoolOpts} ->
-            Fun = call_impl_fun(PoolOpts, Request, Timeout, RecvTimeout),
+            Fun = fun() -> call_impl(PoolOpts, Request, Options) end,
             Dispatcher = shackle_observe:dispatcher(),
             Dispatcher:call(PoolName, Client, Fun);
         {error, Reason} ->
             {error, Reason}
-    end.
+    end;
+call(PoolName, Request, Timeout) when is_integer(Timeout) orelse Timeout == infinity ->
+    %% Old API - convert timeout to options map
+    call(PoolName, Request, #{timeout => Timeout}).
 
-call_impl_fun(PoolOpts, Request, Timeout, RecvTimeout) ->
-    fun() ->
-        Now = now_time(),
-        case cast_impl(PoolOpts, Request, self(), Timeout, Now) of
-            {ok, RequestId} ->
-                try
-                    receive_response(RequestId, RecvTimeout)
-                catch error:timeout ->
-                    {error, timeout}
-                end;
-            {error, Reason} ->
-                {error, Reason}
-        end
+%% @private
+%% Reserved for testing - old API with explicit timeouts
+-spec call(atom(), term(), timeout_x(), timeout_x()) ->
+    term() | {error, atom()}.
+call(PoolName, Request, Timeout, RecvTimeout) ->
+    call(PoolName, Request, #{timeout => Timeout, recv_timeout => RecvTimeout}).
+
+call_impl(PoolOpts, Request, Options) ->
+    Now = now_time(),
+    case cast_impl(PoolOpts, Request, self(), Now, Options) of
+        {ok, RequestId} ->
+            try
+                RecvTimeout = get_recv_timeout(Options),
+                receive_response(RequestId, RecvTimeout)
+            catch error:timeout ->
+                {error, timeout}
+            end;
+        {error, Reason} ->
+            {error, Reason}
     end.
 
 -doc """
@@ -145,54 +156,83 @@ cast(PoolName, Request) ->
     cast(PoolName, Request, self()).
 
 -doc """
-Processes a request. Parameters:
+Processes a request. Third parameter can be:
+- Pid (process to send response to): `cast(Pool, Request, Pid)`
+- Options (map): `cast(Pool, Request, #{hash_key => Key, timeout => Timeout})`
 
-- `PoolName` - The name of connection pool
-- `Request` - The request to process
-- `Pid` - The process identifier to process the requests
+When Pid is provided, uses default timeout.
+When Options are provided, sends to self() with timeout from map.
 
-Returns:
+Options map keys:
+- `timeout` (default: infinity) - Time period to process the request
+- `hash_key` - Key for consistent_hash strategy
 
-The request ID of the request being processed or error:
-`{ok, RequestID} | {error, Reason}`
+Examples:
+```erlang
+% Send response to specific process
+shackle:cast(my_pool, {get, "key"}, Pid).
+
+% With options for consistent_hash strategy, response to self()
+shackle:cast(my_pool, {get, "key"}, #{hash_key => "key"}).
+
+% With timeout in options
+shackle:cast(my_pool, {get, "key"}, #{timeout => 1000, hash_key => "key"}).
+```
 """.
--spec cast(shackle_pool:name(), term(), undefined | pid()) ->
+-spec cast(shackle_pool:name(), term(), undefined | pid() | map()) ->
     {ok, request_id()} | {error, atom()}.
+cast(PoolName, Request, Options) when is_map(Options) ->
+    cast(PoolName, Request, self(), Options);
 cast(PoolName, Request, Pid) when is_pid(Pid); Pid == undefined ->
-    cast(PoolName, Request, Pid, ?DEFAULT_TIMEOUT).
+    cast(PoolName, Request, Pid, #{}).
 
 -doc """
-Processes a request. Parameters:
+Processes a request with timeout or options. Parameters:
 
 - `PoolName` - The name of connection pool
 - `Request`  - The request to process
 - `Pid`      - The process identifier to process the requests
-- `Timeout`  - The time period allocated to process the requests
+- `TimeoutOrOptions` - Either:
+  - Timeout (for backward compatibility)
+  - Options map (new API with hash_key, timeout, etc.)
 
 Returns:
 
 The request ID of the request being processed or error:
 `{ok, RequestID} | {error, Reason}`
+
+Examples:
+```erlang
+% Old API with explicit timeout
+shackle:cast(my_pool, {get, "key"}, self(), 1000).
+
+% New API with options
+shackle:cast(my_pool, {get, "key"}, self(), #{timeout => 1000, hash_key => "key"}).
+```
 """.
--spec cast(shackle_pool:name(), term(), undefined | pid(), timeout_x()) ->
+-spec cast(shackle_pool:name(), term(), undefined | pid(), timeout_x() | map()) ->
     {ok, request_id()} | {error, atom()}.
-cast(PoolName, Request, Pid, Timeout) ->
+cast(PoolName, Request, Pid, Options) when is_map(Options) ->
+    Timestamp = now_time(),
     case shackle_pool:options(PoolName) of
         {ok, #pool_options{client = Client} = PoolOpts} ->
             Dispatcher = shackle_observe:dispatcher(),
             Dispatcher:cast(PoolName, Client, fun() ->
-                cast_impl(PoolOpts, Request, Pid, Timeout, now_time())
+                cast_impl(PoolOpts, Request, Pid, Timestamp, Options)
             end);
         {error, Reason} ->
             {error, Reason}
-    end.
+    end;
+cast(PoolName, Request, Pid, Timeout) when is_integer(Timeout) orelse Timeout == infinity ->
+    %% Old API - convert timeout to options map
+    cast(PoolName, Request, Pid, #{timeout => Timeout}).
 
--spec cast_impl(shackle_pool:pool_options(), term(), undefined | pid(), timeout_x(), non_neg_integer()) ->
+-spec cast_impl(shackle_pool:pool_options(), term(), undefined | pid(), non_neg_integer(), map()) ->
     {ok, request_id()} | {error, atom()}.
-cast_impl(PoolOpts, Request, Pid, Timeout, Timestamp) ->
-    case shackle_pool:server(PoolOpts) of
+cast_impl(PoolOpts, Request, Pid, Timestamp, Options) ->
+    case shackle_pool:server(PoolOpts, Options) of
         {ok, Client, Server, Sema} ->
-            Cast = mk_cast(Client, Server, Pid, Sema, Timestamp, Timeout),
+            Cast = mk_cast(Client, Server, Pid, Sema, Timestamp, Options),
             try
                 Server ! {request, [Cast, Request]},
                 {ok, Cast#cast.request_id}
@@ -281,10 +321,7 @@ stop_probe(PoolName) ->
 
 %% private
 
-mk_cast(Client, Server, Pid, Sema, Timestamp, Timeout) ->
-    mk_cast(undefined, Client, Server, Pid, Sema, Timestamp, Timeout).
-
-mk_cast(BatchRef, Client, Server, Pid0, Sema, Timestamp, Timeout) ->
+mk_cast(Client, Server, Pid0, Sema, Timestamp, Options) ->
     {Pid, SendReply} =
         if is_pid(Pid0) ->
             {Pid0, true};
@@ -292,16 +329,23 @@ mk_cast(BatchRef, Client, Server, Pid0, Sema, Timestamp, Timeout) ->
             {self(), false}
         end,
     #cast {
-        client = Client,
-        pid = Pid,
+        client     = Client,
+        pid        = Pid,
         send_reply = SendReply,
-        batch_ref = BatchRef,
         request_id = {Server, make_ref()},
-        sema = Sema,    % Semaphore reference to release on cast reply
-        timeout = Timeout,
-        timestamp = Timestamp
+        sema       = Sema,    % Semaphore reference to release on cast reply
+        timeout    = maps:get(timeout, Options, ?DEFAULT_TIMEOUT),
+        timestamp  = Timestamp
     }.
 
 -spec now_time() -> time().
 now_time() ->
     os:system_time(microsecond).
+
+get_recv_timeout(Options) ->
+  case maps:get(recv_timeout, Options, undefined) of
+    undefined ->
+      maps:get(timeout, Options, infinity);
+    Timeout ->
+      Timeout
+  end.
