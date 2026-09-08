@@ -1,8 +1,5 @@
 -module(shackle_queue).
 
--compile(inline).
--compile({inline_size, 512}).
-
 %% internal
 -export([
     add/5,

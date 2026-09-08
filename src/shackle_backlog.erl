@@ -1,8 +1,5 @@
 -module(shackle_backlog).
 
--compile(inline).
--compile({inline_size, 512}).
-
 %% internal
 -export([
     check/3,

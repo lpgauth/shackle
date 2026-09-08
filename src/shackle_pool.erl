@@ -200,13 +200,13 @@ finalize_bounce(Name) ->
 -doc "Wait until the given server pool is available to accept requests".
 -spec wait_until_any_available(shackle_pool:name(), non_neg_integer()) -> boolean().
 wait_until_any_available(Name, Timeout) when is_integer(Timeout) ->
-    Now = os:system_time(millisecond),
+    Now = erlang:monotonic_time(millisecond),
     wait_until_available2(any, Name, Now, Now + Timeout).
 
 -doc "Wait until the given server pool is available to accept requests".
 -spec wait_until_all_available(shackle_pool:name(), non_neg_integer()) -> boolean().
 wait_until_all_available(Name, Timeout) when is_integer(Timeout) ->
-    Now = os:system_time(millisecond),
+    Now = erlang:monotonic_time(millisecond),
     wait_until_available2(all, Name, Now, Now + Timeout).
 
 wait_until_available2(_, _Name, Now, Expiration) when Now >= Expiration ->
@@ -215,7 +215,7 @@ wait_until_available2(Method, Name, _Now, Expiration) ->
     case active(Method, Name) of
         false ->
             timer:sleep(10),
-            wait_until_available2(Method, Name, os:system_time(millisecond), Expiration);
+            wait_until_available2(Method, Name, erlang:monotonic_time(millisecond), Expiration);
         _ ->
             true
     end.

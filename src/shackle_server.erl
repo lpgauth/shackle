@@ -23,9 +23,6 @@ connections
 """.
 -include("shackle_internal.hrl").
 
--compile(inline).
--compile({inline_size, 512}).
-
 -export([
     start_link/2,
     state/1,
@@ -82,6 +79,8 @@ connections
     drain_timer_ref  :: undefined | reference(),    %% Timer reference of queue drain check
     on_bounce_event  :: undefined | function(),
     next_bounce      :: undefined | pos_integer(),  %% Epoch timestamp when to close connection
+    max_requests     :: infinity  | pos_integer(),  %% Max requests before graceful drain
+    request_count    :: non_neg_integer(),          %% Current request count for this connection
     trace_log        :: undefined | term(),
     sock_id          :: integer()
 }).
@@ -276,6 +275,8 @@ init(Name, Parent, Opts) ->
             shackle_servers:new(ServersList, Port)
     end,
 
+    MaxRequests = ?LOOKUP(max_requests, ServerOpts1, ?DEFAULT_MAX_REQUESTS),
+
     lists:member(Port, [undefined, 0]) andalso
         erlang:error({missing_port_option, Name, ServerOpts1}),
 
@@ -298,6 +299,8 @@ init(Name, Parent, Opts) ->
         bounce_interval = BounceInt,
         on_bounce_event = OnBounceEvent,
         bounce_state = waiting,
+        max_requests = MaxRequests,
+        request_count = 0,
         trace_log = TraceLog,
         sock_id = 0
     }, undefined}}.
@@ -1123,7 +1126,7 @@ log_metrics2(Metadata, N) ->
     shackle_observe:event([metric, counter], #{count => N}, Metadata).
 
 observe_metrics(#state{service_name = SName, pool_name = PoolName}, #cast{timestamp = Timestamp}, Metric) ->
-    TimeDiff = os:system_time(microsecond) - Timestamp,
+    TimeDiff = erlang:monotonic_time(microsecond) - Timestamp,
     % Emit observability event for histogram
     shackle_observe:event([metric, histogram], #{value => TimeDiff}, #{
         metric => Metric,
@@ -1157,7 +1160,7 @@ get_socket_rtt(Socket) ->
     end.
 
 now_time_ms() ->
-    os:system_time(millisecond).
+    erlang:monotonic_time(millisecond).
 
 to_bin(V) when is_atom(V) -> atom_to_binary(V);
 to_bin(V) when is_list(V) -> list_to_binary(V);
@@ -1183,7 +1186,7 @@ trace(#state{trace_log = undefined}, _Event, _Args) ->
 trace(#state{socket = undefined}, _Event, _Args) ->
     ok;
 trace(#state{trace_log = FD, socket = Sock, sock_id = ID}, Event, Args) ->
-    TS = os:system_time(microsecond),
+    TS = erlang:system_time(microsecond),
     {{Y,M,D},{HH,MM,SS}} = erlang:universaltime_to_localtime(erlang:posixtime_to_universaltime(TS div 1_000_000)),
     Endpoint = try shackle_utils:peername(Sock) catch _ -> "nil" end,
     Owner = try shackle_utils:sock_owner(Sock) catch _ -> "nil" end,

@@ -4,9 +4,6 @@
 -ignore_xref([{shackle_hooks_foil, lookup, 1}]).
 -dialyzer([{nowarn_function, [metrics/4]}]).
 
--compile(inline).
--compile({inline_size, 512}).
-
 -export([
     init/0,
     metrics/4

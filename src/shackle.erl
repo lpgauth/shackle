@@ -2,9 +2,6 @@
 -include("shackle_internal.hrl").
 -include("shackle_pool.hrl").
 
--compile(inline).
--compile({inline_size, 512}).
-
 %% public
 -export([
     call/2,
@@ -340,7 +337,7 @@ mk_cast(Client, Server, Pid0, Sema, Timestamp, Options) ->
 
 -spec now_time() -> time().
 now_time() ->
-    os:system_time(microsecond).
+    erlang:monotonic_time(microsecond).
 
 get_recv_timeout(Options) ->
   case maps:get(recv_timeout, Options, undefined) of
@@ -351,7 +348,7 @@ get_recv_timeout(Options) ->
   end.
 
 now_time_msec() ->
-    os:system_time(millisecond).
+    erlang:monotonic_time(millisecond).
 
 get_recv_timeout(Options) ->
     case maps:get(recv_timeout, Options, undefined) of
