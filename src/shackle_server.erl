@@ -327,12 +327,16 @@ handle_msg({request, [#cast {timeout = _Timeout} = Cast, Request]},
             case Protocol:send(Socket, Data) of
                 ok ->
                     inc_metrics(State, shackle_request_total),
+                    % Increment request count and check for max_requests limit
+                    State1 = State#state{request_count = State#state.request_count + 1},
                     case ExtRequestId of
                         undefined ->
-                            reply(ok, [Cast2], State, ClientState2);
+                            % No response expected, check if we hit max_requests
+                            reply(ok, [Cast2], check_max_requests(State1), ClientState2);
                         _ ->
-                            State2 = set_receive_timeout(State, ExtRequestId, Cast2),
-                            {ok, {State2, ClientState2}}
+                            State2 = set_receive_timeout(State1, ExtRequestId, Cast2),
+                            State3 = check_max_requests(State2),
+                            {ok, {State3, ClientState2}}
                     end;
                 {error, Reason} ->
                     Client = State#state.client,
@@ -419,7 +423,8 @@ handle_msg(?MSG_CONNECT, {#state {
                     State1 = schedule_bounce(State#state{
                         reconnect_state = ReconnectState2,
                         timer_ref = undefined,
-                        bounce_state = waiting
+                        bounce_state = waiting,
+                        request_count = 0  %% Reset request count on reconnect for max_requests
                     }),
                     ?ON_BOUNCE_EVENT(State1, #{
                         status => connected,
@@ -1005,6 +1010,21 @@ set_receive_timeout(State, RequestId, #cast{timeout = Timeout} = Cast) ->
     Msg = {timeout, RequestId},
     TimerRef = erlang:send_after(Timeout, self(), Msg),
     queue_add(RequestId, Cast#cast{timer_ref = TimerRef}, State).
+
+%% Check if connection has reached max_requests limit and enter graceful drain if so.
+%% When max_requests is reached:
+%% - Mark connection as draining (reject new requests)
+%% - Let in-flight requests complete
+%% - When queue is empty, reconnect immediately (skip exponential backoff)
+%% - DNS is re-resolved on reconnect to support load balancer rebalancing
+check_max_requests(#state{max_requests = infinity} = State) ->
+    State;
+check_max_requests(#state{max_requests = Max, request_count = Count} = State)
+    when Count >= Max, State#state.bounce_state == waiting ->
+    ?LOG_DEBUG("max_requests limit reached (~w/~w), entering graceful drain", [Count, Max]),
+    State#state{bounce_state = draining};
+check_max_requests(State) ->
+    State.
 
 schedule_bounce(#state{bounce_interval = infinity} = State) ->
     State;
