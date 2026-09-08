@@ -20,6 +20,8 @@
 
 %% types
 -type cast() :: #cast {}.
+-type cast_error() :: no_server | no_socket | send_rejected | client_crash |
+                      pool_not_started | shackle_not_started | timeout.
 -type client() :: module().
 -type external_request_id() :: term().
 -type inet_address() :: inet:ip_address() | inet:hostname().
@@ -42,6 +44,7 @@
 
 -export_type([
     cast/0,
+    cast_error/0,
     client/0,
     external_request_id/0,
     inet_address/0,
@@ -250,35 +253,33 @@ Returns:
 A reply: `{ok, Reply} | {error, Reason}`
 """.
 -spec receive_response(request_id()) ->
-    [{ok, reply()} | {error, no_reply | timeout}] | {error, term()}.
+    reply() | {error, timeout | term()}.
 receive_response(RequestId) ->
     receive_response(RequestId, infinity).
 
 -doc """
-Receive response for the list of requests.
+Receive response for a request.
 
 Parameters:
 
 - `RequestId` - The request ID of the request being processed
+- `Timeout` - Timeout in milliseconds (default: infinity)
 
 Returns:
 
-A reply.
+A reply, or `{error, timeout}` if no response is received within the timeout.
 
-The function may throw a timeout exception if there is no response received and
-a timeout is reached.
+Note: Previous versions threw a timeout exception; this version returns
+`{error, timeout}` for cleaner error handling.
 """.
 -spec receive_response(request_id(), non_neg_integer()|infinity) ->
-    reply() | {error, term()}.
+    reply() | {error, timeout | term()}.
 receive_response(RequestId, Timeout) ->
     receive
         {#cast {request_id = ID}, Reply} when ID == RequestId ->
             Reply
     after Timeout ->
-        %% Since the legacy signature of this function returns the `Reply', we
-        %% have no choice but to throw an exception here to make it
-        %% distinguishable from the normal reply.
-        erlang:error(timeout)
+        {error, timeout}
     end.
 
 -doc """
