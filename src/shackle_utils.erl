@@ -21,7 +21,8 @@
     list_peers/0,
     list_peers/1,
     peername/1,
-    sock_owner/1
+    sock_owner/1,
+    address_family/1
 ]).
 
 %% NOTE: use ?WARN(PoolName, Format, Data) macro instead
@@ -126,6 +127,13 @@ peername(S) ->
         {error, Reason} ->
             Reason
     end.
+
+-doc "Determine address family (inet or inet6) from address".
+-spec address_family(atom() | list() | binary() | tuple()) -> inet | inet6.
+address_family(Address) when tuple_size(Address) =:= 8 ->
+    inet6;
+address_family(_) ->
+    inet.
 
 sockets() ->
     socket:which_sockets() ++
@@ -358,6 +366,8 @@ validate([{port, V} | T]) when is_integer(V) -> validate(T);
 validate([{protocol, shackle_tcp} | T]) -> validate(T);
 validate([{protocol, shackle_udp} | T]) -> validate(T);
 validate([{protocol, shackle_ssl} | T]) -> validate(T);
+validate([{protocol, shackle_socket} | T]) -> validate(T);
+validate([{protocol, shackle_ssl_socket} | T]) -> validate(T);
 validate([{service_name, V} | T]) when is_atom(V); is_binary(V); is_list(V) -> validate(T);
 validate([{reconnect, V} | T]) when is_boolean(V) -> validate(T);
 validate([{reconnect_time_max, V} | T]) when is_integer(V), V >= 0 -> validate(T);

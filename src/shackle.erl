@@ -341,18 +341,7 @@ now_time() ->
     erlang:monotonic_time(microsecond).
 
 get_recv_timeout(Options) ->
-  case maps:get(recv_timeout, Options, undefined) of
-    undefined ->
-      maps:get(timeout, Options, infinity);
-    Timeout ->
-      Timeout
-  end.
-
-now_time_msec() ->
-    erlang:monotonic_time(millisecond).
-
-get_recv_timeout(Options) ->
     case maps:get(recv_timeout, Options, undefined) of
         undefined -> maps:get(timeout, Options, ?DEFAULT_TIMEOUT);
-        Val       -> Val
+        Timeout   -> Timeout
     end.
