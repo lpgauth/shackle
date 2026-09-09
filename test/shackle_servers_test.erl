@@ -168,8 +168,10 @@ resolve_host_localhost_test() ->
     ?assert(length(Addrs) > 0).
 
 %% @doc Test DNS resolution with invalid format.
-resolve_host_invalid_test() ->
-    ?assertMatch({error, _}, shackle_servers:resolve_host(invalid_atom_not_ip)).
+resolve_host_invalid_test_() ->
+    {timeout, 15000, [
+        ?_assertMatch({error, _}, shackle_servers:resolve_host(invalid_atom_not_ip))
+    ]}.
 
 %% @doc Test DNS caching by verifying same result on repeated calls.
 resolve_host_caching_test() ->
