@@ -113,55 +113,50 @@ reset_failed(State) ->
 %%%=============================================================================
 
 %% @private
-%% Check if a value is a string (non-empty list of character codes).
-is_string(S) when is_list(S) ->
-    case S of
-        [] -> false;  % Empty list is not a string
-        [H | _] when is_integer(H), H >= 0, H =< 1114111 -> true;
-        _ -> false
-    end;
-is_string(_) -> false.
+%% Check if a value is a non-empty string (list of Unicode code points).
+is_string([_ | _] = S) ->
+    lists:all(fun is_code_point/1, S);
+is_string(_) ->
+    false.
 
 %% @private
-%% Normalize server entries to {Host, Port} tuples.
+is_code_point(C) ->
+    is_integer(C) andalso C >= 0 andalso C =< 16#10FFFF.
+
+%% @private
+%% Normalize server entries to {Host, Port} tuples. Any malformed entry is an
+%% error, so a bad config fails loudly instead of silently shrinking the pool.
 normalize_servers(Servers, DefaultPort) ->
-    lists:filtermap(fun(S) -> normalize_server(S, DefaultPort) end, Servers).
+    case [S || S <- Servers, not is_valid_server(S)] of
+        [] -> [normalize_server(S, DefaultPort) || S <- Servers];
+        Invalid -> error({invalid_server_entries, Invalid})
+    end.
 
 %% @private
-%% Normalize a single server entry.
-normalize_server(Server, _DefaultPort) when is_tuple(Server), tuple_size(Server) =:= 2 ->
-    {Host, Port} = Server,
-    case is_valid_host_port(Host, Port) of
-        true -> {true, {Host, Port}};
-        false -> {false, undefined}
-    end;
-normalize_server(Server, DefaultPort) when is_list(Server); is_atom(Server) ->
-    case is_valid_host(Server) of
-        true -> {true, {Server, DefaultPort}};
-        false -> {false, undefined}
-    end;
-normalize_server(_Server, _DefaultPort) ->
-    {false, undefined}.
+is_valid_server({Host, Port}) ->
+    is_valid_host_port(Host, Port);
+is_valid_server(Host) ->
+    is_valid_host(Host).
 
 %% @private
-%% Validate host and port tuple.
-%% Port can be an integer or any term (for testing purposes).
+normalize_server({Host, Port}, _DefaultPort) ->
+    {Host, Port};
+normalize_server(Host, DefaultPort) ->
+    {Host, DefaultPort}.
+
+%% @private
+%% Validate a {Host, Port} entry. Port must be an integer in 1..65535.
 is_valid_host_port(Host, Port) ->
-    is_valid_host(Host) andalso Port /= undefined.
+    is_valid_host(Host) andalso is_integer(Port) andalso Port >= 1 andalso Port =< 65535.
 
 %% @private
-%% Validate host (string or atom).
+%% Validate host (non-empty string or atom).
 is_valid_host(Host) when is_list(Host) ->
-    is_valid_hostname_string(Host);
+    is_string(Host);
 is_valid_host(Host) when is_atom(Host) ->
     true;
 is_valid_host(_) ->
     false.
-
-%% @private
-%% Very basic hostname validation - just check it's a non-empty string.
-is_valid_hostname_string(Host) ->
-    is_list(Host) andalso Host =/= [].
 
 %%%=============================================================================
 %%% DNS Resolution Functions

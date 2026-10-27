@@ -124,6 +124,31 @@ all_failed_true_test() ->
 empty_servers_list_error_test() ->
     ?assertError({no_servers_configured, []}, shackle_servers:new([], 9000)).
 
+%% @doc Malformed entries are rejected instead of silently dropped.
+malformed_entry_error_test() ->
+    ?assertError({invalid_server_entries, [42]},
+                 shackle_servers:new(["server1.example.com", 42], 9000)),
+    ?assertError({invalid_server_entries, [{"server1.example.com", 0}]},
+                 shackle_servers:new([{"server1.example.com", 0}], 9000)),
+    ?assertError({invalid_server_entries, [{"", 9000}]},
+                 shackle_servers:new([{"", 9000}], 9000)).
+
+%% @doc Ports must be integers in 1..65535.
+port_range_test() ->
+    ?assertError({invalid_server_entries, [{"s1", 65536}]},
+                 shackle_servers:new([{"s1", 65536}], 9000)),
+    ?assertError({invalid_server_entries, [{"s1", "9000"}]},
+                 shackle_servers:new([{"s1", "9000"}], 9000)),
+    ?assertEqual([{"s1", 65535}],
+                 maps:get(servers, shackle_servers:new([{"s1", 65535}], 9000))).
+
+%% @doc A plain char list is one hostname; a list with a non-code-point is not.
+string_detection_test() ->
+    ?assertEqual([{"server.example.com", 9000}],
+                 maps:get(servers, shackle_servers:new("server.example.com", 9000))),
+    ?assertError({invalid_server_entries, [97, -1]},
+                 shackle_servers:new([$a, -1], 9000)).
+
 %% @doc Test atom as server address.
 atom_server_address_test() ->
     ServersList = [server1, server2, server3],

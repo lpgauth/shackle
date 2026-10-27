@@ -407,7 +407,6 @@ server(_Count, #pool_options{name = Name, client = Client}, 0, _CallOptions) ->
     observe_pool_metric(Client, Name, shackle_error_total, <<"no server">>),
     {error, no_server};
 server(
-    Count,
     #pool_options{
         name = Name,
         backlog_size = BacklogSize,
@@ -424,7 +423,7 @@ server(
             {ok, ServerName} = shackle_pool_foil:lookup(ServerId),
             {ok, Client, ServerName, undefined};
         true ->
-            case shackle_sema:acquire(Name, ServerIdx, Count) of
+            case shackle_sema:acquire(Name, ServerIdx) of
                 {ok, Sema} ->
                     {ok, ServerName} = shackle_pool_foil:lookup(ServerId),
                     {ok, Client, ServerName, Sema};

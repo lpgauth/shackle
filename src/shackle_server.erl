@@ -706,60 +706,53 @@ connect(#state{
             trace(State#state{sock_id = State#state.sock_id+1}, getaddr_error, {Reason, ?LINE}),
             {error, Reason}
     end;
-connect(#state{
-    servers = ServersState,
-    protocol = Protocol,
-    socket_options = SocketOptions
-} = State) when ServersState /= undefined ->
+connect(#state{servers = ServersState} = State) when ServersState /= undefined ->
     %% Multi-server mode with failover
-    try_servers(State, ServersState, Protocol, SocketOptions).
+    try_servers_loop(State).
 
 %% @private
-%% Try to connect to servers in the list, one by one.
-%% Returns {ok, UpdatedState} on success, or {error, Reason} after all servers fail.
-try_servers(State, ServersState, Protocol, SocketOptions) ->
-    try_servers_loop(State, ServersState, Protocol, SocketOptions).
-
-%% @private
-%% Iterate through servers using round-robin failover.
-try_servers_loop(#state{
-    srv_idx = ID,
-    pool_name = PoolName
-} = State, ServersState, Protocol, SocketOpts) ->
+%% Iterate through servers using round-robin failover. The failed-servers
+%% tracking lives in State only for this connect attempt: on {error, _} the
+%% caller keeps its original State, so each reconnect starts a fresh cycle.
+try_servers_loop(#state{servers = ServersState} = State) ->
     case shackle_servers:all_failed(ServersState) of
         true ->
             {error, all_servers_failed};
         false ->
             {Address, Port} = shackle_servers:current(ServersState),
-            try_dns_resolution(State, ServersState, Protocol, SocketOpts, ID, PoolName, Address, Port)
+            try_dns_resolution(State, Address, Port)
     end.
 
 %% @private
-%% Resolve DNS address and attempt connection.
-try_dns_resolution(State, ServersState, Protocol, SocketOpts, ID, PoolName, Address, Port) ->
-    case inet:getaddrs(Address, inet) of
-        {ok, Ips} when Ips /= [] ->
+%% Resolve the server address (IP literal, Kubernetes name or DNS) and attempt
+%% connection.
+try_dns_resolution(#state{pool_name = PoolName} = State, Address, Port) ->
+    case shackle_servers:resolve_host(Address) of
+        {ok, [_ | _] = Ips} ->
             Ip = shackle_utils:random_element(Ips),
-            try_connect(State, ServersState, Protocol, SocketOpts, ID, PoolName, Address, Port, Ip);
+            try_connect(State, Ip, Address, Port);
+        {ok, []} ->
+            handle_dns_resolution_error(State, PoolName, Address, nxdomain);
         {error, Reason} ->
-            handle_dns_resolution_error(State, ServersState, Protocol, SocketOpts, PoolName, Address, Reason)
+            handle_dns_resolution_error(State, PoolName, Address, Reason)
     end.
 
 %% @private
 %% Attempt to connect to a resolved IP.
-try_connect(State, ServersState, Protocol, SocketOpts, ID, PoolName, Address, Port, Ip) ->
+try_connect(#state{protocol = Protocol, socket_options = SocketOpts} = State, Ip, Address, Port) ->
     case Protocol:connect(Ip, Port, SocketOpts) of
         {ok, Socket} ->
-            handle_connect_success(State, ServersState, Socket);
+            handle_connect_success(State, Socket);
         {error, Reason} ->
-            handle_connect_error(State, ServersState, Protocol, SocketOpts, ID, PoolName, Address, Port, Ip, Reason)
+            handle_connect_error(State, Ip, Address, Port, Reason)
     end.
 
 %% @private
 %% Handle successful connection.
 handle_connect_success(#state{
-    sock_id = SockId
-} = State, ServersState, Socket) ->
+    sock_id = SockId,
+    servers = ServersState
+} = State, Socket) ->
     inc_metrics(State, shackle_socket_total, <<"created">>),
     State1 = State#state{
         socket = Socket,
@@ -772,25 +765,30 @@ handle_connect_success(#state{
 %% @private
 %% Handle connection error and retry next server.
 handle_connect_error(#state{
-    sock_id = SockId
-} = State, ServersState, Protocol, SocketOpts, ID, PoolName, Address, Port, Ip, Reason) ->
+    sock_id = SockId,
+    pool_name = PoolName,
+    protocol = Protocol,
+    servers = ServersState
+} = State, Ip, Address, Port, Reason) ->
     ?WARN(PoolName, "#~s ~s:~w ~w connect error (~w): ~p",
-          [ID, Address, Port, Protocol, Ip, Reason]),
+          [State#state.srv_idx, Address, Port, Protocol, Ip, Reason]),
     trace(State#state{sock_id = SockId+1}, connect_failed, {Reason, ?LINE}),
-    NewServersState = shackle_servers:next(ServersState),
-    try_servers_loop(State#state{servers = NewServersState},
-                     NewServersState, Protocol, SocketOpts).
+    next_server(State, ServersState).
 
 %% @private
 %% Handle DNS resolution error and retry next server.
 handle_dns_resolution_error(#state{
-    sock_id = SockId
-} = State, ServersState, Protocol, SocketOpts, PoolName, Address, Reason) ->
+    sock_id = SockId,
+    servers = ServersState
+} = State, PoolName, Address, Reason) ->
     ?WARN(PoolName, "getaddrs ~p error: ~p", [Address, Reason]),
     trace(State#state{sock_id = SockId+1}, getaddr_error, {Reason, ?LINE}),
+    next_server(State, ServersState).
+
+%% @private
+next_server(State, ServersState) ->
     NewServersState = shackle_servers:next(ServersState),
-    try_servers_loop(State#state{servers = NewServersState},
-                     NewServersState, Protocol, SocketOpts).
+    try_servers_loop(State#state{servers = NewServersState}).
 
 handle_msg_close(S, #state {socket = S} = State, ClientState) ->
     inc_metrics(State, shackle_close_total),
@@ -970,8 +968,6 @@ reply(Reply, Casts, State, ClientState) ->
     reply2(Reply, Casts, State),
     maybe_bounce(State, ClientState).
 
-%% For batch replies Pid is the same in all casts in the list.
-%% TODO: Optimize the batch replies to deliver them as 1 message to Pid?
 reply2(_Reply, [], _State) ->
     ok;
 reply2(Reply, [#cast {pid = Pid, send_reply = SendReply} = Cast | T], State) ->
