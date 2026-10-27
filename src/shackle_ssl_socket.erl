@@ -52,20 +52,15 @@ connect(Address, Port, SocketOptions) ->
         Family = shackle_utils:address_family(Address),
         case socket:open(Family, stream, tcp) of
             {ok, Socket} ->
-                case apply_socket_options(Socket, SocketOptions) of
-                    ok ->
-                        TLSOptions = extract_tls_options(SocketOptions),
-                        case ssl:connect(Address, Port, TLSOptions, ?DEFAULT_CONNECT_TIMEOUT) of
-                            {ok, SSLSocket} ->
-                                socket:close(Socket),
-                                {ok, SSLSocket};
-                            {error, ConnectErr} ->
-                                socket:close(Socket),
-                                {error, ConnectErr}
-                        end;
-                    {error, OptErr} ->
+                ok = apply_socket_options(Socket, SocketOptions),
+                TLSOptions = extract_tls_options(SocketOptions),
+                case ssl:connect(Address, Port, TLSOptions, ?DEFAULT_CONNECT_TIMEOUT) of
+                    {ok, SSLSocket} ->
                         socket:close(Socket),
-                        {error, OptErr}
+                        {ok, SSLSocket};
+                    {error, ConnectErr} ->
+                        socket:close(Socket),
+                        {error, ConnectErr}
                 end;
             {error, OpenErr} ->
                 {error, OpenErr}
@@ -126,7 +121,7 @@ is_tls_option({partial_chain, _}) -> true;
 is_tls_option({fallback, _}) -> true;
 is_tls_option(_) -> false.
 
-%% Apply socket options (for TCP layer before TLS)
+%% Apply socket options (for TCP layer before TLS). Errors from setopt are ignored.
 apply_socket_options(_Socket, []) ->
     ok;
 apply_socket_options(Socket, [Opt | Rest]) ->
@@ -134,23 +129,14 @@ apply_socket_options(Socket, [Opt | Rest]) ->
         skip ->
             apply_socket_options(Socket, Rest);
         {ok, Level, Options} ->
-            apply_options_for_level(Socket, Level, Options),
+            lists:foreach(
+                fun({Name, Value}) -> ok = socket:setopt(Socket, {Level, Name}, Value) end,
+                Options),
             apply_socket_options(Socket, Rest)
     end.
 
-%% Apply options for a specific level
-apply_options_for_level(_Socket, _Level, []) ->
-    ok;
-apply_options_for_level(Socket, Level, [Opt | Rest]) ->
-    case socket:setopt(Socket, Level, Opt) of
-        ok ->
-            apply_options_for_level(Socket, Level, Rest);
-        {error, _Reason} ->
-            apply_options_for_level(Socket, Level, Rest)
-    end.
-
 %% Convert gen_tcp option to socket option
-convert_option({active, Mode}) -> {ok, otp, [{active, Mode}]};
+convert_option({active, _}) -> skip;  %% not a socket-module option
 convert_option({buffer, Size}) -> {ok, socket, [{rcvbuf, Size}]};
 convert_option({delay_send, _}) -> skip;
 convert_option({deliver, _}) -> skip;
@@ -160,8 +146,8 @@ convert_option({high_msgq_watermark, _}) -> skip;
 convert_option({high_watermark, _}) -> skip;
 convert_option({ipv6_v6only, Flag}) -> {ok, ipv6, [{v6only, Flag}]};
 convert_option({keepalive, Flag}) -> {ok, socket, [{keepalive, Flag}]};
-convert_option({linger, {true, Seconds}}) -> {ok, socket, [{linger, Seconds}]};
-convert_option({linger, {false, _}}) -> {ok, socket, [{linger, false}]};
+convert_option({linger, {true, Seconds}}) -> {ok, socket, [{linger, #{onoff => true, linger => Seconds}}]};
+convert_option({linger, {false, _}}) -> {ok, socket, [{linger, #{onoff => false, linger => 0}}]};
 convert_option({low_msgq_watermark, _}) -> skip;
 convert_option({low_watermark, _}) -> skip;
 convert_option({nodelay, Flag}) -> {ok, tcp, [{nodelay, Flag}]};
