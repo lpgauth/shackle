@@ -49,8 +49,8 @@ See README.md for detailed strategy documentation.
 -include("shackle_internal.hrl").
 -include("shackle_pool.hrl").
 
-%% ETS table for load tracking (power_of_two, least_connections strategies)
--define(ETS_TABLE_LOAD_INDEX, shackle_pool_load).
+%% Key of the per-request server permutation used by random_without_replacement
+-define(PERMUTATION_KEY, '$shackle_permutation').
 
 -dialyzer({nowarn_function, options/1}).
 -dialyzer({nowarn_function, server/3}).
@@ -156,6 +156,7 @@ start(Name, Client, ClientOptions, Options) ->
             {error, shackle_not_started};
         {error, pool_not_started} ->
             OptionsRec = options_rec(Name, Client, Options),
+            validate_strategy(OptionsRec),
             % Normalize servers configuration
             NormalizedClientOpts = normalize_client_options(ClientOptions),
             setup(OptionsRec),
@@ -163,13 +164,19 @@ start(Name, Client, ClientOptions, Options) ->
             ok
     end.
 
+%% Load-aware strategies read their load from the backlog semaphores, which do not
+%% exist when backlog_size is infinity, so they would always see load 0.
+validate_strategy(#pool_options{backlog_size = infinity, pool_strategy = Strategy})
+  when Strategy == power_of_two; Strategy == least_connections ->
+    error({incompatible_pool_options, {pool_strategy, Strategy}, {backlog_size, infinity}});
+validate_strategy(_OptionsRec) ->
+    ok.
+
 -spec stop(shackle_pool:name()) ->
     ok | {error, shackle_not_started | pool_not_started}.
 stop(Name) ->
     case options(Name) of
-        {ok, #pool_options{
-                pool_size = PoolSize
-            } = OptionsRec} ->
+        {ok, #pool_options{pool_size = PoolSize} = OptionsRec} ->
             stop_children(Name, lists:seq(1, PoolSize)),
             cleanup(Name, OptionsRec),
             ok;
@@ -271,11 +278,6 @@ init() ->
         public,
         {write_concurrency, true}
     ]),
-    ets:new(?ETS_TABLE_LOAD_INDEX, [
-        named_table,
-        public,
-        {write_concurrency, true}
-    ]),
     foil:new(?MODULE),
     foil:load(?MODULE).
 
@@ -352,10 +354,6 @@ cleanup(Name, OptionsRec) ->
 
 cleanup_ets(Name, #pool_options {pool_strategy = round_robin}) ->
     ets:delete(?ETS_TABLE_POOL_INDEX, {Name, round_robin});
-cleanup_ets(Name, #pool_options {pool_size = PoolSize, pool_strategy = power_of_two}) ->
-    [ets:delete(?ETS_TABLE_LOAD_INDEX, {Name, I}) || I <- lists:seq(1, PoolSize)];
-cleanup_ets(Name, #pool_options {pool_size = PoolSize, pool_strategy = least_connections}) ->
-    [ets:delete(?ETS_TABLE_LOAD_INDEX, {Name, I}) || I <- lists:seq(1, PoolSize)];
 cleanup_ets(_Name, _OptionsRec) ->
     ok.
 
@@ -416,8 +414,9 @@ server(
         pool_strategy = PoolStrategy
     } = Options,
     N,
-    CallOptions
+    CallOptions0
 ) ->
+    CallOptions = init_attempts(PoolStrategy, PoolSize, CallOptions0),
     ServerId = {Name, ServerIdx} = server_id(Name, PoolSize, PoolStrategy, CallOptions),
     case shackle_status:active(ServerId) of
         true when BacklogSize =:= infinity ->
@@ -430,12 +429,30 @@ server(
                     {ok, Client, ServerName, Sema};
                 error ->
                     observe_pool_metric(Client, Name, shackle_attempt_total, <<"backlog full">>),
-                    server(Count, Options, N - 1, CallOptions)
+                    server(Count, Options, N - 1, next_attempt(PoolStrategy, PoolSize, CallOptions))
             end;
         false ->
             observe_pool_metric(Client, Name, shackle_attempt_total, <<"disabled">>),
-            server(Count, Options, N - 1, CallOptions)
+            server(Count, Options, N - 1, next_attempt(PoolStrategy, PoolSize, CallOptions))
     end.
+
+%% random_without_replacement draws one permutation per request and consumes one
+%% entry per attempt, so retries walk the pool without repeating a server until
+%% every server has been tried.
+init_attempts(random_without_replacement, PoolSize, CallOptions)
+  when not is_map_key(?PERMUTATION_KEY, CallOptions) ->
+    CallOptions#{?PERMUTATION_KEY => shuffle_list(lists:seq(1, PoolSize))};
+init_attempts(_PoolStrategy, _PoolSize, CallOptions) ->
+    CallOptions.
+
+next_attempt(random_without_replacement, _PoolSize,
+             #{?PERMUTATION_KEY := [_ | [_ | _] = Rest]} = CallOptions) ->
+    CallOptions#{?PERMUTATION_KEY := Rest};
+next_attempt(random_without_replacement, PoolSize, CallOptions) ->
+    %% Every server has been tried; start a new cycle
+    CallOptions#{?PERMUTATION_KEY := shuffle_list(lists:seq(1, PoolSize))};
+next_attempt(_PoolStrategy, _PoolSize, CallOptions) ->
+    CallOptions.
 
 -doc "Emit observability event for pool metrics".
 observe_pool_metric(Client, Pool, Metric, Reason) ->
@@ -581,13 +598,9 @@ server_id(Name, PoolSize, least_connections, _CallOptions) ->
             {Name, MinServer}
     end;
 
-server_id(Name, PoolSize, random_without_replacement, _CallOptions) ->
-    %% Select from a random permutation to avoid retrying the same server
-    %% Guarantees: Each retry tries a different server before repeating
-    %% Solves: Small pool + retries issue where same server could be tried multiple times
-    Indices = lists:seq(1, PoolSize),
-    Permutation = shuffle_list(Indices),
-    SelectedIdx = hd(Permutation),
+server_id(Name, _PoolSize, random_without_replacement, CallOptions) ->
+    %% Head of the request's permutation (see init_attempts/3 and next_attempt/3)
+    [SelectedIdx | _] = maps:get(?PERMUTATION_KEY, CallOptions),
     {Name, SelectedIdx};
 
 server_id(Name, PoolSize, consistent_hash, CallOptions) ->
@@ -620,10 +633,6 @@ setup(#pool_options {
 
 setup_ets(Name, #pool_options {pool_strategy = round_robin}) ->
     ets:insert_new(?ETS_TABLE_POOL_INDEX, {{Name, round_robin}, 1});
-setup_ets(Name, #pool_options {pool_size = PoolSize, pool_strategy = power_of_two}) ->
-    [ets:insert_new(?ETS_TABLE_LOAD_INDEX, {{Name, I}, 0}) || I <- lists:seq(1, PoolSize)];
-setup_ets(Name, #pool_options {pool_size = PoolSize, pool_strategy = least_connections}) ->
-    [ets:insert_new(?ETS_TABLE_LOAD_INDEX, {{Name, I}, 0}) || I <- lists:seq(1, PoolSize)];
 setup_ets(_Name, _OptionsRec) ->
     ok.
 
@@ -659,7 +668,10 @@ stop_children(Name, [Index | T]) ->
 %%--------------------------------------------------------------------
 %% Find the active server with minimum load in a single pass.
 %%
-%% Scans from PoolSize down to 1, tracking the server with minimum load.
+%% Scans all servers starting at a random index and wrapping around, tracking the
+%% server with minimum load. Ties go to the first server in scan order, so equal
+%% loads (for example, an idle pool) are spread across servers instead of always
+%% favouring one end of the pool.
 %% Returns the server index with minimum load, or undefined if no active servers.
 %%
 %% Example
@@ -667,20 +679,22 @@ stop_children(Name, [Index | T]) ->
 %%   Loads =   [2, 1, 5, 3]
 %%   Result: 2  (Server 2 has minimum load of 1)
 find_min_load_active_server(Name, PoolSize) ->
-    find_min_load_active_server(Name, PoolSize, undefined, infinity).
+    Start = shackle_utils:random(PoolSize),
+    Order = lists:seq(Start, PoolSize) ++ lists:seq(1, Start - 1),
+    find_min_load_active_server(Name, Order, undefined, infinity).
 
-find_min_load_active_server(_Name, 0, MinServer, _MinLoad) ->
+find_min_load_active_server(_Name, [], MinServer, _MinLoad) ->
     MinServer;
-find_min_load_active_server(Name, I, MinServer, MinLoad) ->
+find_min_load_active_server(Name, [I | Rest], MinServer, MinLoad) ->
     case shackle_status:active({Name, I}) of
         true ->
             Load = get_server_load(Name, I),
             if
-                Load < MinLoad -> find_min_load_active_server(Name, I-1, I, Load);
-                true           -> find_min_load_active_server(Name, I-1, MinServer, MinLoad)
+                Load < MinLoad -> find_min_load_active_server(Name, Rest, I, Load);
+                true           -> find_min_load_active_server(Name, Rest, MinServer, MinLoad)
             end;
         false ->
-            find_min_load_active_server(Name, I-1, MinServer, MinLoad)
+            find_min_load_active_server(Name, Rest, MinServer, MinLoad)
     end.
 
 %%--------------------------------------------------------------------
@@ -689,19 +703,23 @@ find_min_load_active_server(Name, I, MinServer, MinLoad) ->
 %% If 'servers' list is provided, it normalizes it using shackle_servers:new/2.
 %% If only 'address' and 'port' are provided, converts them to 'servers' list format.
 normalize_client_options(ClientOptions) ->
-    case ?LOOKUP(servers, ClientOptions, undefined) of
+    %% Merge app-env client defaults first, so a port or servers list set only in
+    %% the app env is seen here. shackle_server:init merges them again, which is a no-op.
+    Options = shackle_utils:default_options(client, ClientOptions),
+    case ?LOOKUP(servers, Options, undefined) of
         undefined ->
             % No servers list - return as-is for backwards compatibility
             % The validation will happen at shackle_server:init time
             ClientOptions;
         ServersList ->
-            % Servers list provided, normalize it
-            Port = ?LOOKUP(port, ClientOptions),
+            % Servers list provided, normalize it. A default port is only needed
+            % for bare hostnames; entries of the form {Host, Port} do not need one.
+            Port = ?LOOKUP(port, Options, undefined),
             try shackle_servers:new(ServersList, Port) of
                 ServersState ->
                     NormalizedServers = tuple_to_list(maps:get(servers, ServersState)),
                     [{servers, NormalizedServers} |
-                     lists:keydelete(servers, 1, ClientOptions)]
+                     lists:keydelete(servers, 1, Options)]
             catch
                 error:Error ->
                     error({invalid_servers_config, Error, ServersList})

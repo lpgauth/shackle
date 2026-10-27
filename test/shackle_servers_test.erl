@@ -136,6 +136,13 @@ servers_stored_as_tuple_test() ->
 empty_servers_list_error_test() ->
     ?assertError({no_servers_configured, []}, shackle_servers:new([], 9000)).
 
+%% @doc Without a default port, every entry must carry its own port.
+missing_default_port_test() ->
+    State = shackle_servers:new([{"server1.example.com", 9001}], undefined),
+    ?assertEqual({"server1.example.com", 9001}, shackle_servers:current(State)),
+    ?assertError({missing_port, "server2.example.com"},
+                 shackle_servers:new(["server2.example.com"], undefined)).
+
 %% @doc Malformed entries are rejected instead of silently dropped.
 malformed_entry_error_test() ->
     ?assertError({invalid_server_entries, [42]},
@@ -223,22 +230,13 @@ resolve_host_caching_test() ->
 %% Kubernetes Service Detection Tests
 %%%=============================================================================
 
-%% @doc Test K8s service name detection
-is_k8s_service_name_test() ->
-    % K8s service names contain ".svc." or ".cluster.local"
-    ?assert(shackle_servers:is_k8s_service_name("my-service.svc.cluster.local")),
-    ?assert(shackle_servers:is_k8s_service_name("my-service.default.svc.default")),
-    ?assert(shackle_servers:is_k8s_service_name("my-service.cluster.local")),
-    ?assertNot(shackle_servers:is_k8s_service_name("example.com")),
-    ?assertNot(shackle_servers:is_k8s_service_name("localhost")).
-
-%% @doc Test fully qualified K8s service name detection
-is_fully_qualified_k8s_name_test() ->
-    % Fully qualified K8s names contain ".svc."
-    ?assert(shackle_servers:is_fully_qualified_k8s_name("my-service.svc.cluster.local")),
-    ?assert(shackle_servers:is_fully_qualified_k8s_name("my-service.default.svc.cluster.local")),
-    ?assertNot(shackle_servers:is_fully_qualified_k8s_name("my-service")),
-    ?assertNot(shackle_servers:is_fully_qualified_k8s_name("example.com")).
+%% @doc Only single-label names are candidates for K8s search domain expansion
+is_short_name_test() ->
+    ?assert(shackle_servers:is_short_name("my-service")),
+    ?assert(shackle_servers:is_short_name("localhost")),
+    ?assertNot(shackle_servers:is_short_name("my-service.svc.cluster.local")),
+    ?assertNot(shackle_servers:is_short_name("my-service.cluster.local")),
+    ?assertNot(shackle_servers:is_short_name("example.com")).
 
 %% @doc Test K8s environment detection
 is_k8s_environment_test() ->

@@ -52,13 +52,18 @@ connect(Address, Port, SocketOptions) ->
         Family = shackle_utils:address_family(Address),
         case socket:open(Family, stream, tcp) of
             {ok, Socket} ->
-                ok = apply_socket_options(Socket, SocketOptions),
-                case socket:connect(Socket, #{family => Family, addr => Address, port => Port}) of
+                case apply_socket_options(Socket, SocketOptions) of
                     ok ->
-                        enable_select_read(Socket);
-                    {error, ConnectErr} ->
+                        case socket:connect(Socket, #{family => Family, addr => Address, port => Port}) of
+                            ok ->
+                                enable_select_read(Socket);
+                            {error, ConnectErr} ->
+                                socket:close(Socket),
+                                {error, ConnectErr}
+                        end;
+                    {error, _} = SetoptErr ->
                         socket:close(Socket),
-                        {error, ConnectErr}
+                        SetoptErr
                 end;
             {error, OpenErr} ->
                 {error, OpenErr}
@@ -83,7 +88,8 @@ enable_select_read(Socket) ->
             {ok, Socket}
     end.
 
-%% Apply socket options. Errors from setopt are ignored, as before.
+%% Apply socket options. A setopt error is returned to the caller, which closes
+%% the socket and fails the connect.
 apply_socket_options(_Socket, []) ->
     ok;
 apply_socket_options(Socket, [Opt | Rest]) ->
@@ -91,10 +97,18 @@ apply_socket_options(Socket, [Opt | Rest]) ->
         skip ->
             apply_socket_options(Socket, Rest);
         {ok, Level, Options} ->
-            lists:foreach(
-                fun({Name, Value}) -> ok = socket:setopt(Socket, {Level, Name}, Value) end,
-                Options),
-            apply_socket_options(Socket, Rest)
+            case apply_setopts(Socket, Level, Options) of
+                ok -> apply_socket_options(Socket, Rest);
+                {error, _} = Error -> Error
+            end
+    end.
+
+apply_setopts(_Socket, _Level, []) ->
+    ok;
+apply_setopts(Socket, Level, [{Name, Value} | T]) ->
+    case socket:setopt(Socket, {Level, Name}, Value) of
+        ok -> apply_setopts(Socket, Level, T);
+        {error, _} = Error -> Error
     end.
 
 %% Convert gen_tcp option to socket option

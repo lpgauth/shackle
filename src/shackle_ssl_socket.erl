@@ -52,15 +52,20 @@ connect(Address, Port, SocketOptions) ->
         Family = shackle_utils:address_family(Address),
         case socket:open(Family, stream, tcp) of
             {ok, Socket} ->
-                ok = apply_socket_options(Socket, SocketOptions),
-                TLSOptions = extract_tls_options(SocketOptions),
-                case ssl:connect(Address, Port, TLSOptions, ?DEFAULT_CONNECT_TIMEOUT) of
-                    {ok, SSLSocket} ->
+                case apply_socket_options(Socket, SocketOptions) of
+                    ok ->
+                        TLSOptions = extract_tls_options(SocketOptions),
+                        case ssl:connect(Address, Port, TLSOptions, ?DEFAULT_CONNECT_TIMEOUT) of
+                            {ok, SSLSocket} ->
+                                socket:close(Socket),
+                                {ok, SSLSocket};
+                            {error, ConnectErr} ->
+                                socket:close(Socket),
+                                {error, ConnectErr}
+                        end;
+                    {error, _} = SetoptErr ->
                         socket:close(Socket),
-                        {ok, SSLSocket};
-                    {error, ConnectErr} ->
-                        socket:close(Socket),
-                        {error, ConnectErr}
+                        SetoptErr
                 end;
             {error, OpenErr} ->
                 {error, OpenErr}
@@ -121,7 +126,8 @@ is_tls_option({partial_chain, _}) -> true;
 is_tls_option({fallback, _}) -> true;
 is_tls_option(_) -> false.
 
-%% Apply socket options (for TCP layer before TLS). Errors from setopt are ignored.
+%% Apply socket options (for TCP layer before TLS). A setopt error is returned to
+%% the caller, which closes the socket and fails the connect.
 apply_socket_options(_Socket, []) ->
     ok;
 apply_socket_options(Socket, [Opt | Rest]) ->
@@ -129,10 +135,18 @@ apply_socket_options(Socket, [Opt | Rest]) ->
         skip ->
             apply_socket_options(Socket, Rest);
         {ok, Level, Options} ->
-            lists:foreach(
-                fun({Name, Value}) -> ok = socket:setopt(Socket, {Level, Name}, Value) end,
-                Options),
-            apply_socket_options(Socket, Rest)
+            case apply_setopts(Socket, Level, Options) of
+                ok -> apply_socket_options(Socket, Rest);
+                {error, _} = Error -> Error
+            end
+    end.
+
+apply_setopts(_Socket, _Level, []) ->
+    ok;
+apply_setopts(Socket, Level, [{Name, Value} | T]) ->
+    case socket:setopt(Socket, {Level, Name}, Value) of
+        ok -> apply_setopts(Socket, Level, T);
+        {error, _} = Error -> Error
     end.
 
 %% Convert gen_tcp option to socket option

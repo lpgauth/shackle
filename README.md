@@ -2,7 +2,7 @@
 
 ![Build Status](https://github.com/lpgauth/shackle/workflows/Erlang%20CI/badge.svg)
 
-This project is an open-source connection connection-pooling library that
+This project is an open-source connection-pooling library that
 implements a high-performance Erlang framework for building scalable network
 clients and servers.
 
@@ -143,6 +143,7 @@ shackle_pool:start(pool_name(), client(), client_options(), pool_options())
 | socket_options | `[gen_tcp:connect_option() \| gen_udp:option()]` | `[]` | options passed to the socket |
 | bounce_interval_secs | `pos_integer() \| infinity` | infinity | number of seconds between forcing a connection bounce for every connection in a pool |
 | bounce_udp | `boolean()` | false | When connection bouncing is enabled (`bounce_interval_secs` is an integer) UDP connections by default are not bounced unless this option is `true` |
+| max_requests | `pos_integer() \| infinity` | infinity | number of requests after which a connection is bounced (drained and reconnected). Applies to every protocol. See [Connection bouncing](#connection-bouncing) |
 | on_bounce_event | `{Module::atom(), Function::atom()}` | — | Module:Function/3 to call on connection bounce events. The function will receive three arguments: `PoolName::atom()`, `ServerInstance::integer()`, and `Event::map()`. This is useful for troubleshooting and logging. |
 | servers | `[string() \| {string(), inet:port_number()}]` | undefined | list of server addresses for multi-server failover (see below) |
 
@@ -181,6 +182,7 @@ shackle_pool:start(my_pool, my_client, ClientOpts, [{pool_strategy, round_robin}
 
 **`power_of_two` (Recommended)**
 - Samples 2 random connections and selects the one with fewer active requests
+- Requires a finite `backlog_size` (see `least_connections`)
 - Time: O(1), Space: O(n) (load tracking)
 - Best for: General-purpose workloads with variable request durations
 - Advantages: Near-optimal load balancing with minimal computational overhead
@@ -193,6 +195,7 @@ shackle_pool:start(my_pool, my_client, ClientOpts,
 
 **`least_connections`**
 - Scans all active connections and selects the one with the lowest backlog
+- Requires a finite `backlog_size`: load is read from the backlog, so `backlog_size = infinity` is rejected at pool start
 - Time: O(n), Space: O(n) (load tracking)
 - Best for: Applications requiring strict load balancing
 - Advantages: Guarantees optimal load distribution
@@ -322,6 +325,76 @@ Existing single-server configurations (`{address, Host}` + `{port, Port}`) conti
 7> shackle:cast(my_pool, {get, <<"test">>}, DestPid, #{timeout => 1000}).
 {ok, ReqId}
 ```
+
+#### Connection bouncing
+
+A connection bounce replaces a live connection with a fresh one. The pool drains the old connection, closes it, and reconnects. Bouncing is off by default.
+
+**Purpose.** Long-lived connections can go stale in ways the client cannot see. Bouncing:
+
+- re-resolves DNS on reconnect, so a connection follows DNS changes and load balancer rebalancing (a bounce is the only way to pick up a new address for an open connection);
+- spreads load across servers and load balancer backends over time;
+- recycles per-connection state held by the server or by the client, and recovers from connections that are silently broken.
+
+**Triggers.** A connection is bounced when either of these applies:
+
+- `bounce_interval_secs` is set to an integer. Each connection has its own timer, started when it connects, and bounces when the timer fires.
+- `max_requests` is set. The connection bounces after it has sent that many requests since it last connected.
+
+**Sequence.** Each bounce runs through the same steps:
+
+1. **Lock.** The connection takes the pool's bounce lock. Only one connection in a pool bounces at a time. A timed bounce that finds the lock taken retries after 0.5-2.5 seconds. A `max_requests` bounce retries on the next request.
+2. **Drain.** The connection is marked inactive, so the pool routes new requests to the other connections. Requests already in flight complete normally.
+3. **Reconnect.** When the drain finishes, the socket is closed and the connection reconnects immediately. The cached DNS result is discarded, so the reconnect resolves the server again.
+4. **Release.** The lock is released once the connection is back up. The connection then becomes active and starts a new bounce timer and request count.
+
+The lock is held through the reconnect, so no other connection in the pool bounces while one is down. If the server cannot be reached, the lock stays held and the other connections keep serving; they just do not bounce.
+
+**Effect on callers.** While a connection is draining or reconnecting, it is inactive and the pool routes around it. Callers can still see errors in two cases:
+
+- With `pool_size = 1`, nothing else is active, so requests during the bounce get `{error, no_server}`. Use `pool_size >= 2` if bouncing is enabled.
+- With `max_retries = 0` and a random strategy, a request can land on the inactive connection and fail with `{error, no_server}`. A retry can pick it again. Raise `max_retries`, or use `random_without_replacement` so that retries never repeat a connection until all have been tried.
+
+**Configuration.**
+
+```erlang
+shackle_pool:start(my_pool, my_client, [
+    {address, "lb.example.com"},
+    {port, 9000},
+    {bounce_interval_secs, 300},  % bounce each connection roughly every 5 minutes
+    {max_requests, 100000}        % or after 100k requests, whichever happens first
+], [
+    {pool_size, 4},
+    {max_retries, 3}
+]).
+```
+
+UDP connections are not bounced by timer unless `bounce_udp` is `true`.
+
+**Example: scaling out in Kubernetes.** The server runs as a Deployment behind a Service, `orders.prod.svc.cluster.local`, and a HorizontalPodAutoscaler adds pods under load. The client pool has 16 connections.
+
+1. The service is at 3 pods. Each connection resolved one pod IP when it connected, so the 16 connections are spread over those 3 pods.
+2. Load rises and the autoscaler starts 3 more pods. They become Ready and are added to the service's DNS records.
+3. Nothing in the client changes on its own. Existing connections stay open to the pods they are on, and the new pods receive no traffic. A plain TCP connection is never re-routed, so DNS and the Service only affect connections made after the scale-out.
+4. With `bounce_interval_secs` set, each connection is bounced within its interval. The bounce closes the socket, drops the cached DNS result, and reconnects. The reconnect resolves the service again, and the new pods start receiving connections in proportion to their count. How the pod is chosen depends on the Service type. With a headless Service, DNS returns one address per ready pod and the client picks one at random. With a ClusterIP Service, DNS returns the virtual IP and kube-proxy picks a pod for the new connection.
+
+Without bouncing, a scale-out does nothing for the pool until its connections are recreated by some other means, such as a restart. Scale-in is covered too: when a pod is removed, its connections fail, the connection reconnects, and it resolves the service again.
+
+```erlang
+shackle_pool:start(orders_pool, orders_client, [
+    {address, "orders.prod.svc.cluster.local"},  % headless: one A record per ready pod; ClusterIP also works
+    {port, 9000},
+    {bounce_interval_secs, 120}                  % each connection re-resolves roughly every 2 minutes
+], [
+    {pool_size, 16},
+    {max_retries, 3},
+    {pool_strategy, random_without_replacement}
+]).
+```
+
+This holds for connection-level balancing, which covers both a ClusterIP Service through kube-proxy and a headless Service resolved by the client. If an L7 proxy such as a service mesh sidecar balances per request, new pods receive traffic without bouncing, so this is not needed there.
+
+**Observing bounces.** Set `on_bounce_event` to a `Module:Function/3` to receive each state change. Its `status` field takes these values, among others: `bounce_initiated`, `awaiting_empty_queue`, `finalizing_bounce`, `connected`, `socket_close`, and `bounce_not_initiated` (another connection holds the lock). The `shackle_socket_total` metric also counts each bounce under the `bounce` reason. See [Observability](observability.md).
 
 ## Observability
 

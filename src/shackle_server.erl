@@ -82,7 +82,10 @@ connections
     max_requests     :: infinity  | pos_integer(),  %% Max requests before graceful drain
     request_count    :: non_neg_integer(),          %% Current request count for this connection
     trace_log        :: undefined | term(),
-    sock_id          :: integer()
+    sock_id          :: integer(),
+    %% True while this connection holds the pool's bounce semaphore. It is held from
+    %% the start of a bounce until the connection is re-established (or will not be).
+    bounce_held      = false :: boolean()
 }).
 
 -ifndef(WITH_SHACKLE_TRACE_LOG).
@@ -246,7 +249,7 @@ init(Name, Parent, Opts) ->
     BounceUDP = ?LOOKUP(bounce_udp, ServerOpts1, ?DEFAULT_BOUNCE_UDP),
     BounceInt =
         case ?LOOKUP(bounce_interval_secs, ServerOpts1, ?DEFAULT_BOUNCE_INTERVAL) of
-            _ when Protocol == shackle_udp, BounceUDP ->
+            _ when Protocol == shackle_udp, not BounceUDP ->
                 infinity;
             I when is_integer(I) ->
                 I * 1000;
@@ -263,7 +266,7 @@ init(Name, Parent, Opts) ->
                 ensure_loaded(M),
                 erlang:function_exported(M, F, 3)
                     orelse error({function_not_exported, {M, F, 3}}),
-                fun(Event) -> M:F(PoolName, Index, Event) end
+                fun M:F/3
         end,
 
     % Initialize multi-server state if servers list is provided
@@ -277,7 +280,9 @@ init(Name, Parent, Opts) ->
 
     MaxRequests = ?LOOKUP(max_requests, ServerOpts1, ?DEFAULT_MAX_REQUESTS),
 
-    lists:member(Port, [undefined, 0]) andalso
+    %% A top-level port is only needed in single-address mode. With a servers list,
+    %% every entry has its port (or the default port is checked by shackle_servers).
+    ServersState == undefined andalso lists:member(Port, [undefined, 0]) andalso
         erlang:error({missing_port_option, Name, ServerOpts1}),
 
     {ok, {#state {
@@ -420,12 +425,12 @@ handle_msg(?MSG_CONNECT, {#state {
                     ReconnectState2 = reconnect_state_reset(ReconnectState),
                     inc_metrics(State, shackle_connect_total),
                     shackle_status:enable(Id),
-                    State1 = schedule_bounce(State#state{
+                    State1 = schedule_bounce(release_bounce(State#state{
                         reconnect_state = ReconnectState2,
                         timer_ref = undefined,
                         bounce_state = waiting,
                         request_count = 0  %% Reset request count on reconnect for max_requests
-                    }),
+                    })),
                     ?ON_BOUNCE_EVENT(State1, #{
                         status => connected,
                         next_bounce => State1#state.next_bounce,
@@ -531,7 +536,7 @@ terminate(Reason, {#state{client = Client, pool_name = PoolName} = State, Client
             ?WARN(PoolName, "terminate crash: ~p:~p~n  ~p~n",
                 [E, R, ?GET_STACK(Stacktrace)])
     end,
-    State1 = State#state{socket = undefined, bounce_state = disconnected},
+    State1 = release_bounce(State#state{socket = undefined, bounce_state = disconnected}),
     reply_all({error, shutdown}, State1, undefined),
     ok.
 
@@ -555,6 +560,8 @@ address(ClientOptions) ->
 
 cancel_timer(#cast{timer_ref = Ref}) when is_reference(Ref) ->
     erlang:cancel_timer(Ref);
+cancel_timer(#cast{timer_ref = undefined}) ->
+    ok;
 cancel_timer(Ref) when is_reference(Ref) ->
     erlang:cancel_timer(Ref);
 cancel_timer(undefined) ->
@@ -647,6 +654,7 @@ close(State, ClientState) ->
 close(#state {id = Id} = State, ClientState, Reason)
     when Reason == disconnected; Reason == reconnecting ->
     shackle_status:disable(Id),
+    invalidate_dns(State),
     ?ON_BOUNCE_EVENT(State, #{
         status => socket_close,
         bounce_state => Reason,
@@ -657,6 +665,14 @@ close(#state {id = Id} = State, ClientState, Reason)
     {ok, State2, ClientState2} =
         reply_all({error, socket_closed}, State1, ClientState),
     reconnect(State2, ClientState2).
+
+%% Drop the cached DNS result for the current server, so the reconnect that follows
+%% a closed socket resolves it again.
+invalidate_dns(#state{servers = undefined, address = Address}) ->
+    shackle_servers:invalidate_dns(Address);
+invalidate_dns(#state{servers = ServersState}) ->
+    {Host, _Port} = shackle_servers:current(ServersState),
+    shackle_servers:invalidate_dns(Host).
 
 close_socket(#state{socket = undefined} = State) ->
     State;
@@ -686,9 +702,11 @@ connect(#state{
     protocol = Protocol,
     socket_options = SocketOptions
 } = State) ->
-    %% Single server mode (backwards compatibility)
-    case inet:getaddrs(Address, inet) of
-        {ok, Ips} when Ips /= [] ->
+    %% Single server mode (backwards compatibility). Resolution goes through
+    %% shackle_servers, so IP literals, Kubernetes names, the DNS cache and IPv6
+    %% errors behave the same as in multi-server mode.
+    case shackle_servers:resolve_host(Address) of
+        {ok, [_ | _] = Ips} ->
             Ip = shackle_utils:random_element(Ips),
             case Protocol:connect(Ip, Port, SocketOptions) of
                 {ok, Socket} ->
@@ -698,6 +716,7 @@ connect(#state{
                     {ok, State1};
                 {error, Reason} ->
                     ?WARN(PoolName, "#~s ~s:~w ~w connect error (~w): ~p", [ID, Address, Port, Protocol, Ip, Reason]),
+                    shackle_servers:invalidate_dns(Address),
                     trace(State#state{sock_id = State#state.sock_id+1}, connect_failed, {Reason, ?LINE}),
                     {error, Reason}
             end;
@@ -772,6 +791,7 @@ handle_connect_error(#state{
 } = State, Ip, Address, Port, Reason) ->
     ?WARN(PoolName, "#~s ~s:~w ~w connect error (~w): ~p",
           [State#state.srv_idx, Address, Port, Protocol, Ip, Reason]),
+    shackle_servers:invalidate_dns(Address),
     trace(State#state{sock_id = SockId+1}, connect_failed, {Reason, ?LINE}),
     next_server(State, ServersState).
 
@@ -891,6 +911,14 @@ reconnect(#state {
     end,
     reconnect_timer(State, ClientState).
 
+%% Release the pool's bounce semaphore if this connection holds it. Called once the
+%% connection is back up, when it is abandoned (no reconnect configured), or on terminate.
+release_bounce(#state{bounce_held = true, pool_name = Pool} = State) ->
+    shackle_pool:finalize_bounce(Pool),
+    State#state{bounce_held = false};
+release_bounce(State) ->
+    State.
+
 reconnect_state(Options) ->
     Reconnect = ?LOOKUP(reconnect, Options, ?DEFAULT_RECONNECT),
     case Reconnect of
@@ -930,7 +958,7 @@ reconnect_timer(#state {bounce_state = reconnecting} = State0, ClientState) ->
     {ok, {State1, ClientState}};
 
 reconnect_timer(#state {reconnect_state = undefined} = State, ClientState) ->
-    {ok, {State, ClientState}};
+    {ok, {release_bounce(State), ClientState}};
 
 reconnect_timer(#state {reconnect_state = RState} = State0, ClientState)  ->
     State = cancel_all_timers(State0),
@@ -1002,6 +1030,9 @@ handle_request_id_from_client({undefined, Cast}, State, ClientState) ->
 handle_request_id_from_client({ExtRequestId, Cast}, State, _ClientState) ->
     set_receive_timeout(State, ExtRequestId, Cast).
 
+set_receive_timeout(State, RequestId, #cast{timeout = infinity} = Cast) ->
+    %% erlang:send_after/3 rejects `infinity', so no timer is armed for this request.
+    queue_add(RequestId, Cast, State);
 set_receive_timeout(State, RequestId, #cast{timeout = Timeout} = Cast) ->
     Msg = {timeout, RequestId},
     TimerRef = erlang:send_after(Timeout, self(), Msg),
@@ -1013,12 +1044,24 @@ set_receive_timeout(State, RequestId, #cast{timeout = Timeout} = Cast) ->
 %% - Let in-flight requests complete
 %% - When queue is empty, reconnect immediately (skip exponential backoff)
 %% - DNS is re-resolved on reconnect to support load balancer rebalancing
+%%
+%% Entry follows the same path as bounce_check/3: acquire the pool bounce
+%% semaphore and disable the server so the pool stops routing to it. If another
+%% connection is already bouncing, stay in `waiting' and retry on the next request.
 check_max_requests(#state{max_requests = infinity} = State) ->
     State;
-check_max_requests(#state{max_requests = Max, request_count = Count} = State)
-    when Count >= Max, State#state.bounce_state == waiting ->
-    ?LOG_DEBUG("max_requests limit reached (~w/~w), entering graceful drain", [Count, Max]),
-    State#state{bounce_state = draining};
+check_max_requests(#state{max_requests = Max, request_count = Count,
+                          bounce_state = waiting} = State)
+    when Count >= Max ->
+    case shackle_pool:init_bounce(State#state.pool_name) of
+        true ->
+            ?LOG_DEBUG("max_requests limit reached (~w/~w), entering graceful drain",
+                       [Count, Max]),
+            shackle_status:disable(State#state.id),
+            State#state{bounce_state = draining, bounce_held = true};
+        false ->
+            State
+    end;
 check_max_requests(State) ->
     State.
 
@@ -1036,8 +1079,8 @@ maybe_bounce(#state{bounce_state = BS, drain_timer_ref = OldTimerRef} = State, C
     %% the queue, when the queue has been drained, proceed with the bounce.
     case queue_empty(State) of
         true ->
-            Pool = State#state.pool_name,
-            shackle_pool:finalize_bounce(Pool),
+            %% The bounce semaphore stays held through the reconnect (see release_bounce/1),
+            %% so no other connection in the pool can start a bounce while this one is down.
             ?ON_BOUNCE_EVENT(State, #{
                 status => finalizing_bounce,
                 bounce_state => reconnecting,
@@ -1091,7 +1134,8 @@ bounce_check(#state{
                         src => {?MODULE, ?LINE}
                     }),
                     shackle_status:disable(State#state.id),
-                    maybe_bounce(State#state{bounce_state = draining}, ClientState);
+                    maybe_bounce(State#state{bounce_state = draining, bounce_held = true},
+                                 ClientState);
                 false ->
                     %% Another connection is bouncing, wait for 1-4 seconds and
                     %% try bouncing again

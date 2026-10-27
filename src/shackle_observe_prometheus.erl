@@ -184,25 +184,12 @@ ensure_started() ->
 %%% Span Events (high-level operations)
 %%%
 
-% [shackle, call, stop] -> shackle_request_total
-handle_event([shackle, call, stop], _Measurements, #{pool := Pool, client := Client}) ->
-    prometheus_counter:inc(shackle_request_total, [Client, Pool], 1);
+% shackle_request_total is counted per socket send in shackle_server.erl.
+% Counting it on call stop as well would double count every call.
 
 % [shackle, cast, stop] -> shackle_cast_total
 handle_event([shackle, cast, stop], _Measurements, #{pool := Pool, client := Client}) ->
     prometheus_counter:inc(shackle_cast_total, [Client, Pool], 1);
-
-% [shackle, connect, stop] -> shackle_connect_total
-handle_event([shackle, connect, stop], _Measurements, #{pool := Pool, client := Client}) ->
-    prometheus_counter:inc(shackle_connect_total, [Client, Pool], 1);
-
-% [shackle, disconnect] -> shackle_close_total
-handle_event([shackle, disconnect], _Measurements, #{pool := Pool, client := Client}) ->
-    prometheus_counter:inc(shackle_close_total, [Client, Pool], 1);
-
-% [shackle, timeout] -> shackle_error_total{reason=timeout}
-handle_event([shackle, timeout], _Measurements, #{pool := Pool, client := Client}) ->
-    prometheus_counter:inc(shackle_error_total, [Client, Pool, <<"timeout">>], 1);
 
 % [shackle, call, exception] -> shackle_error_total{reason=exception}
 handle_event([shackle, call, exception], _Measurements, #{pool := Pool, client := Client}) ->
@@ -210,10 +197,6 @@ handle_event([shackle, call, exception], _Measurements, #{pool := Pool, client :
 
 % [shackle, cast, exception] -> shackle_error_total{reason=exception}
 handle_event([shackle, cast, exception], _Measurements, #{pool := Pool, client := Client}) ->
-    prometheus_counter:inc(shackle_error_total, [Client, Pool, <<"exception">>], 1);
-
-% [shackle, connect, exception] -> shackle_error_total{reason=exception}
-handle_event([shackle, connect, exception], _Measurements, #{pool := Pool, client := Client}) ->
     prometheus_counter:inc(shackle_error_total, [Client, Pool, <<"exception">>], 1);
 
 %%%
@@ -245,65 +228,6 @@ handle_event([shackle, metric, histogram], #{value := Value}, #{
 }) ->
     prometheus_histogram:observe(Metric, [Client, Pool], Value);
 
-%%%
-%%% Additional Legacy Span Event Handlers (for completeness)
-%%%
-
-% [shackle, reply] -> shackle_reply_total
-handle_event([shackle, reply], _Measurements, #{pool := Pool, client := Client}) ->
-    prometheus_counter:inc(shackle_reply_total, [Client, Pool], 1);
-
-% [shackle, response] -> shackle_response_total
-handle_event([shackle, response], #{}, #{pool := Pool, client := Client, status := Status}) ->
-    StatusStr = format_status(Status),
-    prometheus_counter:inc(shackle_response_total, [Client, Pool, StatusStr], 1);
-
-% [shackle, socket] -> shackle_socket_total
-handle_event([shackle, socket], #{}, #{pool := Pool, client := Client, event := Event}) ->
-    EventStr = format_event(Event),
-    prometheus_counter:inc(shackle_socket_total, [Client, Pool, EventStr], 1);
-
-% [shackle, data, received] -> shackle_received_bytes_total and shackle_received_messages_total
-handle_event([shackle, data, received], #{bytes := Bytes}, #{pool := Pool, client := Client}) ->
-    prometheus_counter:inc(shackle_received_bytes_total, [Client, Pool], Bytes),
-    prometheus_counter:inc(shackle_received_messages_total, [Client, Pool], 1);
-
-% [shackle, response_time] -> shackle_response_time_microseconds histogram
-handle_event([shackle, response_time], #{microseconds := Us}, #{pool := Pool, client := Client}) ->
-    prometheus_histogram:observe(shackle_response_time_microseconds, [Client, Pool], Us);
-
-% [shackle, server_lookup, attempt] -> shackle_attempt_total
-handle_event([shackle, server_lookup, attempt], _Measurements,
-             #{pool := Pool, client := Client, reason := Reason}) ->
-    ReasonStr = format_reason(Reason),
-    prometheus_counter:inc(shackle_attempt_total, [Client, Pool, ReasonStr], 1);
-
 % Catch-all for unknown events
 handle_event(_EventName, _Measurements, _Metadata) ->
     ok.
-
-%% Formatting helpers
-
--spec format_status(atom()) -> iodata().
-format_status(Status) when is_atom(Status) ->
-    atom_to_binary(Status, utf8);
-format_status(Status) when is_binary(Status) ->
-    Status;
-format_status(Status) ->
-    iolist_to_binary(io_lib:format("~p", [Status])).
-
--spec format_event(atom() | binary() | term()) -> iodata().
-format_event(Event) when is_atom(Event) ->
-    atom_to_binary(Event, utf8);
-format_event(Event) when is_binary(Event) ->
-    Event;
-format_event(Event) ->
-    iolist_to_binary(io_lib:format("~p", [Event])).
-
--spec format_reason(atom() | binary() | term()) -> iodata().
-format_reason(Reason) when is_atom(Reason) ->
-    atom_to_binary(Reason, utf8);
-format_reason(Reason) when is_binary(Reason) ->
-    Reason;
-format_reason(Reason) ->
-    iolist_to_binary(io_lib:format("~p", [Reason])).

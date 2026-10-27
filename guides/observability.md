@@ -53,11 +53,6 @@ Pass options to backends:
 % Telemetry with custom options (reserved for future use)
 application:set_env(shackle, observability, {telemetry, #{}}).
 
-% Prometheus with custom histogram buckets
-application:set_env(shackle, observability, {prometheus, #{
-    buckets => [0.001, 0.01, 0.1, 1.0, 10.0]  % in seconds
-}}).
-
 % Custom backend
 -module(my_metrics).
 -behaviour(shackle_observe).
@@ -86,75 +81,67 @@ All events are prefixed with `[shackle | _]` in the event name.
 ### Request Lifecycle
 
 - **`[shackle, call, start]`** — Client call begins
-  - Metadata: `{pool => PoolName}`
+  - Metadata: `{pool => PoolName, client => ClientName}`
   - Measurements: `{monotonic_time => Time}`
 
 - **`[shackle, call, stop]`** — Client call completes
-  - Metadata: `{pool => PoolName, result => ok | error}`
-  - Measurements: `{duration => Nanoseconds, monotonic_time => Time}`
+  - Metadata: `{pool => PoolName, client => ClientName}` (same as start)
+  - Measurements: `{duration => Duration, monotonic_time => Time}`
 
 - **`[shackle, call, exception]`** — Client call raises exception
-  - Metadata: `{pool => PoolName, kind => error|exit|throw, reason => Reason}`
-  - Measurements: `{duration => Nanoseconds, monotonic_time => Time}`
+  - Metadata: `{pool => PoolName, client => ClientName, kind => error|exit|throw, reason => Reason}`
+  - Measurements: `{duration => Duration, monotonic_time => Time}`
+
+`Time` and `Duration` are in the VM's native time unit (`erlang:monotonic_time/0`).
+Convert with `erlang:convert_time_unit(Duration, native, microsecond)` or similar.
 
 - **`[shackle, cast, start|stop|exception]`** — Similar to call, for cast/2,3,4 operations
 
 ### Connection Lifecycle
 
-- **`[shackle, connect, start]`** — Connection attempt begins
-  - Metadata: `{pool => PoolName}`
-  - Measurements: `{monotonic_time => Time}`
-
-- **`[shackle, connect, stop]`** — Connection attempt completes
-  - Metadata: `{pool => PoolName, result => ok | error}`
-  - Measurements: `{duration => Nanoseconds, monotonic_time => Time}`
-
-- **`[shackle, connect, exception]`** — Connection attempt raises exception
-  - Metadata: `{pool => PoolName, kind => ..., reason => ...}`
-  - Measurements: `{duration => Nanoseconds, monotonic_time => Time}`
+Connection spans are defined in `shackle_observe_span` but nothing invokes them,
+so no `[shackle, connect, ...]` events are emitted. Connection activity is
+reported through the Prometheus counters below.
 
 ### Error Events
 
-- **`[shackle, timeout]`** — Request timeout
-  - Metadata: `{pool => PoolName}`
-
-- **`[shackle, disconnect]`** — Socket disconnected
-  - Metadata: `{pool => PoolName, server => ServerName, reason => closed | error | ...}`
-
-- **`[shackle, error]`** — Error on socket or send
-  - Metadata: `{pool => PoolName, server => ServerName, reason => Reason}`
+Errors are reported through the Prometheus counters below (for example
+`shackle_error_total{reason="timeout"}`). No standalone `[shackle, timeout]`,
+`[shackle, disconnect]`, or `[shackle, error]` events are emitted.
 
 ## Prometheus Metrics
 
-When using the Prometheus backend, the following metrics are exported:
+When using the Prometheus backend, the following metrics are exported. All
+metrics carry `client` (the client module) and `pool` (the pool name) labels,
+plus the extra label listed below. The histogram buckets are fixed and cannot
+be configured.
 
-### Histograms (Request/Connection Latency)
+### Counters
 
-- `shackle_call_duration_seconds` — Time to complete a call/2,3
-  - Labels: `pool`, `result` (ok | error)
+- `shackle_request_total` — Requests written to a socket (one per request sent)
+- `shackle_reply_total` — Replies delivered to callers
+- `shackle_cast_total` — Cast calls completed (`cast/2,3,4`)
+- `shackle_error_total{reason}` — Errors. Reasons: `timeout`, `no server`,
+  `no socket`, `send rejected`, `send error`, `handle_request error`,
+  `handle_timeout error`, `handle_timeout exception`, `client connect error`,
+  `socket connect error`, `socket error`, `wrong socket bounce`,
+  `exception` (raised inside `call`/`cast`)
+- `shackle_attempt_total{reason}` — Server lookup attempts that were skipped.
+  Reasons: `backlog full`, `disabled`
+- `shackle_socket_total{event}` — Socket lifecycle. Events: `connect`,
+  `created`, `close`, `close reconnecting`, `bounce`
+- `shackle_connect_total` — Successful connections
+- `shackle_close_total` — Connection closes
+- `shackle_response_total{response}` — Responses matched to a request.
+  Values: `found`, `not found`
+- `shackle_received_bytes_total` — Bytes received from sockets
+- `shackle_received_messages_total` — Messages received from sockets
 
-- `shackle_cast_duration_seconds` — Time to complete a cast/2,3,4
-  - Labels: `pool`, `result` (ok | error)
+### Histograms
 
-- `shackle_connect_duration_seconds` — Time to establish connection
-  - Labels: `pool`, `result` (ok | error)
-
-### Counters (Events)
-
-- `shackle_call_errors_total` — Total call errors
-  - Labels: `pool`, `reason`
-
-- `shackle_cast_errors_total` — Total cast errors
-  - Labels: `pool`, `reason`
-
-- `shackle_connect_errors_total` — Total connection errors
-  - Labels: `pool`, `reason`
-
-- `shackle_disconnect_total` — Total disconnects
-  - Labels: `pool`, `reason` (closed | error | ...)
-
-- `shackle_timeout_total` — Total timeouts
-  - Labels: `pool`
+- `shackle_response_time_microseconds` — Request response time in microseconds.
+  Buckets: 1000, 2000, 4000, 8000, 16000, 32000, 64000, 96000, 128000, 160000,
+  192000, 224000, 256000, 512000.
 
 ### Accessing Metrics
 

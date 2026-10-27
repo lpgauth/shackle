@@ -169,6 +169,13 @@ resolve_module(prometheus) -> shackle_observe_prometheus;
 resolve_module(Mod) when is_atom(Mod) -> Mod;
 resolve_module(_) -> nil.
 
+%% Maps the `observability' app env value to a backend module. Accepts the same
+%% forms as shackle_sup: `Name' or `{Name, Opts}', where Name is an atom alias
+%% (telemetry | prometheus) or a backend module.
+-spec config_module(term())  -> module() | nil.
+config_module({Name, _Opts}) -> resolve_module(Name);
+config_module(Name)          -> resolve_module(Name).
+
 -spec stop_backend(module() | nil) -> ok.
 stop_backend(nil) -> ok;
 stop_backend(Backend) ->
@@ -186,13 +193,7 @@ backend() ->
     case persistent_term:get(?SERVER, false) of
         false ->
             % Not yet initialized; look at app env and cache
-            Module = case application:get_env(shackle, observability, nil) of
-                undefined       -> nil;
-                nil             -> nil;
-                telemetry       -> shackle_observe_telemetry;
-                prometheus      -> shackle_observe_prometheus;
-                M when is_atom(M) -> M
-            end,
+            Module = config_module(application:get_env(shackle, observability, nil)),
             persistent_term:put(?SERVER, Module),
             Module;
         M ->

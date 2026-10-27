@@ -19,6 +19,8 @@
 ]).
 
 %% types
+-define(RECV_TIMEOUT_GRACE, 1000).
+
 -type cast() :: #cast {}.
 -type cast_error() :: no_server | no_socket | send_rejected | client_crash |
                       pool_not_started | shackle_not_started | timeout.
@@ -164,7 +166,7 @@ When Pid is provided, uses default timeout.
 When Options are provided, sends to self() with timeout from map.
 
 Options map keys:
-- `timeout` (default: infinity) - Time period to process the request
+- `timeout` (default: 1000 ms) - Time period to process the request. `infinity` disables the server-side timer.
 - `hash_key` - Key for consistent_hash strategy
 
 Examples:
@@ -253,7 +255,7 @@ Returns:
 A reply: `{ok, Reply} | {error, Reason}`
 """.
 -spec receive_response(request_id()) ->
-    reply() | {error, timeout | term()}.
+    reply().
 receive_response(RequestId) ->
     receive_response(RequestId, infinity).
 
@@ -267,19 +269,19 @@ Parameters:
 
 Returns:
 
-A reply, or `{error, timeout}` if no response is received within the timeout.
-
-Note: Previous versions threw a timeout exception; this version returns
-`{error, timeout}` for cleaner error handling.
+A reply. If no response is received within the timeout, `error:timeout` is
+raised. The exception is kept (rather than returning `{error, timeout}`) so that
+a timeout is distinguishable from a reply that happens to look like an error
+tuple.
 """.
 -spec receive_response(request_id(), non_neg_integer()|infinity) ->
-    reply() | {error, timeout | term()}.
+    reply().
 receive_response(RequestId, Timeout) ->
     receive
         {#cast {request_id = ID}, Reply} when ID == RequestId ->
             Reply
     after Timeout ->
-        {error, timeout}
+        erlang:error(timeout)
     end.
 
 -doc """
@@ -340,8 +342,18 @@ mk_cast(Client, Server, Pid0, Sema, Timestamp, Options) ->
 now_time() ->
     erlang:monotonic_time(microsecond).
 
+%% The server-side timer (see shackle_server) is what normally ends a request.
+%% Without an explicit recv_timeout, the client waits for the request timeout plus
+%% a grace period, so the server's timeout reply always arrives first and no
+%% stray reply is left behind. The grace period still bounds the wait if the
+%% server never replies. An `infinity' request timeout waits indefinitely.
 get_recv_timeout(Options) ->
-    case maps:get(recv_timeout, Options, undefined) of
-        undefined -> maps:get(timeout, Options, ?DEFAULT_TIMEOUT);
-        Timeout   -> Timeout
+    case maps:find(recv_timeout, Options) of
+        {ok, RecvTimeout} ->
+            RecvTimeout;
+        error ->
+            case maps:get(timeout, Options, ?DEFAULT_TIMEOUT) of
+                infinity -> infinity;
+                Timeout  -> Timeout + ?RECV_TIMEOUT_GRACE
+            end
     end.

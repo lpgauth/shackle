@@ -10,14 +10,14 @@
     reset_failed/1,
     resolve_host/1,
     resolve_hostname/1,
+    invalidate_dns/1,
     is_k8s_environment/0
 ]).
 
 %% Kubernetes detection functions (for testing and advanced use)
 -ifdef(TEST).
 -export([
-    is_k8s_service_name/1,
-    is_fully_qualified_k8s_name/1,
+    is_short_name/1,
     detect_k8s_environment/0,
     get_current_namespace/1,
     get_cluster_domain/0,
@@ -29,6 +29,9 @@
 -type server_entry() :: string() | atom() | {string() | atom(), pos_integer()}.
 -type servers_list() :: [server_entry()].
 -type normalized_servers() :: tuple().  %% {{Host, Port}, ...}
+
+%% A default port is optional; it is only required for bare hostnames.
+-define(IS_DEFAULT_PORT(P), (P == undefined orelse (is_integer(P) andalso P > 0))).
 -type state() :: #{
     servers => normalized_servers(),
     index => non_neg_integer(),
@@ -46,14 +49,14 @@
 Create and normalize a servers list from configuration.
 
 Input can be:
-- A bare hostname: "server.example.com" (uses DefaultPort)
+- A bare hostname: "server.example.com" (uses DefaultPort, which must then be set)
 - A tuple: {"server.example.com", 9000}
 - A list of mixed: ["server1", {"server2", 9001}, ...]
 
 Returns a map with normalized servers and initial state.
 """.
--spec new(servers_list() | server_entry(), pos_integer()) -> state().
-new(Servers, DefaultPort) when is_list(Servers), is_integer(DefaultPort), DefaultPort > 0 ->
+-spec new(servers_list() | server_entry(), pos_integer() | undefined) -> state().
+new(Servers, DefaultPort) when is_list(Servers), ?IS_DEFAULT_PORT(DefaultPort) ->
     % Check if this is a string (list of character codes) or list of entries
     case is_string(Servers) of
         true ->
@@ -74,7 +77,7 @@ new(Servers, DefaultPort) when is_list(Servers), is_integer(DefaultPort), Defaul
                     }
             end
     end;
-new(Server, DefaultPort) when is_integer(DefaultPort), DefaultPort > 0 ->
+new(Server, DefaultPort) when ?IS_DEFAULT_PORT(DefaultPort) ->
     new([Server], DefaultPort).
 
 -doc "Get the current server address {Host, Port} from state.".
@@ -141,6 +144,8 @@ is_valid_server(Host) ->
 %% @private
 normalize_server({Host, Port}, _DefaultPort) ->
     {Host, Port};
+normalize_server(Host, undefined) ->
+    error({missing_port, Host});
 normalize_server(Host, DefaultPort) ->
     {Host, DefaultPort}.
 
@@ -230,15 +235,30 @@ resolve_hostname(Hostname) ->
             end
     end.
 
+-doc """
+Drop the cached DNS result for a hostname, so the next resolution queries DNS.
+Called when a connection to that host is lost or fails to connect, so a
+reconnect picks up DNS changes. IP literals are never cached and are ignored.
+""".
+-spec invalidate_dns(string() | atom() | term()) -> ok.
+invalidate_dns(Host) when is_atom(Host) ->
+    invalidate_dns(atom_to_list(Host));
+invalidate_dns(Hostname) when is_list(Hostname) ->
+    erase({dns_cache, Hostname}),
+    ok;
+invalidate_dns(_Other) ->
+    ok.
+
 %% @private
 %% Perform DNS resolution without caching.
 %% Tries IPv4 first, falls back to IPv6 if IPv4 fails.
-%% Also handles Kubernetes service names.
+%% A single-label name inside a Kubernetes pod is expanded with the cluster's
+%% search domains. Dotted names (FQDNs, custom cluster domains) are left to the
+%% system resolver, which already applies resolv.conf search domains.
 resolve_hostname_uncached(Hostname) ->
-    % Check if this looks like a Kubernetes service
-    case is_k8s_service_name(Hostname) of
+    case is_short_name(Hostname) andalso is_k8s_environment() of
         true ->
-            resolve_k8s_hostname(Hostname);
+            resolve_k8s_short_name(Hostname);
         false ->
             resolve_standard_hostname(Hostname)
     end.
@@ -265,30 +285,10 @@ resolve_standard_hostname(Hostname) ->
     end.
 
 %% @private
-%% Detect if hostname looks like a Kubernetes service name
-is_k8s_service_name(Hostname) ->
-    % Check for Kubernetes patterns:
-    % - Contains ".svc." (service DNS)
-    % - Contains ".cluster.local" (default cluster domain)
-    string:str(Hostname, ".svc.") > 0 orelse
-    string:str(Hostname, ".cluster.local") > 0.
-
-%% @private
-%% Check if hostname is fully qualified Kubernetes service name
-is_fully_qualified_k8s_name(Hostname) ->
-    string:str(Hostname, ".svc.") > 0.
-
-%% @private
-%% Resolve Kubernetes service names with search domain expansion
-resolve_k8s_hostname(Hostname) ->
-    case is_fully_qualified_k8s_name(Hostname) of
-        true ->
-            % Already fully qualified, resolve directly
-            resolve_standard_hostname(Hostname);
-        false ->
-            % Short name, try expansion with Kubernetes search domains
-            resolve_k8s_short_name(Hostname)
-    end.
+%% A short name has no dots, so it is a candidate for Kubernetes search domain
+%% expansion (for example "my-service" -> "my-service.<ns>.svc.cluster.local").
+is_short_name(Hostname) ->
+    string:chr(Hostname, $.) =:= 0.
 
 %% @private
 %% Try to resolve a short Kubernetes service name by expanding with search domains
