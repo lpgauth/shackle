@@ -2,6 +2,10 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
+%% Normalized servers as a list, for readable assertions.
+entries(State) ->
+    tuple_to_list(maps:get(servers, State)).
+
 %%%=============================================================================
 %% Tests
 %%%=============================================================================
@@ -15,7 +19,7 @@ servers_normalization_bare_hostnames_test() ->
         {"server1.example.com", 9000},
         {"server2.example.com", 9000},
         {"server3.example.com", 9000}
-    ], maps:get(servers, State)).
+    ], entries(State)).
 
 %% @doc Test normalization of servers list with per-server ports.
 servers_normalization_per_server_ports_test() ->
@@ -30,7 +34,7 @@ servers_normalization_per_server_ports_test() ->
         {"server1.example.com", 9000},
         {"server2.example.com", 9001},
         {"server3.example.com", 9002}
-    ], maps:get(servers, State)).
+    ], entries(State)).
 
 %% @doc Test normalization of mixed servers list.
 servers_normalization_mixed_test() ->
@@ -45,13 +49,13 @@ servers_normalization_mixed_test() ->
         {"server1.example.com", 9000},
         {"server2.example.com", 9001},
         {"server3.example.com", 9000}
-    ], maps:get(servers, State)).
+    ], entries(State)).
 
 %% @doc Test single server configuration.
 single_server_config_test() ->
     State = shackle_servers:new("server1.example.com", 9000),
     ?assertEqual(1, maps:get(total, State)),
-    ?assertEqual([{"server1.example.com", 9000}], maps:get(servers, State)).
+    ?assertEqual([{"server1.example.com", 9000}], entries(State)).
 
 %% @doc Test getting current server address.
 current_server_test() ->
@@ -120,6 +124,14 @@ all_failed_true_test() ->
     %% Should be all failed (tried 2 of 2)
     ?assert(shackle_servers:all_failed(State2)).
 
+%% @doc Normalized servers are stored as a tuple, not a list.
+servers_stored_as_tuple_test() ->
+    State = shackle_servers:new(["a", "b"], 9000),
+    ?assert(is_tuple(maps:get(servers, State))),
+    ?assertEqual({"a", 9000}, element(1, maps:get(servers, State))),
+    ?assertEqual("b", element(1, element(2, maps:get(servers, State)))),
+    ?assertEqual({"a", 9000}, shackle_servers:current(State)).
+
 %% @doc Test empty servers list raises error.
 empty_servers_list_error_test() ->
     ?assertError({no_servers_configured, []}, shackle_servers:new([], 9000)).
@@ -140,12 +152,12 @@ port_range_test() ->
     ?assertError({invalid_server_entries, [{"s1", "9000"}]},
                  shackle_servers:new([{"s1", "9000"}], 9000)),
     ?assertEqual([{"s1", 65535}],
-                 maps:get(servers, shackle_servers:new([{"s1", 65535}], 9000))).
+                 entries(shackle_servers:new([{"s1", 65535}], 9000))).
 
 %% @doc A plain char list is one hostname; a list with a non-code-point is not.
 string_detection_test() ->
     ?assertEqual([{"server.example.com", 9000}],
-                 maps:get(servers, shackle_servers:new("server.example.com", 9000))),
+                 entries(shackle_servers:new("server.example.com", 9000))),
     ?assertError({invalid_server_entries, [97, -1]},
                  shackle_servers:new([$a, -1], 9000)).
 
@@ -158,7 +170,7 @@ atom_server_address_test() ->
         {server1, 9000},
         {server2, 9000},
         {server3, 9000}
-    ], maps:get(servers, State)).
+    ], entries(State)).
 
 %%%=============================================================================
 %% DNS Resolution Tests

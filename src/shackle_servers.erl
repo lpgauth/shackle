@@ -28,7 +28,7 @@
 %% types
 -type server_entry() :: string() | atom() | {string() | atom(), pos_integer()}.
 -type servers_list() :: [server_entry()].
--type normalized_servers() :: [{string() | atom(), pos_integer()}].
+-type normalized_servers() :: tuple().  %% {{Host, Port}, ...}
 -type state() :: #{
     servers => normalized_servers(),
     index => non_neg_integer(),
@@ -67,7 +67,7 @@ new(Servers, DefaultPort) when is_list(Servers), is_integer(DefaultPort), Defaul
                     error({no_servers_configured, Servers});
                 _ ->
                     #{
-                        servers => NormalizedServers,
+                        servers => list_to_tuple(NormalizedServers),
                         index => 0,
                         failed => [],
                         total => length(NormalizedServers)
@@ -80,7 +80,7 @@ new(Server, DefaultPort) when is_integer(DefaultPort), DefaultPort > 0 ->
 -doc "Get the current server address {Host, Port} from state.".
 -spec current(state()) -> {string(), pos_integer()}.
 current(#{servers := Servers, index := Index}) ->
-    lists:nth(Index + 1, Servers).
+    element(Index + 1, Servers).
 
 -doc """
 Move to the next server in round-robin fashion. Returns updated state with new

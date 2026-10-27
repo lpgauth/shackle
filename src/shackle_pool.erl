@@ -699,7 +699,7 @@ normalize_client_options(ClientOptions) ->
             Port = ?LOOKUP(port, ClientOptions),
             try shackle_servers:new(ServersList, Port) of
                 ServersState ->
-                    NormalizedServers = maps:get(servers, ServersState),
+                    NormalizedServers = tuple_to_list(maps:get(servers, ServersState)),
                     [{servers, NormalizedServers} |
                      lists:keydelete(servers, 1, ClientOptions)]
             catch

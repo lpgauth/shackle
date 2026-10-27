@@ -3,6 +3,10 @@
 -include("shackle_internal.hrl").
 -include_lib("eunit/include/eunit.hrl").
 
+%% Normalized servers as a list, for readable assertions.
+entries(State) ->
+    tuple_to_list(maps:get(servers, State)).
+
 %% Mock protocol for testing
 -define(MOCK_PROTOCOL, shackle_server_multi_test_proto).
 
@@ -40,21 +44,21 @@ single_server_in_servers_test() ->
     ServersList = ["127.0.0.1"],
     State = shackle_servers:new(ServersList, 9000),
     ?assertEqual(1, maps:get(total, State)),
-    ?assertEqual([{"127.0.0.1", 9000}], maps:get(servers, State)).
+    ?assertEqual([{"127.0.0.1", 9000}], entries(State)).
 
 multiple_servers_norm_test() ->
     ServersList = ["server1", "server2", "server3"],
     State = shackle_servers:new(ServersList, 9000),
     ?assertEqual(3, maps:get(total, State)),
     ?assertEqual([{"server1", 9000}, {"server2", 9000}, {"server3", 9000}],
-                 maps:get(servers, State)).
+                 entries(State)).
 
 mixed_servers_test() ->
     ServersList = ["server1", {"server2", 9001}, "server3"],
     State = shackle_servers:new(ServersList, 9000),
     ?assertEqual(3, maps:get(total, State)),
     ?assertEqual([{"server1", 9000}, {"server2", 9001}, {"server3", 9000}],
-                 maps:get(servers, State)).
+                 entries(State)).
 
 %%%=============================================================================
 %% Tests for Failover Cycling
@@ -185,9 +189,9 @@ reset_keeps_servers_test() ->
     State1 = shackle_servers:next(State0),
     State2 = shackle_servers:next(State1),
 
-    Servers1 = maps:get(servers, State2),
+    Servers1 = entries(State2),
     State3 = shackle_servers:reset_failed(State2),
-    Servers2 = maps:get(servers, State3),
+    Servers2 = entries(State3),
 
     ?assertEqual(Servers1, Servers2).
 
@@ -231,7 +235,7 @@ atom_hostnames_test() ->
     State = shackle_servers:new([server1, server2, server3], 9000),
     ?assertEqual(3, maps:get(total, State)),
     ?assertEqual([{server1, 9000}, {server2, 9000}, {server3, 9000}],
-                 maps:get(servers, State)).
+                 entries(State)).
 
 %%%=============================================================================
 %% Tests for String Detection
@@ -253,7 +257,7 @@ string_detection_test_() ->
 single_string_test() ->
     State = shackle_servers:new("server.example.com", 9000),
     ?assertEqual(1, maps:get(total, State)),
-    ?assertEqual([{"server.example.com", 9000}], maps:get(servers, State)).
+    ?assertEqual([{"server.example.com", 9000}], entries(State)).
 
 list_hostnames_test() ->
     State = shackle_servers:new(["s1", "s2"], 9000),
@@ -263,7 +267,7 @@ single_char_test() ->
     % Single character should still be treated as a string/hostname
     State = shackle_servers:new("x", 9000),
     ?assertEqual(1, maps:get(total, State)),
-    ?assertEqual([{"x", 9000}], maps:get(servers, State)).
+    ?assertEqual([{"x", 9000}], entries(State)).
 
 empty_list_test() ->
     ?assertError({no_servers_configured, []}, shackle_servers:new([], 9000)).
@@ -285,14 +289,14 @@ port_handling_test_() ->
 
 default_port_test() ->
     State = shackle_servers:new(["s1", "s2", "s3"], 8080),
-    Servers = maps:get(servers, State),
+    Servers = entries(State),
     [_, {_, P2}, {_, P3}] = Servers,
     ?assertEqual(8080, P2),
     ?assertEqual(8080, P3).
 
 per_server_port_test() ->
     State = shackle_servers:new([{"s1", 9001}], 8080),
-    Servers = maps:get(servers, State),
+    Servers = entries(State),
     [{_, P}] = Servers,
     ?assertEqual(9001, P).
 
@@ -302,7 +306,7 @@ mixed_ports_test() ->
         {"s2", 9001},
         "s3"
     ], 8080),
-    Servers = maps:get(servers, State),
+    Servers = entries(State),
     [{_, P1}, {_, P2}, {_, P3}] = Servers,
     ?assertEqual(8080, P1),
     ?assertEqual(9001, P2),
