@@ -6,11 +6,5 @@
   {links, [{"GitHub", "https://github.com/lpgauth/shackle"}]},
   {mod, {shackle_app, []}},
   {registered, []},
-  {vsn, git},
-  {files,    [
-    "src", "include", "bin",
-    "Makefile", "rebar.config", "rebar.lock", "elvis.config",
-    "LICENSE",
-    "README.md", "dns-resolution.md", "multi-server.md", "observability.md"
-  ]}
+  {vsn, git}
 ]}.

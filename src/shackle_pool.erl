@@ -4,7 +4,7 @@
 -include("shackle_pool.hrl").
 
 -dialyzer({nowarn_function, options/1}).
--dialyzer({nowarn_function, server/3}).
+-dialyzer({nowarn_function, server/2}).
 -ignore_xref([
     {shackle_pool_foil, lookup, 1}
 ]).
@@ -183,25 +183,12 @@ init() ->
 server(Name) when is_atom(Name) ->
     case options(Name) of
         {ok, #pool_options{max_retries = MaxRetries} = Options} ->
-            server(1, Options, MaxRetries + 1);
+            server(Options, MaxRetries + 1);
         {error, Reason} ->
             {error, Reason}
     end;
 server(#pool_options{max_retries = MaxRetries} = Options) ->
-    server(1, Options, MaxRetries + 1).
-
--spec server(name() | pool_options(), pos_integer()) ->
-    {ok, shackle:client(), atom(), shackle_sema:sema_ref()} |
-    {error, atom()}.
-server(Name, Count) when is_atom(Name) ->
-    case options(Name) of
-        {ok, #pool_options{max_retries = MaxRetries} = Options} ->
-            server(Count, Options, MaxRetries + 1);
-        {error, Reason} ->
-            {error, Reason}
-    end;
-server(#pool_options{max_retries = MaxRetries} = Options, Count) ->
-    server(Count, Options, MaxRetries + 1).
+    server(Options, MaxRetries + 1).
 
 -spec terminate() -> ok.
 terminate() ->
@@ -263,11 +250,10 @@ options_rec(PoolName, Client, Options) ->
         pool_strategy = PoolStrategy
     }.
 
-server(_Count, #pool_options{name = Name, client = Client}, 0) ->
+server(#pool_options{name = Name, client = Client}, 0) ->
     observe_pool_metric(Client, Name, shackle_error_total, <<"no server">>),
     {error, no_server};
 server(
-    Count,
     #pool_options{
         name = Name,
         backlog_size = BacklogSize,
@@ -283,17 +269,17 @@ server(
             {ok, ServerName} = shackle_pool_foil:lookup(ServerId),
             {ok, Client, ServerName, undefined};
         true ->
-            case shackle_sema:acquire(Name, ServerIdx, Count) of
+            case shackle_sema:acquire(Name, ServerIdx) of
                 {ok, Sema} ->
                     {ok, ServerName} = shackle_pool_foil:lookup(ServerId),
                     {ok, Client, ServerName, Sema};
                 error ->
                     observe_pool_metric(Client, Name, shackle_attempt_total, <<"backlog full">>),
-                    server(Count, Options, N - 1)
+                    server(Options, N - 1)
             end;
         false ->
             observe_pool_metric(Client, Name, shackle_attempt_total, <<"disabled">>),
-            server(Count, Options, N - 1)
+            server(Options, N - 1)
     end.
 
 -doc "Emit observability event for pool metrics".

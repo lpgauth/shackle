@@ -3,7 +3,6 @@
 -include_lib("shackle/include/shackle.hrl").
 
 -export([
-    add/1,
     add/2,
     multiply/2,
     noop/0,
@@ -12,9 +11,6 @@
     delayed_echo/2,
     delayed_echo/3,
     delayed_echo_cast/2,
-    batch/1,
-    batch/2,
-    batch/3,
     start/0,
     start/1,
     start/2,
@@ -44,16 +40,6 @@
 -spec wait_until_all_available(non_neg_integer()) -> boolean().
 wait_until_all_available(Timeout) ->
     shackle_pool:wait_until_all_available(?POOL_NAME_TCP, Timeout).
-
--spec add([{tiny_int(), tiny_int()}]) ->
-    pos_integer().
-
-add(As) when is_list(As) ->
-    L = length(As),
-    Ops = lists:duplicate(L, add),
-    {A, B} = lists:unzip(As),
-    Batch = lists:zip3(Ops, A, B),
-    batch(Batch).
 
 -spec add(tiny_int(), tiny_int()) ->
     pos_integer().
@@ -97,24 +83,6 @@ delayed_echo(Delay, CliTimeout, RcvTimeout) ->
     {ok, pos_integer()} | {error, atom()}.
 delayed_echo_cast(Delay, CliTimeout) ->
     shackle:cast(?POOL_NAME_TCP, {delayed_echo, Delay}, self(), CliTimeout).
-
--spec batch([term()]) ->
-    [term() | {error, atom()}].
-
-batch(Batch) ->
-    batch(Batch, ?TIMEOUT).
-
--spec batch([term()], timeout()) ->
-    [term() | {error, atom()}].
-
-batch(Batch, Timeout) ->
-    shackle:batch_call(?POOL_NAME_TCP, Batch, Timeout, infinity).
-
--spec batch([term()], timeout(), timeout()) ->
-    [term() | {error, atom()}].
-
-batch(Batch, Timeout, RcvTimeout) ->
-    shackle:batch_call(?POOL_NAME_TCP, Batch, Timeout, RcvTimeout).
 
 -spec start() ->
     ok | {error, shackle_not_started | pool_already_started}.

@@ -3,7 +3,6 @@
     client         :: shackle:client(),
     pid            :: pid(),
     send_reply     :: boolean(),   %% false when caller didn't provide its PID
-    batch_ref      :: shackle:batch_ref(),
     request_id     :: shackle:request_id(),
     request_state  :: term(),
     sema           :: shackle_sema:sema_ref(),

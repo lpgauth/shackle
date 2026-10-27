@@ -22,8 +22,6 @@
 ]).
 
 %% types
--type batch_ref() :: undefined | reference().
--type batch_state() :: {batch_ref(), pos_integer(), [{request_ref(), term()}]}.
 -type cast() :: #cast {}.
 -type client() :: module().
 -type external_request_id() :: term().
@@ -46,8 +44,6 @@
 -type metric_value() :: integer().
 
 -export_type([
-    batch_ref/0,
-    batch_state/0,
     cast/0,
     client/0,
     external_request_id/0,
@@ -116,8 +112,7 @@ call(PoolName, Request, Timeout, RecvTimeout) ->
 
 call_impl_fun(PoolOpts, Request, Timeout, RecvTimeout) ->
     fun() ->
-        Now = now_time(),
-        case cast_impl(PoolOpts, Request, self(), Timeout, Now) of
+        case cast_impl(PoolOpts, Request, self(), Timeout, os:system_time(microsecond)) of
             {ok, RequestId} ->
                 try
                     receive_response(RequestId, RecvTimeout)
@@ -181,7 +176,7 @@ cast(PoolName, Request, Pid, Timeout) ->
         {ok, #pool_options{client = Client} = PoolOpts} ->
             Dispatcher = shackle_observe:dispatcher(),
             Dispatcher:cast(PoolName, Client, fun() ->
-                cast_impl(PoolOpts, Request, Pid, Timeout, now_time())
+                cast_impl(PoolOpts, Request, Pid, Timeout, os:system_time(microsecond))
             end);
         {error, Reason} ->
             {error, Reason}
@@ -281,10 +276,7 @@ stop_probe(PoolName) ->
 
 %% private
 
-mk_cast(Client, Server, Pid, Sema, Timestamp, Timeout) ->
-    mk_cast(undefined, Client, Server, Pid, Sema, Timestamp, Timeout).
-
-mk_cast(BatchRef, Client, Server, Pid0, Sema, Timestamp, Timeout) ->
+mk_cast(Client, Server, Pid0, Sema, Timestamp, Timeout) ->
     {Pid, SendReply} =
         if is_pid(Pid0) ->
             {Pid0, true};
@@ -295,13 +287,8 @@ mk_cast(BatchRef, Client, Server, Pid0, Sema, Timestamp, Timeout) ->
         client = Client,
         pid = Pid,
         send_reply = SendReply,
-        batch_ref = BatchRef,
         request_id = {Server, make_ref()},
         sema = Sema,    % Semaphore reference to release on cast reply
         timeout = Timeout,
         timestamp = Timestamp
     }.
-
--spec now_time() -> time().
-now_time() ->
-    os:system_time(microsecond).
