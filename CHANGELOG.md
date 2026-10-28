@@ -41,6 +41,10 @@
   `{error, no_server}`. `shackle_pool:stop/1` unpublishes the pool
   before stopping its servers.
 
+- A cancelled sweep timer that had already fired could leave two
+  sweep timers armed; sweep messages now carry their timer ref and
+  stale ones are ignored.
+
 ### Removed
 
 - Telemetry events `[shackle, found]` and `[shackle, replies]`: both

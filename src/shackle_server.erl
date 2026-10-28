@@ -194,13 +194,15 @@ handle_msg(?MSG_CONNECT, {#state {
         {error, _Reason} ->
             reconnect(State, ClientState)
     end;
-handle_msg(?MSG_SWEEP, {#state {
-        queue = Queue
+handle_msg({timeout, SweepRef, ?MSG_SWEEP}, {#state {
+        queue = Queue,
+        sweep_ref = SweepRef
     } = State, ClientState}) when map_size(Queue) =:= 0 ->
 
     {ok, {State#state {sweep_ref = undefined}, ClientState}};
-handle_msg(?MSG_SWEEP, {#state {
-        queue = Queue
+handle_msg({timeout, SweepRef, ?MSG_SWEEP}, {#state {
+        queue = Queue,
+        sweep_ref = SweepRef
     } = State, ClientState}) ->
 
     Now = erlang:monotonic_time(millisecond),
@@ -218,6 +220,8 @@ handle_msg(?MSG_SWEEP, {#state {
         {ok, {State2, ClientState2}} ->
             maybe_recycle(State2, ClientState2)
     end;
+handle_msg({timeout, _SweepRef, ?MSG_SWEEP}, {State, ClientState}) ->
+    {ok, {State, ClientState}};
 handle_msg(Msg, {#state {
         pool_name = PoolName
     } = State, ClientState}) ->
@@ -255,7 +259,7 @@ terminate(_Reason, {#state {
 arm_sweep(_Now, infinity, State) ->
     State;
 arm_sweep(Now, Deadline, #state {sweep_ref = undefined} = State) ->
-    SweepRef = erlang:send_after(max(0, Deadline - Now), self(), ?MSG_SWEEP),
+    SweepRef = erlang:start_timer(max(0, Deadline - Now), self(), ?MSG_SWEEP),
     State#state {
         sweep_deadline = Deadline,
         sweep_ref = SweepRef
@@ -266,7 +270,7 @@ arm_sweep(_Now, Deadline, #state {
 
     State;
 arm_sweep(Now, Deadline, #state {sweep_ref = SweepRef} = State) ->
-    erlang:cancel_timer(SweepRef),
+    erlang:cancel_timer(SweepRef, [{async, true}, {info, false}]),
     arm_sweep(Now, Deadline, State#state {sweep_ref = undefined}).
 
 deadline(_Now, infinity) ->

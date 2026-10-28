@@ -85,6 +85,16 @@ shackle_crash_disable_test_() ->
         fun (_) -> cleanup(?CLIENT_TCP) end,
     [fun crash_disable_subtest/0]}.
 
+shackle_mixed_timeout_test_() ->
+    {setup,
+        fun () ->
+            setup(?CLIENT_TCP, [
+                {pool_size, 1}
+            ])
+        end,
+        fun (_) -> cleanup(?CLIENT_TCP) end,
+    [fun mixed_timeout_subtest/0]}.
+
 shackle_max_requests_test_() ->
     {setup,
         fun () ->
@@ -421,6 +431,16 @@ connected_socket() ->
     {links, Links} = erlang:process_info(whereis(ServerName), links),
     [Socket] = [Port || Port <- Links, is_port(Port)],
     Socket.
+
+mixed_timeout_subtest() ->
+    %% the second request has the earlier deadline, so the server
+    %% cancels the sweep timer and starts it again
+    {ok, _} = shackle:cast(?POOL_NAME, {add, 255, 255}, undefined, 5000),
+    {Microseconds, Reply} = timer:tc(fun () ->
+        shackle:call(?POOL_NAME, {add, 255, 255}, 100)
+    end),
+    ?assertEqual({error, timeout_handled}, Reply),
+    ?assert(Microseconds < 1000000).
 
 otp_28(Tests) ->
     case list_to_integer(erlang:system_info(otp_release)) >= 28 of
