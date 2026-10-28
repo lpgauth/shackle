@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- A request with timeout `infinity` crashed its server with
+  `badarith`, leaving every in-flight `shackle:call/2,3` on that
+  connection waiting forever.
+
 ## 0.8.0
 
 ### Added

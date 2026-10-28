@@ -54,6 +54,16 @@ shackle_call_crash_test_() ->
         fun (_) -> cleanup(?CLIENT_TCP) end,
     [fun call_crash_subtest/0]}.
 
+shackle_call_infinity_timeout_test_() ->
+    {setup,
+        fun () ->
+            setup(?CLIENT_TCP, [
+                {pool_size, 1}
+            ])
+        end,
+        fun (_) -> cleanup(?CLIENT_TCP) end,
+    [fun call_infinity_timeout_subtest/0]}.
+
 shackle_max_requests_test_() ->
     {setup,
         fun () ->
@@ -303,6 +313,10 @@ backlog_full_subtest() ->
         ({error, no_server}) -> true;
         (_) -> false
     end, receive_loop(20))).
+
+call_infinity_timeout_subtest() ->
+    ?assertEqual(3, shackle:call(?POOL_NAME, {add, 1, 2}, infinity)),
+    ?assertEqual(5, shackle:call(?POOL_NAME, {add, 2, 3}, infinity)).
 
 call_crash_subtest() ->
     ?assertEqual({error, client_crash}, arithmetic_tcp_client:add(a, b)),

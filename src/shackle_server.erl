@@ -25,7 +25,7 @@
     port             :: shackle:inet_port(),
     protocol         :: shackle:protocol(),
     queue = #{}      :: #{shackle:external_request_id() =>
-                              {shackle:cast(), integer()}},
+                              {shackle:cast(), integer() | infinity}},
     reconnect_state  :: undefined | reconnect_state(),
     requests_left    :: non_neg_integer() | infinity,
     socket           :: undefined | shackle:socket(),
@@ -238,6 +238,8 @@ terminate(_Reason, {#state {
 %% A single armed timer covers the earliest deadline in the queue;
 %% replies never cancel it, so an idle fire sweeps nothing and
 %% re-arms to the new minimum.
+arm_sweep(_Now, infinity, State) ->
+    State;
 arm_sweep(Now, Deadline, #state {sweep_ref = undefined} = State) ->
     SweepRef = erlang:send_after(max(0, Deadline - Now), self(), ?MSG_SWEEP),
     State#state {
@@ -252,6 +254,11 @@ arm_sweep(_Now, Deadline, #state {
 arm_sweep(Now, Deadline, #state {sweep_ref = SweepRef} = State) ->
     erlang:cancel_timer(SweepRef),
     arm_sweep(Now, Deadline, State#state {sweep_ref = undefined}).
+
+deadline(_Now, infinity) ->
+    infinity;
+deadline(Now, Timeout) ->
+    Now + Timeout.
 
 %% Casts already sitting in the mailbox are drained and written with
 %% a single send; socket messages behind them were queued after the
@@ -293,7 +300,7 @@ enqueue_casts([{Cast, undefined} | T], Now, State) ->
 enqueue_casts([{#cast {timeout = Timeout} = Cast, ExtRequestId} | T], Now,
         #state {queue = Queue} = State) ->
 
-    Deadline = Now + Timeout,
+    Deadline = deadline(Now, Timeout),
     Queue2 = maps:put(ExtRequestId, {Cast, Deadline}, Queue),
     State2 = arm_sweep(Now, Deadline, State#state {queue = Queue2}),
     enqueue_casts(T, Now, State2).
