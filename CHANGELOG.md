@@ -4,6 +4,13 @@
 
 ### Changed
 
+- `round_robin` pool strategy picks the next server with a
+  per-scheduler atomics counter instead of `ets:update_counter/3` on
+  one shared key, which collapsed under concurrent callers (10
+  callers: 66.9 us -> 0.2 us per pick, the same as `random`). The
+  rotation is per scheduler, so load stays even but the order is no
+  longer one global sequence.
+
 - Backlog counters are spaced 128 bytes apart so servers in the same
   pool no longer false-share cache lines (16 processes x 2M add/sub:
   3.5 s -> 0.4 s). Pools with `backlog_size` `infinity` skip the

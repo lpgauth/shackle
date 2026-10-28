@@ -52,7 +52,6 @@ start(Name, Client, ClientOptions, Options) ->
             {error, shackle_not_started};
         {error, pool_not_started} ->
             OptionsRec = options_rec(Name, Client, Options),
-            setup_ets(Name, OptionsRec),
             persistent_term:put(key(Name), OptionsRec),
             start_children(ClientOptions, OptionsRec),
             ok
@@ -63,10 +62,9 @@ start(Name, Client, ClientOptions, Options) ->
 
 stop(Name) ->
     case options(Name) of
-        {ok, #pool_options {server_names = ServerNames} = OptionsRec} ->
+        {ok, #pool_options {server_names = ServerNames}} ->
             stop_children(tuple_to_list(ServerNames)),
             persistent_term:erase(key(Name)),
-            cleanup_ets(Name, OptionsRec),
             ok;
         {error, Reason} ->
             {error, Reason}
@@ -77,11 +75,6 @@ stop(Name) ->
     ok.
 
 init() ->
-    ets:new(?ETS_TABLE_POOL_INDEX, [
-        named_table,
-        public,
-        {write_concurrency, true}
-    ]),
     erase_all().
 
 -spec server(shackle_pool:name()) ->
@@ -103,11 +96,6 @@ terminate() ->
     erase_all().
 
 %% private
-cleanup_ets(Name, #pool_options {pool_strategy = round_robin}) ->
-    ets:delete(?ETS_TABLE_POOL_INDEX, {Name, round_robin});
-cleanup_ets(_Name, _OptionsRec) ->
-    ok.
-
 erase_all() ->
     [persistent_term:erase(Key) ||
         {{?MODULE, _Name} = Key, _} <- persistent_term:get()],
@@ -143,10 +131,23 @@ options_rec(Name, Client, Options) ->
         name = Name,
         pool_size = PoolSize,
         pool_strategy = PoolStrategy,
+        round_robin = round_robin(PoolStrategy),
         server_names = list_to_tuple([server_name(Name, N) ||
             N <- lists:seq(1, PoolSize)]),
         status = shackle_status:new(PoolSize)
     }.
+
+%% Use one counter for each scheduler, so callers do not write to the
+%% same slot. Each counter starts at a different value, so the first
+%% picks go to different servers.
+round_robin(round_robin) ->
+    Schedulers = erlang:system_info(schedulers),
+    Ref = atomics:new(Schedulers * ?STRIDE, [{signed, false}]),
+    [atomics:put(Ref, (N - 1) * ?STRIDE + 1, N - 1) ||
+        N <- lists:seq(1, Schedulers)],
+    Ref;
+round_robin(random) ->
+    undefined.
 
 server(#pool_options {
         client = Client
@@ -184,19 +185,12 @@ server_index(#pool_options {
 
     shackle_utils:random(PoolSize);
 server_index(#pool_options {
-        name = Name,
-        pool_size = PoolSize
+        pool_size = PoolSize,
+        round_robin = RoundRobin
     }) ->
 
-    UpdateOps = [{2, 1, PoolSize, 1}],
-    [Index] = ets:update_counter(?ETS_TABLE_POOL_INDEX, {Name, round_robin},
-        UpdateOps),
-    Index.
-
-setup_ets(Name, #pool_options {pool_strategy = round_robin}) ->
-    ets:insert_new(?ETS_TABLE_POOL_INDEX, {{Name, round_robin}, 1});
-setup_ets(_Name, _OptionsRec) ->
-    ok.
+    Ix = (erlang:system_info(scheduler_id) - 1) * ?STRIDE + 1,
+    atomics:add_get(RoundRobin, Ix, 1) rem PoolSize + 1.
 
 server_name(Name, Index) ->
     list_to_atom(atom_to_list(Name) ++ "_" ++ integer_to_list(Index)).
