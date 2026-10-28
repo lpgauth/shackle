@@ -254,11 +254,6 @@ Shackle integrates with the backend-agnostic [telemetry](https://hexdocs.pm/tele
     <td>Request rejected because the selected server is disabled</td>
   </tr>
   <tr>
-    <td><code>[shackle, found]</code></td>
-    <td><code>#{count =&gt; 1}</code></td>
-    <td>An active server was found for a request</td>
-  </tr>
-  <tr>
     <td><code>[shackle, no_server]</code></td>
     <td><code>#{count =&gt; 1}</code></td>
     <td>No server is available for the pool</td>
@@ -287,11 +282,6 @@ Shackle integrates with the backend-agnostic [telemetry](https://hexdocs.pm/tele
     <td><code>[shackle, send]</code></td>
     <td><code>#{count =&gt; 1, bytes =&gt; N}</code></td>
     <td>Bytes sent to the socket</td>
-  </tr>
-  <tr>
-    <td><code>[shackle, replies]</code></td>
-    <td><code>#{count =&gt; 1}</code></td>
-    <td>A batch of replies was decoded</td>
   </tr>
   <tr>
     <td><code>[shackle, reply]</code></td>

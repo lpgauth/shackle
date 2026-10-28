@@ -31,6 +31,13 @@
   `badarith`, leaving every in-flight `shackle:call/2,3` on that
   connection waiting forever.
 
+### Removed
+
+- Telemetry events `[shackle, found]` and `[shackle, replies]`: both
+  fired once per reply, alongside `[shackle, reply]` (which carries
+  the duration) or `[shackle, not_found]`. Count `[shackle, reply]`
+  events instead.
+
 ## 0.8.0
 
 ### Added

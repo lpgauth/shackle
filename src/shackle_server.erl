@@ -544,17 +544,10 @@ process_responses([{ExtRequestId, Reply} | T], #state {
         telemetry = Telemetry
     } = State) ->
 
-    Telemetry andalso shackle_telemetry:replies(Client),
     case maps:take(ExtRequestId, Queue) of
         {{#cast {timestamp = Timestamp} = Cast, _Deadline}, Queue2} ->
-            case Telemetry of
-                true ->
-                    shackle_telemetry:found(Client),
-                    Diff = erlang:monotonic_time(microsecond) - Timestamp,
-                    shackle_telemetry:reply(Client, Diff);
-                false ->
-                    ok
-            end,
+            Telemetry andalso shackle_telemetry:reply(Client,
+                erlang:monotonic_time(microsecond) - Timestamp),
             reply(Reply, Cast, State),
             process_responses(T, State#state {queue = Queue2});
         error ->
