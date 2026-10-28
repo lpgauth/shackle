@@ -1,6 +1,7 @@
 -module(shackle_tests).
 -include_lib("eunit/include/eunit.hrl").
 -include("test.hrl").
+-include("shackle_internal.hrl").
 
 -define(N, 1000).
 
@@ -63,6 +64,16 @@ shackle_call_infinity_timeout_test_() ->
         end,
         fun (_) -> cleanup(?CLIENT_TCP) end,
     [fun call_infinity_timeout_subtest/0]}.
+
+shackle_crash_disable_test_() ->
+    {setup,
+        fun () ->
+            setup(?CLIENT_TCP, [
+                {pool_size, 1}
+            ])
+        end,
+        fun (_) -> cleanup(?CLIENT_TCP) end,
+    [fun crash_disable_subtest/0]}.
 
 shackle_max_requests_test_() ->
     {setup,
@@ -288,6 +299,20 @@ shackle_timeout_udp_test_() ->
 add_subtest(Client) ->
     [assert_random_add(Client) || _ <- lists:seq(1, ?N)].
 
+crash_disable_subtest() ->
+    #pool_options {status = Status} =
+        persistent_term:get({shackle_pool, ?POOL_NAME}),
+    ?assertEqual(1, counters:get(Status, 1)),
+    %% a crash while connected leaves the slot enabled; when the
+    %% backend is down, the restarted server must disable it
+    arithmetic_tcp_server:stop(),
+    counters:put(Status, 1, 1),
+    exit(whereis(server_name(1)), kill),
+    timer:sleep(200),
+    ?assertEqual(0, counters:get(Status, 1)),
+    ?assertEqual({error, no_server}, arithmetic_tcp_client:add(1, 1)),
+    ok = arithmetic_tcp_server:start().
+
 app_stop_start_subtest() ->
     ?assertEqual({error, no_server}, arithmetic_tcp_client:add(1, 1)),
     ok = arithmetic_tcp_server:start(),
@@ -374,7 +399,7 @@ cleanup(Client) ->
     cleanup().
 
 connected_socket() ->
-    ServerName = list_to_atom(atom_to_list(?POOL_NAME) ++ "_1"),
+    ServerName = server_name(1),
     {links, Links} = erlang:process_info(whereis(ServerName), links),
     [Socket] = [Port || Port <- Links, is_port(Port)],
     Socket.
@@ -408,6 +433,9 @@ server(?CLIENT_TCP) ->
     arithmetic_tcp_server;
 server(?CLIENT_UDP) ->
     arithmetic_udp_server.
+
+server_name(Index) ->
+    list_to_atom(atom_to_list(?POOL_NAME) ++ "_" ++ integer_to_list(Index)).
 
 setup() ->
     error_logger:tty(false),

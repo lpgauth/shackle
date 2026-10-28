@@ -31,6 +31,10 @@
   `badarith`, leaving every in-flight `shackle:call/2,3` on that
   connection waiting forever.
 
+- A server restarted after a crash kept its pool slot enabled while
+  reconnecting, so requests routed to it failed with
+  `{error, no_socket}` instead of retrying another server.
+
 ### Removed
 
 - Telemetry events `[shackle, found]` and `[shackle, replies]`: both

@@ -77,6 +77,8 @@ init(Name, Parent, Opts) ->
     }} = Opts,
     self() ! ?MSG_CONNECT,
     ok = shackle_backlog:reset(Backlog, Index),
+    %% a crash does not call close/2, so the slot can stay enabled
+    ok = shackle_status:disable(Status, Index),
 
     InitOptions = ?LOOKUP(init_options, ClientOptions, ?DEFAULT_INIT_OPTS),
     Address = address(ClientOptions),
