@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Changed
+
+- `shackle:call/2,3` creates and receives on its reference in the
+  same function, so the compiler's receive optimization skips
+  messages already in the caller's mailbox (100k queued messages:
+  527 us -> 49 us per call).
+
 ### Fixed
 
 - A request with timeout `infinity` crashed its server with

@@ -54,10 +54,22 @@ call(PoolName, Request) ->
 -spec call(atom(), term(), timeout()) ->
     term() | {error, cast_error()}.
 
+%% Make the ref and receive it in this function. Then the compiler
+%% can skip the messages that were in the mailbox before the request
+%% (recv_marker). If you use cast/4 and receive_response/1, the
+%% receive scans all of the mailbox.
 call(PoolName, Request, Timeout) ->
-    case cast(PoolName, Request, self(), Timeout) of
-        {ok, RequestId} ->
-            receive_response(RequestId);
+    Timestamp = erlang:monotonic_time(microsecond),
+    case shackle_pool:server(PoolName) of
+        {ok, Client, Server} ->
+            Ref = make_ref(),
+            RequestId = {Server, Ref},
+            send_cast(Server, Request, Client, self(), RequestId, Timeout,
+                Timestamp),
+            receive
+                {shackle_reply, {_, Ref}, Reply} ->
+                    Reply
+            end;
         {error, Reason} ->
             {error, Reason}
     end.
@@ -83,13 +95,8 @@ cast(PoolName, Request, Pid, Timeout) ->
     case shackle_pool:server(PoolName) of
         {ok, Client, Server} ->
             RequestId = {Server, Ref},
-            Server ! {Request, #cast {
-                client = Client,
-                pid = Pid,
-                request_id = RequestId,
-                timeout = Timeout,
-                timestamp = Timestamp
-            }},
+            send_cast(Server, Request, Client, Pid, RequestId, Timeout,
+                Timestamp),
             {ok, RequestId};
         {error, Reason} ->
             {error, Reason}
@@ -114,3 +121,13 @@ receive_response(RequestId, Timeout) ->
     after Timeout ->
         {error, timeout}
     end.
+
+%% private
+send_cast(Server, Request, Client, Pid, RequestId, Timeout, Timestamp) ->
+    Server ! {Request, #cast {
+        client = Client,
+        pid = Pid,
+        request_id = RequestId,
+        timeout = Timeout,
+        timestamp = Timestamp
+    }}.
