@@ -1,71 +1,33 @@
 -module(shackle_status).
--include("shackle_internal.hrl").
 
 -export([
-    active/1,
-    delete/1,
-    disable/1,
-    enable/1,
-    init/0,
-    new/2
+    active/2,
+    disable/2,
+    enable/2,
+    new/1
 ]).
 
 %% public
--spec active(shackle_server:id()) ->
+-spec active(counters:counters_ref(), shackle_server:index()) ->
     boolean().
 
-active({PoolName, ServerIndex}) ->
-    case persistent_term:get(PoolName, undefined) of
-        undefined ->
-            false;
-        Counters ->
-            boolean(counters:get(Counters, ServerIndex))
-    end.
+active(Ref, Index) ->
+    counters:get(Ref, Index) =:= 1.
 
--spec delete(shackle_pool:name()) ->
+-spec disable(counters:counters_ref(), shackle_server:index()) ->
     ok.
 
-delete(PoolName) ->
-    persistent_term:erase(PoolName),
+disable(Ref, Index) ->
+    counters:put(Ref, Index, 0).
+
+-spec enable(counters:counters_ref(), shackle_server:index()) ->
     ok.
 
--spec disable(shackle_server:id()) ->
-    ok.
+enable(Ref, Index) ->
+    counters:put(Ref, Index, 1).
 
-disable({PoolName, ServerIndex}) ->
-    case persistent_term:get(PoolName, undefined) of
-        undefined ->
-            ok;
-        Counters ->
-            counters:put(Counters, ServerIndex, 0)
-    end.
+-spec new(shackle_pool:pool_size()) ->
+    counters:counters_ref().
 
--spec enable(shackle_server:id()) ->
-    ok.
-
-enable({PoolName, ServerIndex}) ->
-    case persistent_term:get(PoolName, undefined) of
-        undefined ->
-            ok;
-        Counters ->
-            counters:put(Counters, ServerIndex, 1)
-    end.
-
--spec init() ->
-    ok.
-
-init() ->
-    ok.
-
--spec new(shackle_pool:name(), shackle_pool:pool_size()) ->
-    ok.
-
-new(PoolName, PoolSize) ->
-    Counters = counters:new(PoolSize, []),
-    persistent_term:put(PoolName, Counters).
-
-%% private
-boolean(0) ->
-    false;
-boolean(1) ->
-    true.
+new(PoolSize) ->
+    counters:new(PoolSize, []).

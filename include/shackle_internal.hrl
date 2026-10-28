@@ -20,3 +20,15 @@
 -define(GET_STACK(Stacktrace), Stacktrace).
 -define(DEBUG(PoolName, Format, Data), ?LOG_DEBUG("[~p] " ++ Format, [PoolName | Data])).
 -define(WARN(PoolName, Format, Data), ?LOG_WARNING("[~p] " ++ Format, [PoolName | Data])).
+
+-record(pool_options, {
+    backlog       :: atomics:atomics_ref(),
+    backlog_size  :: shackle_backlog:backlog_size(),
+    client        :: shackle:client(),
+    max_retries   :: shackle_pool:max_retries(),
+    name          :: shackle_pool:name(),
+    pool_size     :: shackle_pool:pool_size(),
+    pool_strategy :: shackle_pool:pool_strategy(),
+    server_names  :: tuple(),
+    status        :: counters:counters_ref()
+}).

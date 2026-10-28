@@ -16,7 +16,7 @@
     address          :: shackle:inet_address(),
     backlog          :: atomics:atomics_ref(),
     client           :: shackle:client(),
-    id               :: id(),
+    index            :: index(),
     init_options     :: init_options(),
     max_requests     :: pos_integer() | infinity,
     name             :: name(),
@@ -30,6 +30,7 @@
     requests_left    :: non_neg_integer() | infinity,
     socket           :: undefined | shackle:socket(),
     socket_options   :: shackle:socket_options(),
+    status           :: counters:counters_ref(),
     sweep_deadline = 0 :: integer(),
     sweep_ref        :: undefined | reference(),
     telemetry = true :: boolean(),
@@ -43,11 +44,12 @@
 -type id() :: {shackle_pool:name(), index()}.
 -type index() :: pos_integer().
 -type name() :: atom().
--type opts() :: {shackle_pool:name(), index(), shackle:client(), shackle_client:options()}.
+-type opts() :: {index(), shackle_client:options(), #pool_options {}}.
 -type reconnect_state() :: #reconnect_state{}.
 
 -export_type([
     id/0,
+    index/0,
     init_options/0,
     name/0,
     reconnect_state/0
@@ -65,10 +67,14 @@ start_link(Name, Opts) ->
     no_return().
 
 init(Name, Parent, Opts) ->
-    {PoolName, Index, Client, ClientOptions} = Opts,
+    {Index, ClientOptions, #pool_options {
+        backlog = Backlog,
+        client = Client,
+        name = PoolName,
+        status = Status
+    }} = Opts,
     self() ! ?MSG_CONNECT,
-    Id = {PoolName, Index},
-    ok = shackle_backlog:reset(PoolName, Id),
+    ok = shackle_backlog:reset(Backlog, Index),
 
     InitOptions = ?LOOKUP(init_options, ClientOptions, ?DEFAULT_INIT_OPTS),
     Address = address(ClientOptions),
@@ -82,9 +88,9 @@ init(Name, Parent, Opts) ->
 
     {ok, {#state {
         address = Address,
-        backlog = shackle_backlog:ref(PoolName),
+        backlog = Backlog,
         client = Client,
-        id = Id,
+        index = Index,
         init_options = InitOptions,
         max_requests = MaxRequests,
         name = Name,
@@ -95,6 +101,7 @@ init(Name, Parent, Opts) ->
         reconnect_state = ReconnectState,
         requests_left = MaxRequests,
         socket_options = SocketOptions,
+        status = Status,
         telemetry = persistent_term:get({shackle, telemetry}, true)
     }, undefined}}.
 
@@ -152,14 +159,15 @@ handle_msg({udp_error, Socket, Reason}, {State, ClientState}) ->
 handle_msg(?MSG_CONNECT, {#state {
         address = Address,
         client = Client,
-        id = Id,
+        index = Index,
         init_options = Init,
         max_requests = MaxRequests,
         pool_name = PoolName,
         port = Port,
         protocol = Protocol,
         reconnect_state = ReconnectState,
-        socket_options = SocketOptions
+        socket_options = SocketOptions,
+        status = Status
     } = State, ClientState}) ->
 
     case connect(Protocol, Address, Port, SocketOptions, PoolName) of
@@ -167,7 +175,7 @@ handle_msg(?MSG_CONNECT, {#state {
             case client(Client, PoolName, Init, Protocol, Socket) of
                 {ok, ClientState2} ->
                     ReconnectState2 = reconnect_state_reset(ReconnectState),
-                    shackle_status:enable(Id),
+                    shackle_status:enable(Status, Index),
 
                     {ok, {State#state {
                         reconnect_state = ReconnectState2,
@@ -216,8 +224,9 @@ handle_msg(Msg, {#state {
     ok.
 
 terminate(_Reason, {#state {
+        backlog = Backlog,
         client = Client,
-        id = Id,
+        index = Index,
         pool_name = PoolName,
         sweep_ref = SweepRef,
         timer_ref = TimerRef
@@ -232,7 +241,7 @@ terminate(_Reason, {#state {
                 [E, R, ?GET_STACK(Stacktrace)])
     end,
     reply_all({error, shutdown}, State),
-    shackle_backlog:reset(PoolName, Id).
+    shackle_backlog:reset(Backlog, Index).
 
 %% private
 %% A single armed timer covers the earliest deadline in the queue;
@@ -427,8 +436,12 @@ client_setup(Client, PoolName, Protocol, Socket, ClientState) ->
             {error, client_crash, ClientState}
     end.
 
-close(#state {id = Id} = State, ClientState) ->
-    shackle_status:disable(Id),
+close(#state {
+        index = Index,
+        status = Status
+    } = State, ClientState) ->
+
+    shackle_status:disable(Status, Index),
     State2 = reply_all({error, socket_closed}, State),
     reconnect(State2, ClientState).
 
@@ -608,17 +621,16 @@ reconnect_timer(#state {
 
 reply(_Reply, #cast {pid = undefined}, #state {
         backlog = Backlog,
-        id = Id
+        index = Index
     }) ->
 
-    shackle_backlog:decrement(Backlog, Id),
-    ok;
+    shackle_backlog:decrement(Backlog, Index);
 reply(Reply, #cast {pid = Pid, request_id = RequestId}, #state {
         backlog = Backlog,
-        id = Id
+        index = Index
     }) ->
 
-    shackle_backlog:decrement(Backlog, Id),
+    shackle_backlog:decrement(Backlog, Index),
     Pid ! {shackle_reply, RequestId, Reply},
     ok.
 
@@ -636,6 +648,10 @@ requests_sent(N, #state {requests_left = Left} = State) when Left > N ->
     State#state {requests_left = Left - N};
 requests_sent(_N, #state {requests_left = 0} = State) ->
     State;
-requests_sent(_N, #state {id = Id} = State) ->
-    shackle_status:disable(Id),
+requests_sent(_N, #state {
+        index = Index,
+        status = Status
+    } = State) ->
+
+    shackle_status:disable(Status, Index),
     State#state {requests_left = 0}.

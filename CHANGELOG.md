@@ -9,6 +9,10 @@
   messages already in the caller's mailbox (100k queued messages:
   527 us -> 49 us per call).
 
+- Pool state (options, server names, status and backlog refs) lives
+  in one `persistent_term` entry, so routing a request is one lookup
+  instead of four. foil is no longer a dependency.
+
 ### Fixed
 
 - A request with timeout `infinity` crashed its server with
