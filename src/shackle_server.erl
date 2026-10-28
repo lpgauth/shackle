@@ -15,6 +15,7 @@
 -record(state, {
     address          :: shackle:inet_address(),
     backlog          :: atomics:atomics_ref(),
+    backlog_size     :: shackle_backlog:backlog_size(),
     client           :: shackle:client(),
     index            :: index(),
     init_options     :: init_options(),
@@ -69,6 +70,7 @@ start_link(Name, Opts) ->
 init(Name, Parent, Opts) ->
     {Index, ClientOptions, #pool_options {
         backlog = Backlog,
+        backlog_size = BacklogSize,
         client = Client,
         name = PoolName,
         status = Status
@@ -89,6 +91,7 @@ init(Name, Parent, Opts) ->
     {ok, {#state {
         address = Address,
         backlog = Backlog,
+        backlog_size = BacklogSize,
         client = Client,
         index = Index,
         init_options = InitOptions,
@@ -621,16 +624,18 @@ reconnect_timer(#state {
 
 reply(_Reply, #cast {pid = undefined}, #state {
         backlog = Backlog,
+        backlog_size = BacklogSize,
         index = Index
     }) ->
 
-    shackle_backlog:decrement(Backlog, Index);
+    shackle_backlog:decrement(Backlog, Index, BacklogSize);
 reply(Reply, #cast {pid = Pid, request_id = RequestId}, #state {
         backlog = Backlog,
+        backlog_size = BacklogSize,
         index = Index
     }) ->
 
-    shackle_backlog:decrement(Backlog, Index),
+    shackle_backlog:decrement(Backlog, Index, BacklogSize),
     Pid ! {shackle_reply, RequestId, Reply},
     ok.
 

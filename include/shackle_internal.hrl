@@ -12,6 +12,11 @@
 -define(SERVER, shackle_server).
 -define(SUPERVISOR, shackle_sup).
 
+%% Put atomics slots that different schedulers write 128 bytes apart.
+%% Slots that are next to each other share a cache line. A cache line
+%% is 128 bytes on Apple silicon, and x86 prefetches lines in pairs.
+-define(STRIDE, 16).
+
 %% ETS tables
 -define(ETS_TABLE_POOL_INDEX, shackle_pool_index).
 

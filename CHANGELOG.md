@@ -4,6 +4,11 @@
 
 ### Changed
 
+- Backlog counters are spaced 128 bytes apart so servers in the same
+  pool no longer false-share cache lines (16 processes x 2M add/sub:
+  3.5 s -> 0.4 s). Pools with `backlog_size` `infinity` skip the
+  decrement on every reply.
+
 - `shackle:call/2,3` creates and receives on its reference in the
   same function, so the compiler's receive optimization skips
   messages already in the caller's mailbox (100k queued messages:
