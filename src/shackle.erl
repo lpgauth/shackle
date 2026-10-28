@@ -64,11 +64,15 @@ call(PoolName, Request, Timeout) ->
         {ok, Client, Server} ->
             Ref = make_ref(),
             RequestId = {Server, Ref},
-            send_cast(Server, Request, Client, self(), RequestId, Timeout,
-                Timestamp),
-            receive
-                {shackle_reply, {_, Ref}, Reply} ->
-                    Reply
+            case send_cast(Server, Request, Client, self(), RequestId,
+                    Timeout, Timestamp) of
+                ok ->
+                    receive
+                        {shackle_reply, {_, Ref}, Reply} ->
+                            Reply
+                    end;
+                {error, Reason} ->
+                    {error, Reason}
             end;
         {error, Reason} ->
             {error, Reason}
@@ -95,9 +99,13 @@ cast(PoolName, Request, Pid, Timeout) ->
     case shackle_pool:server(PoolName) of
         {ok, Client, Server} ->
             RequestId = {Server, Ref},
-            send_cast(Server, Request, Client, Pid, RequestId, Timeout,
-                Timestamp),
-            {ok, RequestId};
+            case send_cast(Server, Request, Client, Pid, RequestId, Timeout,
+                    Timestamp) of
+                ok ->
+                    {ok, RequestId};
+                {error, Reason} ->
+                    {error, Reason}
+            end;
         {error, Reason} ->
             {error, Reason}
     end.
@@ -123,11 +131,21 @@ receive_response(RequestId, Timeout) ->
     end.
 
 %% private
+%% The server can stop between the pool lookup and the send (a crash
+%% before the restart, or a pool stop). A send to a name that is not
+%% registered causes badarg.
 send_cast(Server, Request, Client, Pid, RequestId, Timeout, Timestamp) ->
-    Server ! {Request, #cast {
-        client = Client,
-        pid = Pid,
-        request_id = RequestId,
-        timeout = Timeout,
-        timestamp = Timestamp
-    }}.
+    try Server ! {Request, #cast {
+            client = Client,
+            pid = Pid,
+            request_id = RequestId,
+            timeout = Timeout,
+            timestamp = Timestamp
+        }} of
+        _ ->
+            ok
+    catch
+        error:badarg ->
+            shackle_telemetry:no_server(Client),
+            {error, no_server}
+    end.

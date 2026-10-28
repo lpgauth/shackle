@@ -65,6 +65,16 @@ shackle_call_infinity_timeout_test_() ->
         fun (_) -> cleanup(?CLIENT_TCP) end,
     [fun call_infinity_timeout_subtest/0]}.
 
+shackle_call_no_server_test_() ->
+    {setup,
+        fun () ->
+            setup(?CLIENT_TCP, [
+                {pool_size, 1}
+            ])
+        end,
+        fun (_) -> cleanup(?CLIENT_TCP) end,
+    [fun call_no_server_subtest/0]}.
+
 shackle_crash_disable_test_() ->
     {setup,
         fun () ->
@@ -342,6 +352,14 @@ backlog_full_subtest() ->
 call_infinity_timeout_subtest() ->
     ?assertEqual(3, shackle:call(?POOL_NAME, {add, 1, 2}, infinity)),
     ?assertEqual(5, shackle:call(?POOL_NAME, {add, 2, 3}, infinity)).
+
+call_no_server_subtest() ->
+    ServerName = server_name(1),
+    ok = supervisor:terminate_child(shackle_sup, ServerName),
+    ?assertEqual({error, no_server}, arithmetic_tcp_client:add(1, 1)),
+    ?assertEqual({error, no_server},
+        shackle:cast(?POOL_NAME, {add, 1, 1}, self(), ?TIMEOUT)),
+    {ok, _} = supervisor:restart_child(shackle_sup, ServerName).
 
 call_crash_subtest() ->
     ?assertEqual({error, client_crash}, arithmetic_tcp_client:add(a, b)),

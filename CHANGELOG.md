@@ -35,6 +35,12 @@
   reconnecting, so requests routed to it failed with
   `{error, no_socket}` instead of retrying another server.
 
+- `shackle:call/2,3` and `shackle:cast/2,3,4` raised `badarg` in the
+  caller when the selected server was gone (crashed and not yet
+  restarted, or its pool stopping); they now return
+  `{error, no_server}`. `shackle_pool:stop/1` unpublishes the pool
+  before stopping its servers.
+
 ### Removed
 
 - Telemetry events `[shackle, found]` and `[shackle, replies]`: both
