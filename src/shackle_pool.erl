@@ -63,8 +63,8 @@ start(Name, Client, ClientOptions, Options) ->
 stop(Name) ->
     case options(Name) of
         {ok, #pool_options {server_names = ServerNames}} ->
-            persistent_term:erase(key(Name)),
             stop_children(tuple_to_list(ServerNames)),
+            persistent_term:erase(key(Name)),
             ok;
         {error, Reason} ->
             {error, Reason}

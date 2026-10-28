@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- `shackle_pool:stop/1` erases the pool entry only after its servers
+  have stopped. In 0.9.0 the entry was erased first, so a concurrent
+  `start/4` for the same name could succeed while the old servers were
+  still registered, leaving a pool with no running servers.
+
+### Removed
+
+- The unused `shackle_server:id/0` type.
+
 ## 0.9.0
 
 ### Changed

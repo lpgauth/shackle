@@ -95,6 +95,26 @@ shackle_mixed_timeout_test_() ->
         fun (_) -> cleanup(?CLIENT_TCP) end,
     [fun mixed_timeout_subtest/0]}.
 
+shackle_stale_sweep_test_() ->
+    {setup,
+        fun () ->
+            setup(?CLIENT_TCP, [
+                {pool_size, 1}
+            ])
+        end,
+        fun (_) -> cleanup(?CLIENT_TCP) end,
+    [fun stale_sweep_subtest/0]}.
+
+shackle_stop_start_race_test_() ->
+    {setup,
+        fun () ->
+            setup(?CLIENT_TCP, [
+                {pool_size, 2}
+            ])
+        end,
+        fun (_) -> cleanup(?CLIENT_TCP) end,
+    [fun stop_start_race_subtest/0]}.
+
 shackle_max_requests_test_() ->
     {setup,
         fun () ->
@@ -403,6 +423,27 @@ reconnect_subtest(Client) ->
     timer:sleep(100),
     ?assertEqual(2, Client:add(1, 1)).
 
+stale_sweep_subtest() ->
+    Server = whereis(server_name(1)),
+    {ok, RequestId} = shackle:cast(?POOL_NAME, {add, 255, 255}, self(), 300),
+    Server ! {timeout, make_ref(), ?MSG_SWEEP},
+    ?assertEqual({error, timeout}, shackle:receive_response(RequestId, 100)),
+    ?assertEqual({error, timeout_handled},
+        shackle:receive_response(RequestId, 1000)),
+    ?assertEqual(Server, whereis(server_name(1))),
+    timer:sleep(1000),
+    ?assertEqual(2, arithmetic_tcp_client:add(1, 1)).
+
+stop_start_race_subtest() ->
+    Pid = self(),
+    spawn(fun () -> Pid ! {stopped, shackle_pool:stop(?POOL_NAME)} end),
+    ok = start_loop(),
+    receive {stopped, ok} -> ok end,
+    timer:sleep(500),
+    ?assertEqual([true, true], [is_pid(whereis(server_name(N))) ||
+        N <- [1, 2]]),
+    ?assertEqual(2, arithmetic_tcp_client:add(1, 1)).
+
 timeout_subtest(Client) ->
     ?assertEqual({error, timeout_handled}, Client:add(255, 255)).
 
@@ -441,6 +482,14 @@ mixed_timeout_subtest() ->
     end),
     ?assertEqual({error, timeout_handled}, Reply),
     ?assert(Microseconds < 1000000).
+
+start_loop() ->
+    case arithmetic_tcp_client:start([{pool_size, 2}]) of
+        {error, pool_already_started} ->
+            start_loop();
+        Result ->
+            Result
+    end.
 
 otp_28(Tests) ->
     case list_to_integer(erlang:system_info(otp_release)) >= 28 of

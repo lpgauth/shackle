@@ -42,14 +42,12 @@
 -type state() :: #state {}.
 -type client_state() :: term().
 -type init_options() :: term().
--type id() :: {shackle_pool:name(), index()}.
 -type index() :: pos_integer().
 -type name() :: atom().
 -type opts() :: {index(), shackle_client:options(), #pool_options {}}.
 -type reconnect_state() :: #reconnect_state{}.
 
 -export_type([
-    id/0,
     index/0,
     init_options/0,
     name/0,
