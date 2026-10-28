@@ -1,12 +1,6 @@
 -module(shackle_pool).
 -include("shackle_internal.hrl").
 
--dialyzer({nowarn_function, options/1}).
--dialyzer({nowarn_function, server/3}).
--ignore_xref([
-    {shackle_pool_foil, lookup, 1}
-]).
-
 %% public
 -export([
     start/3,
@@ -21,15 +15,6 @@
     terminate/0
 ]).
 
-%% records
--record(pool_options, {
-    backlog_size  :: shackle_backlog:backlog_size(),
-    client        :: shackle:client(),
-    max_retries   :: max_retries(),
-    pool_size     :: pool_size(),
-    pool_strategy :: pool_strategy()
-}).
-
 %% types
 -type max_retries() :: non_neg_integer().
 -type name() :: atom().
@@ -42,9 +27,11 @@
 -type options() :: [option()].
 
 -export_type([
+    max_retries/0,
     name/0,
     options/0,
-    pool_size/0
+    pool_size/0,
+    pool_strategy/0
 ]).
 
 %% public
@@ -64,9 +51,9 @@ start(Name, Client, ClientOptions, Options) ->
         {error, shackle_not_started} ->
             {error, shackle_not_started};
         {error, pool_not_started} ->
-            OptionsRec = options_rec(Client, Options),
-            setup(Name, OptionsRec),
-            start_children(Name, Client, ClientOptions, OptionsRec),
+            OptionsRec = options_rec(Name, Client, Options),
+            persistent_term:put(key(Name), OptionsRec),
+            start_children(ClientOptions, OptionsRec),
             ok
     end.
 
@@ -75,12 +62,9 @@ start(Name, Client, ClientOptions, Options) ->
 
 stop(Name) ->
     case options(Name) of
-        {ok, #pool_options {
-                pool_size = PoolSize
-            } = OptionsRec} ->
-
-            stop_children(Name, lists:seq(1, PoolSize)),
-            cleanup(Name, OptionsRec),
+        {ok, #pool_options {server_names = ServerNames}} ->
+            persistent_term:erase(key(Name)),
+            stop_children(tuple_to_list(ServerNames)),
             ok;
         {error, Reason} ->
             {error, Reason}
@@ -91,13 +75,7 @@ stop(Name) ->
     ok.
 
 init() ->
-    ets:new(?ETS_TABLE_POOL_INDEX, [
-        named_table,
-        public,
-        {write_concurrency, true}
-    ]),
-    foil:new(?MODULE),
-    foil:load(?MODULE).
+    erase_all().
 
 -spec server(shackle_pool:name()) ->
     {ok, shackle:client(), atom()} |
@@ -106,7 +84,7 @@ init() ->
 server(Name) ->
     case options(Name) of
         {ok, #pool_options {max_retries = MaxRetries} = Options} ->
-            server(Name, Options, MaxRetries + 1);
+            server(Options, MaxRetries + 1);
         {error, Reson} ->
             {error, Reson}
     end.
@@ -115,126 +93,128 @@ server(Name) ->
     ok.
 
 terminate() ->
-    foil:delete(?MODULE).
+    erase_all().
 
 %% private
-cleanup(Name, OptionsRec) ->
-    shackle_backlog:delete(Name),
-    shackle_status:delete(Name),
-    cleanup_ets(Name, OptionsRec),
-    cleanup_foil(Name, OptionsRec).
-
-cleanup_ets(Name, #pool_options {pool_strategy = round_robin}) ->
-    ets:delete(?ETS_TABLE_POOL_INDEX, {Name, round_robin});
-cleanup_ets(_Name, _OptionsRec) ->
+erase_all() ->
+    [persistent_term:erase(Key) ||
+        {{?MODULE, _Name} = Key, _} <- persistent_term:get()],
     ok.
 
-cleanup_foil(Name, #pool_options {pool_size = PoolSize}) ->
-    foil:delete(?MODULE, Name),
-    [foil:delete(?MODULE, {Name, N}) || N <- lists:seq(1, PoolSize)],
-    foil:load(?MODULE).
+key(Name) ->
+    {?MODULE, Name}.
 
 options(Name) ->
-    try shackle_pool_foil:lookup(Name) of
-        {ok, Options} ->
-            {ok, Options};
-        {error, key_not_found} ->
-            {error, pool_not_started}
-    catch
-        error:undef ->
-            {error, shackle_not_started}
+    case persistent_term:get(key(Name), undefined) of
+        undefined ->
+            case whereis(?SUPERVISOR) of
+                undefined ->
+                    {error, shackle_not_started};
+                _Pid ->
+                    {error, pool_not_started}
+            end;
+        Options ->
+            {ok, Options}
     end.
 
-options_rec(Client, Options) ->
+options_rec(Name, Client, Options) ->
     BacklogSize = ?LOOKUP(backlog_size, Options, ?DEFAULT_BACKLOG_SIZE),
     MaxRetries = ?LOOKUP(max_retries, Options, ?DEFAULT_MAX_RETRIES),
     PoolSize = ?LOOKUP(pool_size, Options, ?DEFAULT_POOL_SIZE),
     PoolStrategy = ?LOOKUP(pool_strategy, Options, ?DEFAULT_POOL_STRATEGY),
 
     #pool_options {
+        backlog = shackle_backlog:new(PoolSize),
         backlog_size = BacklogSize,
         client = Client,
         max_retries = MaxRetries,
+        name = Name,
         pool_size = PoolSize,
-        pool_strategy = PoolStrategy
+        pool_strategy = PoolStrategy,
+        round_robin = round_robin(PoolStrategy),
+        server_names = list_to_tuple([server_name(Name, N) ||
+            N <- lists:seq(1, PoolSize)]),
+        status = shackle_status:new(PoolSize)
     }.
 
-server(_Name, #pool_options {
+%% Use one counter for each scheduler, so callers do not write to the
+%% same slot. Each counter starts at a different value, so the first
+%% picks go to different servers.
+round_robin(round_robin) ->
+    Schedulers = erlang:system_info(schedulers),
+    Ref = atomics:new(Schedulers * ?STRIDE, [{signed, false}]),
+    [atomics:put(Ref, (N - 1) * ?STRIDE + 1, N - 1) ||
+        N <- lists:seq(1, Schedulers)],
+    Ref;
+round_robin(random) ->
+    undefined.
+
+server(#pool_options {
         client = Client
     }, 0) ->
 
     shackle_telemetry:no_server(Client),
     {error, no_server};
-server(Name, #pool_options {
+server(#pool_options {
+        backlog = Backlog,
         backlog_size = BacklogSize,
         client = Client,
-        pool_size = PoolSize,
-        pool_strategy = PoolStrategy
+        server_names = ServerNames,
+        status = Status
     } = Options, N) ->
 
-    ServerId = server_id(Name, PoolSize, PoolStrategy),
-    case shackle_status:active(ServerId) of
+    Index = server_index(Options),
+    case shackle_status:active(Status, Index) of
         true ->
-            Backlog = shackle_backlog:ref(Name),
-            {ok, ServerName} = shackle_pool_foil:lookup(ServerId),
-            case shackle_backlog:check(Backlog, ServerId, BacklogSize) of
+            case shackle_backlog:check(Backlog, Index, BacklogSize) of
                 true ->
-                    {ok, Client, ServerName};
+                    {ok, Client, element(Index, ServerNames)};
                 false ->
                     shackle_telemetry:backlog_full(Client),
-                    server(Name, Options, N - 1)
+                    server(Options, N - 1)
             end;
         false ->
             shackle_telemetry:disabled(Client),
-            server(Name, Options, N - 1)
+            server(Options, N - 1)
     end.
 
-server_id(Name, PoolSize, random) ->
-    {Name, shackle_utils:random(PoolSize)};
-server_id(Name, PoolSize, round_robin) ->
-    UpdateOps = [{2, 1, PoolSize, 1}],
-    Key = {Name, round_robin},
-    [ServerId] = ets:update_counter(?ETS_TABLE_POOL_INDEX, Key, UpdateOps),
-    {Name, ServerId}.
+server_index(#pool_options {
+        pool_size = PoolSize,
+        pool_strategy = random
+    }) ->
 
-setup(Name, #pool_options {pool_size = PoolSize} = OptionsRec) ->
-    shackle_backlog:new(Name, PoolSize),
-    shackle_status:new(Name, PoolSize),
-    setup_ets(Name, OptionsRec),
-    setup_foil(Name, OptionsRec).
+    shackle_utils:random(PoolSize);
+server_index(#pool_options {
+        pool_size = PoolSize,
+        round_robin = RoundRobin
+    }) ->
 
-setup_ets(Name, #pool_options {pool_strategy = round_robin}) ->
-    ets:insert_new(?ETS_TABLE_POOL_INDEX, {{Name, round_robin}, 1});
-setup_ets(_Name, _OptionsRec) ->
-    ok.
-
-setup_foil(Name, #pool_options {pool_size = PoolSize} = OptionsRec) ->
-    foil:insert(?MODULE, Name, OptionsRec),
-    [foil:insert(?MODULE, {Name, N}, server_name(Name, N)) ||
-        N <- lists:seq(1, PoolSize)],
-    foil:load(?MODULE).
+    Ix = (erlang:system_info(scheduler_id) - 1) * ?STRIDE + 1,
+    atomics:add_get(RoundRobin, Ix, 1) rem PoolSize + 1.
 
 server_name(Name, Index) ->
     list_to_atom(atom_to_list(Name) ++ "_" ++ integer_to_list(Index)).
 
-server_spec(Name, Index, Client, ClientOptions) ->
-    ServerName = server_name(Name, Index),
-    ServerOpts = {Name, Index, Client, ClientOptions},
+server_spec(Index, ClientOptions, #pool_options {
+        server_names = ServerNames
+    } = OptionsRec) ->
+
+    ServerName = element(Index, ServerNames),
+    ServerOpts = {Index, ClientOptions, OptionsRec},
     StartFunc = {?SERVER, start_link, [ServerName, ServerOpts]},
     {ServerName, StartFunc, permanent, 5000, worker, [?SERVER]}.
 
-start_children(Name, Client, ClientOptions, #pool_options {
+start_children(ClientOptions, #pool_options {
         pool_size = PoolSize
-    }) ->
+    } = OptionsRec) ->
 
     [supervisor:start_child(?SUPERVISOR,
-        server_spec(Name, Index, Client, ClientOptions)) ||
+        server_spec(Index, ClientOptions, OptionsRec)) ||
         Index <- lists:seq(1, PoolSize)].
 
-stop_children(_Name, []) ->
+stop_children([]) ->
     ok;
-stop_children(Name, [Index | T]) ->
-    ServerName = server_name(Name, Index),
+stop_children([ServerName | T]) ->
     supervisor:terminate_child(?SUPERVISOR, ServerName),
     supervisor:delete_child(?SUPERVISOR, ServerName),
-    stop_children(Name, T).
+    stop_children(T).

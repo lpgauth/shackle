@@ -1,6 +1,7 @@
 -module(shackle_tests).
 -include_lib("eunit/include/eunit.hrl").
 -include("test.hrl").
+-include("shackle_internal.hrl").
 
 -define(N, 1000).
 
@@ -53,6 +54,46 @@ shackle_call_crash_test_() ->
         end,
         fun (_) -> cleanup(?CLIENT_TCP) end,
     [fun call_crash_subtest/0]}.
+
+shackle_call_infinity_timeout_test_() ->
+    {setup,
+        fun () ->
+            setup(?CLIENT_TCP, [
+                {pool_size, 1}
+            ])
+        end,
+        fun (_) -> cleanup(?CLIENT_TCP) end,
+    [fun call_infinity_timeout_subtest/0]}.
+
+shackle_call_no_server_test_() ->
+    {setup,
+        fun () ->
+            setup(?CLIENT_TCP, [
+                {pool_size, 1}
+            ])
+        end,
+        fun (_) -> cleanup(?CLIENT_TCP) end,
+    [fun call_no_server_subtest/0]}.
+
+shackle_crash_disable_test_() ->
+    {setup,
+        fun () ->
+            setup(?CLIENT_TCP, [
+                {pool_size, 1}
+            ])
+        end,
+        fun (_) -> cleanup(?CLIENT_TCP) end,
+    [fun crash_disable_subtest/0]}.
+
+shackle_mixed_timeout_test_() ->
+    {setup,
+        fun () ->
+            setup(?CLIENT_TCP, [
+                {pool_size, 1}
+            ])
+        end,
+        fun (_) -> cleanup(?CLIENT_TCP) end,
+    [fun mixed_timeout_subtest/0]}.
 
 shackle_max_requests_test_() ->
     {setup,
@@ -278,6 +319,20 @@ shackle_timeout_udp_test_() ->
 add_subtest(Client) ->
     [assert_random_add(Client) || _ <- lists:seq(1, ?N)].
 
+crash_disable_subtest() ->
+    #pool_options {status = Status} =
+        persistent_term:get({shackle_pool, ?POOL_NAME}),
+    ?assertEqual(1, counters:get(Status, 1)),
+    %% a crash while connected leaves the slot enabled; when the
+    %% backend is down, the restarted server must disable it
+    arithmetic_tcp_server:stop(),
+    counters:put(Status, 1, 1),
+    exit(whereis(server_name(1)), kill),
+    timer:sleep(200),
+    ?assertEqual(0, counters:get(Status, 1)),
+    ?assertEqual({error, no_server}, arithmetic_tcp_client:add(1, 1)),
+    ok = arithmetic_tcp_server:start().
+
 app_stop_start_subtest() ->
     ?assertEqual({error, no_server}, arithmetic_tcp_client:add(1, 1)),
     ok = arithmetic_tcp_server:start(),
@@ -303,6 +358,18 @@ backlog_full_subtest() ->
         ({error, no_server}) -> true;
         (_) -> false
     end, receive_loop(20))).
+
+call_infinity_timeout_subtest() ->
+    ?assertEqual(3, shackle:call(?POOL_NAME, {add, 1, 2}, infinity)),
+    ?assertEqual(5, shackle:call(?POOL_NAME, {add, 2, 3}, infinity)).
+
+call_no_server_subtest() ->
+    ServerName = server_name(1),
+    ok = supervisor:terminate_child(shackle_sup, ServerName),
+    ?assertEqual({error, no_server}, arithmetic_tcp_client:add(1, 1)),
+    ?assertEqual({error, no_server},
+        shackle:cast(?POOL_NAME, {add, 1, 1}, self(), ?TIMEOUT)),
+    {ok, _} = supervisor:restart_child(shackle_sup, ServerName).
 
 call_crash_subtest() ->
     ?assertEqual({error, client_crash}, arithmetic_tcp_client:add(a, b)),
@@ -360,10 +427,20 @@ cleanup(Client) ->
     cleanup().
 
 connected_socket() ->
-    ServerName = list_to_atom(atom_to_list(?POOL_NAME) ++ "_1"),
+    ServerName = server_name(1),
     {links, Links} = erlang:process_info(whereis(ServerName), links),
     [Socket] = [Port || Port <- Links, is_port(Port)],
     Socket.
+
+mixed_timeout_subtest() ->
+    %% the second request has the earlier deadline, so the server
+    %% cancels the sweep timer and starts it again
+    {ok, _} = shackle:cast(?POOL_NAME, {add, 255, 255}, undefined, 5000),
+    {Microseconds, Reply} = timer:tc(fun () ->
+        shackle:call(?POOL_NAME, {add, 255, 255}, 100)
+    end),
+    ?assertEqual({error, timeout_handled}, Reply),
+    ?assert(Microseconds < 1000000).
 
 otp_28(Tests) ->
     case list_to_integer(erlang:system_info(otp_release)) >= 28 of
@@ -394,6 +471,9 @@ server(?CLIENT_TCP) ->
     arithmetic_tcp_server;
 server(?CLIENT_UDP) ->
     arithmetic_udp_server.
+
+server_name(Index) ->
+    list_to_atom(atom_to_list(?POOL_NAME) ++ "_" ++ integer_to_list(Index)).
 
 setup() ->
     error_logger:tty(false),

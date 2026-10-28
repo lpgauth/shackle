@@ -1,12 +1,11 @@
 -module(shackle_backlog).
+-include("shackle_internal.hrl").
 
 %% internal
 -export([
     check/3,
-    decrement/2,
-    delete/1,
-    new/2,
-    ref/1,
+    decrement/3,
+    new/1,
     reset/2
 ]).
 
@@ -18,61 +17,49 @@
 ]).
 
 %% internal
--spec check(atomics:atomics_ref(), shackle_server:id(), backlog_size()) ->
+-spec check(atomics:atomics_ref(), shackle_server:index(), backlog_size()) ->
     boolean().
 
-check(_Ref, _ServerId, infinity) ->
+check(_Ref, _Index, infinity) ->
     true;
-check(Ref, {_PoolName, Index}, BacklogSize) ->
-    case atomics:add_get(Ref, Index, 1) of
+check(Ref, Index, BacklogSize) ->
+    Ix = ix(Index),
+    case atomics:add_get(Ref, Ix, 1) of
         Value when Value =< BacklogSize ->
             true;
         _Value ->
-            atomics:sub(Ref, Index, 1),
+            atomics:sub(Ref, Ix, 1),
             false
     end.
 
--spec decrement(atomics:atomics_ref(), shackle_server:id()) ->
-    integer().
+-spec decrement(atomics:atomics_ref(), shackle_server:index(), backlog_size()) ->
+    ok.
 
-decrement(Ref, {_PoolName, Index}) ->
-    case atomics:sub_get(Ref, Index, 1) of
+decrement(_Ref, _Index, infinity) ->
+    ok;
+decrement(Ref, Index, _BacklogSize) ->
+    Ix = ix(Index),
+    case atomics:sub_get(Ref, Ix, 1) of
         Value when Value < 0 ->
-            %% reset or infinity backlog: never go below empty
-            atomics:add(Ref, Index, 1),
-            0;
-        Value ->
-            Value
+            %% a reset can occur while requests are in flight: do not
+            %% go below zero
+            atomics:add(Ref, Ix, 1);
+        _Value ->
+            ok
     end.
 
--spec delete(shackle_pool:name()) ->
-    ok.
-
-delete(PoolName) ->
-    persistent_term:erase({?MODULE, PoolName}),
-    ok.
-
--spec new(shackle_pool:name(), shackle_pool:pool_size()) ->
-    ok.
-
-new(PoolName, PoolSize) ->
-    Ref = atomics:new(PoolSize, []),
-    persistent_term:put({?MODULE, PoolName}, Ref),
-    ok.
-
--spec ref(shackle_pool:name()) ->
+-spec new(shackle_pool:pool_size()) ->
     atomics:atomics_ref().
 
-ref(PoolName) ->
-    persistent_term:get({?MODULE, PoolName}).
+new(PoolSize) ->
+    atomics:new(PoolSize * ?STRIDE, []).
 
--spec reset(shackle_pool:name(), shackle_server:id()) ->
+-spec reset(atomics:atomics_ref(), shackle_server:index()) ->
     ok.
 
-reset(PoolName, {_PoolName, Index}) ->
-    case persistent_term:get({?MODULE, PoolName}, undefined) of
-        undefined ->
-            ok;
-        Ref ->
-            atomics:put(Ref, Index, 0)
-    end.
+reset(Ref, Index) ->
+    atomics:put(Ref, ix(Index), 0).
+
+%% private
+ix(Index) ->
+    (Index - 1) * ?STRIDE + 1.

@@ -24,6 +24,5 @@ start_link() ->
 
 init([]) ->
     shackle_pool:init(),
-    shackle_status:init(),
 
     {ok, {{one_for_one, 5, 10}, [?CHILD(shackle_ets_manager)]}}.

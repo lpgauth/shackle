@@ -54,10 +54,26 @@ call(PoolName, Request) ->
 -spec call(atom(), term(), timeout()) ->
     term() | {error, cast_error()}.
 
+%% Make the ref and receive it in this function. Then the compiler
+%% can skip the messages that were in the mailbox before the request
+%% (recv_marker). If you use cast/4 and receive_response/1, the
+%% receive scans all of the mailbox.
 call(PoolName, Request, Timeout) ->
-    case cast(PoolName, Request, self(), Timeout) of
-        {ok, RequestId} ->
-            receive_response(RequestId);
+    Timestamp = erlang:monotonic_time(microsecond),
+    case shackle_pool:server(PoolName) of
+        {ok, Client, Server} ->
+            Ref = make_ref(),
+            RequestId = {Server, Ref},
+            case send_cast(Server, Request, Client, self(), RequestId,
+                    Timeout, Timestamp) of
+                ok ->
+                    receive
+                        {shackle_reply, {_, Ref}, Reply} ->
+                            Reply
+                    end;
+                {error, Reason} ->
+                    {error, Reason}
+            end;
         {error, Reason} ->
             {error, Reason}
     end.
@@ -83,14 +99,13 @@ cast(PoolName, Request, Pid, Timeout) ->
     case shackle_pool:server(PoolName) of
         {ok, Client, Server} ->
             RequestId = {Server, Ref},
-            Server ! {Request, #cast {
-                client = Client,
-                pid = Pid,
-                request_id = RequestId,
-                timeout = Timeout,
-                timestamp = Timestamp
-            }},
-            {ok, RequestId};
+            case send_cast(Server, Request, Client, Pid, RequestId, Timeout,
+                    Timestamp) of
+                ok ->
+                    {ok, RequestId};
+                {error, Reason} ->
+                    {error, Reason}
+            end;
         {error, Reason} ->
             {error, Reason}
     end.
@@ -113,4 +128,24 @@ receive_response(RequestId, Timeout) ->
             Reply
     after Timeout ->
         {error, timeout}
+    end.
+
+%% private
+%% The server can stop between the pool lookup and the send (a crash
+%% before the restart, or a pool stop). A send to a name that is not
+%% registered causes badarg.
+send_cast(Server, Request, Client, Pid, RequestId, Timeout, Timestamp) ->
+    try Server ! {Request, #cast {
+            client = Client,
+            pid = Pid,
+            request_id = RequestId,
+            timeout = Timeout,
+            timestamp = Timestamp
+        }} of
+        _ ->
+            ok
+    catch
+        error:badarg ->
+            shackle_telemetry:no_server(Client),
+            {error, no_server}
     end.

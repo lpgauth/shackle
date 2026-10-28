@@ -1,5 +1,57 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- `round_robin` pool strategy picks the next server with a
+  per-scheduler atomics counter instead of `ets:update_counter/3` on
+  one shared key, which collapsed under concurrent callers (10
+  callers: 66.9 us -> 0.2 us per pick, the same as `random`). The
+  rotation is per scheduler, so load stays even but the order is no
+  longer one global sequence.
+
+- Backlog counters are spaced 128 bytes apart so servers in the same
+  pool no longer false-share cache lines (16 processes x 2M add/sub:
+  3.5 s -> 0.4 s). Pools with `backlog_size` `infinity` skip the
+  decrement on every reply.
+
+- `shackle:call/2,3` creates and receives on its reference in the
+  same function, so the compiler's receive optimization skips
+  messages already in the caller's mailbox (100k queued messages:
+  527 us -> 49 us per call).
+
+- Pool state (options, server names, status and backlog refs) lives
+  in one `persistent_term` entry, so routing a request is one lookup
+  instead of four. foil is no longer a dependency.
+
+### Fixed
+
+- A request with timeout `infinity` crashed its server with
+  `badarith`, leaving every in-flight `shackle:call/2,3` on that
+  connection waiting forever.
+
+- A server restarted after a crash kept its pool slot enabled while
+  reconnecting, so requests routed to it failed with
+  `{error, no_socket}` instead of retrying another server.
+
+- `shackle:call/2,3` and `shackle:cast/2,3,4` raised `badarg` in the
+  caller when the selected server was gone (crashed and not yet
+  restarted, or its pool stopping); they now return
+  `{error, no_server}`. `shackle_pool:stop/1` unpublishes the pool
+  before stopping its servers.
+
+- A cancelled sweep timer that had already fired could leave two
+  sweep timers armed; sweep messages now carry their timer ref and
+  stale ones are ignored.
+
+### Removed
+
+- Telemetry events `[shackle, found]` and `[shackle, replies]`: both
+  fired once per reply, alongside `[shackle, reply]` (which carries
+  the duration) or `[shackle, not_found]`. Count `[shackle, reply]`
+  events instead.
+
 ## 0.8.0
 
 ### Added
