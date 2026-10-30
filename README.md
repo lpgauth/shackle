@@ -139,7 +139,7 @@ shackle_pool:start(pool_name(), client(), client_options(), pool_options())
 | protocol | `shackle_tcp \| shackle_udp \| shackle_ssl` | shackle_tcp | server protocol |
 | reconnect | `boolean()` | true | reconnect closed connections |
 | reconnect_time_max | `pos_integer() \| infinity` | 120000 | maximum reconnect time in milliseconds |
-| reconnect_time_min | `pos_integer()` | 1000 | minimum reconnect time in milliseconds |
+| reconnect_time_min | `pos_integer()` | 500 | minimum reconnect time in milliseconds |
 | socket_options | `[gen_tcp:connect_option() \| gen_udp:option()]` | `[]` | options passed to the socket |
 | bounce_interval_secs | `pos_integer() \| infinity` | infinity | number of seconds between forcing a connection bounce for every connection in a pool |
 | bounce_udp | `boolean()` | false | When connection bouncing is enabled (`bounce_interval_secs` is an integer) UDP connections by default are not bounced unless this option is `true` |

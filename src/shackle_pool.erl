@@ -51,6 +51,7 @@ See README.md for detailed strategy documentation.
 
 %% Key of the per-request server permutation used by random_without_replacement
 -define(PERMUTATION_KEY, '$shackle_permutation').
+-define(PROBE_OFFSET_KEY, '$shackle_probe_offset').
 
 -dialyzer({nowarn_function, options/1}).
 -dialyzer({nowarn_function, server/3}).
@@ -451,6 +452,10 @@ next_attempt(random_without_replacement, _PoolSize,
 next_attempt(random_without_replacement, PoolSize, CallOptions) ->
     %% Every server has been tried; start a new cycle
     CallOptions#{?PERMUTATION_KEY := shuffle_list(lists:seq(1, PoolSize))};
+%% Retries under consistent_hash probe the following indexes, so a key whose
+%% primary connection is down does not burn every attempt on that one connection.
+next_attempt(consistent_hash, _PoolSize, CallOptions) ->
+    CallOptions#{?PROBE_OFFSET_KEY => maps:get(?PROBE_OFFSET_KEY, CallOptions, 0) + 1};
 next_attempt(_PoolStrategy, _PoolSize, CallOptions) ->
     CallOptions.
 
@@ -581,8 +586,8 @@ server_id(Name, PoolSize, power_of_two, _CallOptions) ->
     %% Near-optimal load balancing with O(1) cost
     Idx1 = shackle_utils:random(PoolSize),
     Idx2 = shackle_utils:random(PoolSize),
-    Load1 = get_server_load(Name, Idx1),
-    Load2 = get_server_load(Name, Idx2),
+    Load1 = load_for_selection(Name, Idx1),
+    Load2 = load_for_selection(Name, Idx2),
     SelectedIdx = if Load1 =< Load2 -> Idx1; true -> Idx2 end,
     {Name, SelectedIdx};
 
@@ -613,8 +618,20 @@ server_id(Name, PoolSize, consistent_hash, CallOptions) ->
             %% Fallback to random when no hash key provided
             {Name, shackle_utils:random(PoolSize)};
         HashKey ->
-            %% Use provided key for deterministic routing
-            {Name, erlang:phash2(HashKey, PoolSize) + 1}
+            %% Use provided key for deterministic routing. Retries move to the
+            %% following indexes (see next_attempt/3).
+            Offset = maps:get(?PROBE_OFFSET_KEY, CallOptions, 0),
+            {Name, (erlang:phash2(HashKey, PoolSize) + Offset) rem PoolSize + 1}
+    end.
+
+%% Load used to rank a sampled server in power_of_two. An inactive server ranks
+%% last: its semaphore count is 0 while it is down, so a raw load would make it
+%% look idle. It is only chosen when both samples are inactive, and server/4 then
+%% moves on to the next attempt.
+load_for_selection(Name, Idx) ->
+    case shackle_status:active({Name, Idx}) of
+        true -> get_server_load(Name, Idx);
+        false -> infinity
     end.
 
 setup(#pool_options {
@@ -652,10 +669,20 @@ server_spec(Name, Index, Client, ClientOptions) ->
     StartFunc = {?SERVER, start_link, [ServerName, ServerOpts]},
     {ServerName, StartFunc, permanent, 5000, worker, [?SERVER]}.
 
-start_children(Name, Client, ClientOptions, #pool_options {pool_size = PoolSize}) ->
-    [supervisor:start_child(?SUPERVISOR,
+%% A child that fails to start (for example, a bad server entry) leaves the pool
+%% unusable, so tear down what was set up and fail the pool start.
+start_children(Name, Client, ClientOptions, #pool_options {pool_size = PoolSize} = OptionsRec) ->
+    Results = [supervisor:start_child(?SUPERVISOR,
         server_spec(Name, Index, Client, ClientOptions)) ||
-        Index <- lists:seq(1, PoolSize)].
+        Index <- lists:seq(1, PoolSize)],
+    case [Reason || {error, Reason} <- Results] of
+        [] ->
+            ok;
+        [FirstReason | _] ->
+            stop_children(Name, lists:seq(1, PoolSize)),
+            cleanup(Name, OptionsRec),
+            error({pool_start_failed, Name, FirstReason})
+    end.
 
 stop_children(_Name, []) ->
     ok;

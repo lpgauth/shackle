@@ -2,9 +2,7 @@ name: Erlang CI
 on: [push]
 jobs:
   build:
-    runs-on:
-      group: SelfHostedDefault
-      labels: ubuntu-22.04-large
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         erlang: [28, 29]
@@ -13,7 +11,7 @@ jobs:
       image: erlang:${{ matrix.erlang }}
 
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v5
     - name: Compile
       run:  make compile
     - name: Lint

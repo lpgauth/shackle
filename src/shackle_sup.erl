@@ -23,6 +23,7 @@ start_link() ->
     {ok, {{one_for_one, 5, 10}, [supervisor:child_spec()]}}.
 
 init([]) ->
+    shackle_hooks:init(),
     shackle_pool:init(),
     shackle_status:init(),
 

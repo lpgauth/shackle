@@ -274,8 +274,8 @@ resolve_standard_hostname(Hostname) ->
             % No IPv4 - check if IPv6 is available
             case inet:getaddrs(Hostname, inet6) of
                 {ok, IPv6Addrs} when length(IPv6Addrs) > 0 ->
-                    % IPv6 available but IPv4 preferred
-                    {error, {ipv6_not_supported, IPv6Addrs, Hostname}};
+                    % IPv6-only host: use its IPv6 addresses
+                    {ok, IPv6Addrs};
                 {error, _} ->
                     {error, {hostname_not_found, Hostname}}
             end;

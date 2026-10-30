@@ -5,14 +5,23 @@ NIF-based TCP socket protocol using the socket module (OTP 27.3+).
 This protocol uses Erlang's socket module with OTP select read support for
 improved performance compared to gen_tcp. It provides:
 
-- ~2.5% throughput improvement over gen_tcp
 - Better control over socket options
-- Support for socket:sendv/2 for iodata (OTP 27+, avoiding flattening)
+- socket:send/2 for iodata (OTP 27+)
 - Requires OTP 27.3 or later
 
-Falls back to shackle_tcp on older OTP versions.
+Reads are driven by select notifications. When the socket becomes readable,
+the owner process receives `{'$socket', Socket, select, Ref}`. shackle_server
+then calls recv/1, which delivers the data to the client's handle_data/2 as if
+it had arrived as a `{tcp, Socket, Data}` message.
+
+Falls back to gen_tcp on older OTP versions.
 """.
 -include("shackle_defaults.hrl").
+
+-dialyzer({nowarn_function, [recv/1, send/2, sendv/2, setopts/2]}).
+-ignore_xref([
+    {socket, sendv, 2}
+]).
 
 -behavior(shackle_protocol).
 -export([
@@ -22,164 +31,146 @@ Falls back to shackle_tcp on older OTP versions.
     setopts/2
 ]).
 
-%% Compile-time OTP version check
--if(?OTP_RELEASE >= 27).
-  -define(OTP_27_PLUS, true).
--else.
-  -define(OTP_27_PLUS, false).
--endif.
+%% internal
+-export([
+    recv/1
+]).
 
-%%-----------------------------------------------------------------------------
-%% Implementation for OTP 27+: socket module
-%%-----------------------------------------------------------------------------
+%% callbacks
+-spec close(shackle:socket()) ->
+    ok.
 
--if(?OTP_27_PLUS).
-
--spec close(shackle:socket()) -> ok.
 close(Socket) ->
-    try
-        socket:close(Socket),
-        ok
-    catch
-        _:_ -> ok
-    end.
-
-%% socket:connect/2 takes a resolved IP, not a hostname.
--spec connect(inet:ip_address(), shackle:inet_port(), shackle:socket_options()) ->
-    {ok, shackle:socket()} | {error, atom()}.
-connect(Address, Port, SocketOptions) ->
-    try
-        Family = shackle_utils:address_family(Address),
-        case socket:open(Family, stream, tcp) of
-            {ok, Socket} ->
-                case apply_socket_options(Socket, SocketOptions) of
-                    ok ->
-                        case socket:connect(Socket, #{family => Family, addr => Address, port => Port}) of
-                            ok ->
-                                enable_select_read(Socket);
-                            {error, ConnectErr} ->
-                                socket:close(Socket),
-                                {error, ConnectErr}
-                        end;
-                    {error, _} = SetoptErr ->
-                        socket:close(Socket),
-                        SetoptErr
-                end;
-            {error, OpenErr} ->
-                {error, OpenErr}
-        end
-    catch
-        error:CatchErr ->
-            {error, CatchErr}
-    end.
-
-%% Enable OTP select read for non-blocking operation
-enable_select_read(Socket) ->
-    try
-        case socket:setopt(Socket, otp, select_read, true) of
-            ok ->
-                {ok, Socket};
-            {error, SetErr} ->
-                socket:close(Socket),
-                {error, SetErr}
-        end
-    catch
-        error:_ ->
-            {ok, Socket}
-    end.
-
-%% Apply socket options. A setopt error is returned to the caller, which closes
-%% the socket and fails the connect.
-apply_socket_options(_Socket, []) ->
-    ok;
-apply_socket_options(Socket, [Opt | Rest]) ->
-    case convert_option(Opt) of
-        skip ->
-            apply_socket_options(Socket, Rest);
-        {ok, Level, Options} ->
-            case apply_setopts(Socket, Level, Options) of
-                ok -> apply_socket_options(Socket, Rest);
-                {error, _} = Error -> Error
-            end
-    end.
-
-apply_setopts(_Socket, _Level, []) ->
-    ok;
-apply_setopts(Socket, Level, [{Name, Value} | T]) ->
-    case socket:setopt(Socket, {Level, Name}, Value) of
-        ok -> apply_setopts(Socket, Level, T);
-        {error, _} = Error -> Error
-    end.
-
-%% Convert gen_tcp option to socket option
-convert_option({active, _})               -> skip;  %% not a socket-module option
-convert_option({buffer, Size})            -> {ok, socket, [{rcvbuf, Size}]};
-convert_option({delay_send, _})           -> skip;
-convert_option({deliver, _})              -> skip;
-convert_option({dontroute, Flag})         -> {ok, socket, [{dontroute, Flag}]};
-convert_option({exit_on_close, _})        -> skip;
-convert_option({high_msgq_watermark, _})  -> skip;
-convert_option({high_watermark, _})       -> skip;
-convert_option({ipv6_v6only, Flag})       -> {ok, ipv6, [{v6only, Flag}]};
-convert_option({keepalive, Flag})         -> {ok, socket, [{keepalive, Flag}]};
-convert_option({linger, {true, Seconds}}) -> {ok, socket, [{linger, #{onoff => true, linger => Seconds}}]};
-convert_option({linger, {false, _}})      -> {ok, socket, [{linger, #{onoff => false, linger => 0}}]};
-convert_option({low_msgq_watermark, _})   -> skip;
-convert_option({low_watermark, _})        -> skip;
-convert_option({nodelay, Flag})           -> {ok, tcp, [{nodelay, Flag}]};
-convert_option({packet, raw})             -> skip;
-convert_option({packet, _})               -> skip;
-convert_option({priority, Priority})      -> {ok, socket, [{priority, Priority}]};
-convert_option({recbuf, Size})            -> {ok, socket, [{rcvbuf, Size}]};
-convert_option({reuseaddr, Flag})         -> {ok, socket, [{reuseaddr, Flag}]};
-convert_option({send_timeout, Timeout})   -> {ok, socket, [{sndtimeo, Timeout}]};
-convert_option({send_timeout_close, _})   -> skip;
-convert_option({show_econnreset, Flag})   -> {ok, socket, [{show_econnreset, Flag}]};
-convert_option({sndbuf, Size})            -> {ok, socket, [{sndbuf, Size}]};
-convert_option({tos, ToS})                -> {ok, ip, [{tos, ToS}]};
-convert_option({ttl, TTL})                -> {ok, ip, [{ttl, TTL}]};
-convert_option(binary)                    -> skip;
-convert_option(inet)                      -> skip;
-convert_option(inet6)                     -> skip;
-convert_option(_Other)                    -> skip.
-
--spec send(shackle:socket(), iodata()) -> ok | {error, atom()}.
-send(Socket, Data) ->
-    try
-        case socket:sendv(Socket, [Data]) of
-            {ok, _} -> ok;
-            {error, SendErr} -> {error, SendErr}
-        end
-    catch
-        error:CatchErr ->
-            {error, CatchErr}
-    end.
-
--spec setopts(shackle:socket(), [gen_tcp:option()]) -> ok | {error, atom()}.
-setopts(Socket, Opts) ->
-    apply_socket_options(Socket, Opts).
-
-%% ============================================================================
-%% Fallback for OTP < 27: use gen_tcp
-%% ============================================================================
-
--else.
-
--spec close(shackle:socket()) -> ok.
-close(Socket) ->
-    gen_tcp:close(Socket).
+    _ = socket:close(Socket),
+    ok.
 
 -spec connect(shackle:inet_address(), shackle:inet_port(), shackle:socket_options()) ->
     {ok, shackle:socket()} | {error, atom()}.
+
 connect(Address, Port, SocketOptions) ->
-    gen_tcp:connect(Address, Port, SocketOptions, ?DEFAULT_CONNECT_TIMEOUT).
+    case socket:open(inet, stream, tcp) of
+        {ok, Socket} ->
+            case connect_opts(Socket, SocketOptions) of
+                ok ->
+                    SockAddr = #{family => inet, addr => Address, port => Port},
+                    case socket:connect(Socket, SockAddr,
+                        ?DEFAULT_CONNECT_TIMEOUT) of
 
--spec send(shackle:socket(), iodata()) -> ok | {error, atom()}.
+                        ok ->
+                            {ok, Socket};
+                        {error, Reason} ->
+                            _ = socket:close(Socket),
+                            {error, Reason}
+                    end;
+                {error, Reason} ->
+                    _ = socket:close(Socket),
+                    {error, Reason}
+            end;
+        {error, _} = Error ->
+            Error
+    end.
+
+%% Reads whatever is available; with {otp, select_read} enabled the
+%% successful recv re-arms the read select inside the same NIF call.
+-spec recv(shackle:socket()) ->
+    {ok, binary()} | wait | {error, atom()}.
+
+recv(Socket) ->
+    case socket:recv(Socket, 0, [], nowait) of
+        {select_read, {_SelectInfo, Data}} ->
+            {ok, Data};
+        {select, {_SelectInfo, Data}} ->
+            {ok, Data};
+        {select, _SelectInfo} ->
+            wait;
+        {ok, Data} ->
+            %% Data was read but the select may not be re-armed; callers keep
+            %% calling recv/1 until it returns `wait', which arms it.
+            {ok, Data};
+        {error, {Reason, _Data}} ->
+            {error, Reason};
+        {error, Reason} ->
+            {error, Reason}
+    end.
+
+-spec send(shackle:socket(), iodata()) ->
+    ok | {error, atom()}.
+
+send(Socket, Data) when is_binary(Data) ->
+    case socket:send(Socket, Data) of
+        ok ->
+            ok;
+        {error, {Reason, _RestData}} ->
+            {error, Reason};
+        {error, Reason} ->
+            {error, Reason}
+    end;
+%% socket:send flattens iolists with list_to_binary; sendv keeps the
+%% iovec and writes it in one NIF call
 send(Socket, Data) ->
-    gen_tcp:send(Socket, Data).
+    sendv(Socket, erlang:iolist_to_iovec(Data)).
 
--spec setopts(shackle:socket(), [gen_tcp:option()]) -> ok | {error, atom()}.
+-spec setopts(shackle:socket(), [gen_tcp:option()]) ->
+    ok |
+    {error, atom()}.
+
+setopts(Socket, [{active, false}]) ->
+    _ = socket:setopt(Socket, {otp, select_read}, false),
+    ok;
+setopts(Socket, [{active, true}]) ->
+    ok = socket:setopt(Socket, {otp, select_read}, true),
+    arm_and_deliver(Socket);
 setopts(Socket, Opts) ->
-    inet:setopts(Socket, Opts).
+    connect_opts(Socket, Opts).
 
--endif.
+%% private
+%% Reads until recv/1 returns `wait', which leaves the select armed. Each chunk
+%% is sent to the owner like an active-mode packet.
+arm_and_deliver(Socket) ->
+    case recv(Socket) of
+        {ok, Data} ->
+            self() ! {tcp, Socket, Data},
+            arm_and_deliver(Socket);
+        wait ->
+            ok;
+        {error, _} = Error ->
+            Error
+    end.
+
+sendv(Socket, IOV) ->
+    case socket:sendv(Socket, IOV) of
+        ok ->
+            ok;
+        {ok, RestIOV} ->
+            sendv(Socket, RestIOV);
+        {error, {Reason, _RestIOV}} ->
+            {error, Reason};
+        {error, Reason} ->
+            {error, Reason}
+    end.
+
+connect_opts(_Socket, []) ->
+    ok;
+connect_opts(Socket, [{nodelay, Bool} | T]) ->
+    case socket:setopt(Socket, {tcp, nodelay}, Bool) of
+        ok ->
+            connect_opts(Socket, T);
+        {error, _} = Error ->
+            Error
+    end;
+connect_opts(Socket, [{recbuf, Size} | T]) ->
+    case socket:setopt(Socket, {socket, rcvbuf}, Size) of
+        ok ->
+            connect_opts(Socket, T);
+        {error, _} = Error ->
+            Error
+    end;
+connect_opts(Socket, [{sndbuf, Size} | T]) ->
+    case socket:setopt(Socket, {socket, sndbuf}, Size) of
+        ok ->
+            connect_opts(Socket, T);
+        {error, _} = Error ->
+            Error
+    end;
+connect_opts(Socket, [_ | T]) ->
+    connect_opts(Socket, T).

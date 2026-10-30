@@ -51,6 +51,9 @@ connections
 -define(ON_BOUNCE_EVENT(_State, _Event), ok).
 -endif.
 
+%% Max time a graceful drain waits for requests that have no timer (timeout => infinity).
+-define(DRAIN_TIMEOUT_MS, 5000).
+
 -record(state, {
     address          :: shackle:inet_address(),
     client           :: shackle:client(),
@@ -77,6 +80,7 @@ connections
     timer_ref        :: undefined | reference(),
     bounce_timer_ref :: undefined | reference(),
     drain_timer_ref  :: undefined | reference(),    %% Timer reference of queue drain check
+    drain_deadline   :: undefined | integer(),      %% Monotonic ms; untimed requests fail after it
     on_bounce_event  :: undefined | function(),
     next_bounce      :: undefined | pos_integer(),  %% Epoch timestamp when to close connection
     max_requests     :: infinity  | pos_integer(),  %% Max requests before graceful drain
@@ -396,10 +400,11 @@ handle_msg({ssl_closed, Socket}, {State, ClientState}) ->
 handle_msg({ssl_error, Socket, Reason}, {State, ClientState}) ->
     handle_msg_error(Socket, Reason, State, ClientState);
 handle_msg({tcp, Socket, Data}, {State, ClientState}) ->
-    report_socket_rtt(State),
-    handle_msg_data(Socket, Data, State, ClientState);
+    report_socket_rtt(State), handle_msg_data(Socket, Data, State, ClientState);
 handle_msg({tcp_closed, Socket}, {State, ClientState}) ->
     handle_msg_close(Socket, State, ClientState);
+handle_msg({'$socket', Socket, select, _}, {#state{socket = Socket} = State, CS}) ->
+    handle_socket_select(Socket, State, CS);
 handle_msg({tcp_error, Socket, Reason}, {State, ClientState}) ->
     handle_msg_error(Socket, Reason, State, ClientState);
 handle_msg({udp, Socket, _Ip, _InPortNo, Data}, {State, ClientState}) ->
@@ -819,6 +824,27 @@ handle_msg_close(_Socket, State, ClientState) ->
     %% Ignore delayed socket close notifications for a non-owned or undefined socket
     {ok, {State, ClientState}}.
 
+%% Read every chunk that is ready on a socket-module connection. Each chunk goes
+%% through the same path as a {tcp, Socket, Data} message. Reading stops when
+%% recv/1 re-arms the select (`wait'), which is what lets the next readiness
+%% notification arrive.
+handle_socket_select(Socket, State, ClientState) ->
+    case shackle_socket:recv(Socket) of
+        {ok, Data} ->
+            case handle_msg({tcp, Socket, Data}, {State, ClientState}) of
+                {ok, {#state{socket = Socket} = State1, ClientState1}} ->
+                    handle_socket_select(Socket, State1, ClientState1);
+                Other ->
+                    Other
+            end;
+        wait ->
+            {ok, {State, ClientState}};
+        {error, closed} ->
+            handle_msg_close(Socket, State, ClientState);
+        {error, Reason} ->
+            handle_msg_error(Socket, Reason, State, ClientState)
+    end.
+
 handle_msg_data(Socket, Data, #state {
         client = Client,
         pool_name = PoolName,
@@ -1058,7 +1084,9 @@ check_max_requests(#state{max_requests = Max, request_count = Count,
             ?LOG_DEBUG("max_requests limit reached (~w/~w), entering graceful drain",
                        [Count, Max]),
             shackle_status:disable(State#state.id),
-            State#state{bounce_state = draining, bounce_held = true};
+            %% Arm the drain check here: nothing else runs maybe_bounce/2 until a
+            %% reply arrives, which never happens if every queued request is unanswered.
+            arm_queue_drain_check(State#state{bounce_state = draining, bounce_held = true});
         false ->
             State
     end;
@@ -1072,11 +1100,12 @@ schedule_bounce(#state{bounce_interval = MSec, socket = Sock} = State) ->
     Ref = erlang:send_after(MSec, self(), {bounce_connection, Sock}),
     State#state{next_bounce = Time, bounce_timer_ref = Ref}.
 
-maybe_bounce(#state{bounce_state = BS, drain_timer_ref = OldTimerRef} = State, ClientState) when
+maybe_bounce(#state{bounce_state = BS} = State0, ClientState) when
     BS == draining; BS == awaiting_empty_queue
 ->
     %% If we are in the process of waiting for a connection bounce and draining
     %% the queue, when the queue has been drained, proceed with the bounce.
+    State = fail_untimed_requests_past_deadline(State0),
     case queue_empty(State) of
         true ->
             %% The bounce semaphore stays held through the reconnect (see release_bounce/1),
@@ -1090,24 +1119,47 @@ maybe_bounce(#state{bounce_state = BS, drain_timer_ref = OldTimerRef} = State, C
             inc_metrics(State, shackle_socket_total, <<"bounce">>),
             close(State#state{bounce_state = reconnecting}, ClientState, reconnecting);
         false ->
-            State1 =
-                if BS == draining, OldTimerRef == undefined ->
-                    ?ON_BOUNCE_EVENT(State, #{
-                        status => awaiting_empty_queue,
-                        bounce_state => BS,
-                        bounce_interval => State#state.bounce_interval,
-                        queue_drain_timer => OldTimerRef,
-                        src => {?MODULE, ?LINE}
-                    }),
-                    Ref = erlang:send_after(1000, self(), {queue_drain_check, State#state.socket}),
-                    State#state{drain_timer_ref = Ref, bounce_state = awaiting_empty_queue};
-                true ->
-                    State
-                end,
-            {ok, {State1, ClientState}}
+            {ok, {arm_queue_drain_check(State), ClientState}}
     end;
 maybe_bounce(State, ClientState) ->
     {ok, {State, ClientState}}.
+
+%% Arm the queue drain check if none is pending. The check re-arms itself on each
+%% tick until the queue is empty, so a non-empty queue is never left unchecked.
+arm_queue_drain_check(#state{drain_timer_ref = undefined, bounce_state = BS} = State) ->
+    State1 =
+        case BS of
+            draining ->
+                ?ON_BOUNCE_EVENT(State, #{
+                    status => awaiting_empty_queue,
+                    bounce_state => BS,
+                    bounce_interval => State#state.bounce_interval,
+                    src => {?MODULE, ?LINE}
+                }),
+                State#state{drain_deadline = now_time_ms() + ?DRAIN_TIMEOUT_MS};
+            awaiting_empty_queue ->
+                State
+        end,
+    Ref = erlang:send_after(1000, self(), {queue_drain_check, State1#state.socket}),
+    State1#state{drain_timer_ref = Ref, bounce_state = awaiting_empty_queue};
+arm_queue_drain_check(State) ->
+    State.
+
+%% A request without a timer never times out on its own, so during a drain it
+%% could hold the connection (and the pool bounce semaphore) forever. Once the
+%% drain deadline has passed, fail those requests so the drain can complete.
+fail_untimed_requests_past_deadline(#state{drain_deadline = Deadline, queue = Queue} = State)
+  when is_integer(Deadline) ->
+    case now_time_ms() >= Deadline of
+        true ->
+            Untimed = maps:filter(fun (_Id, #cast{timer_ref = Ref}) -> Ref == undefined end, Queue),
+            reply2({error, drain_timeout}, maps:values(Untimed), State),
+            State#state{queue = maps:without(maps:keys(Untimed), Queue)};
+        false ->
+            State
+    end;
+fail_untimed_requests_past_deadline(State) ->
+    State.
 
 %% If bounce timeout is set and the current time exceeds the timeout,
 %% enter the connection draining state

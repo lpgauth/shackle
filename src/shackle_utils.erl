@@ -21,8 +21,7 @@
     list_peers/0,
     list_peers/1,
     peername/1,
-    sock_owner/1,
-    address_family/1
+    sock_owner/1
 ]).
 
 %% NOTE: use ?WARN(PoolName, Format, Data) macro instead
@@ -127,13 +126,6 @@ peername(S) ->
         {error, Reason} ->
             Reason
     end.
-
--doc "Determine address family (inet or inet6) from address".
--spec address_family(atom() | list() | binary() | tuple()) -> inet | inet6.
-address_family(Address) when tuple_size(Address) =:= 8 ->
-    inet6;
-address_family(_) ->
-    inet.
 
 sockets() ->
     socket:which_sockets() ++
@@ -326,7 +318,9 @@ merge_options(AppEnv, Defaults, KeyMap) when
     ]),
     ClientConfig = lists:foldl(F, [], [
         {ip, {client, ?DEFAULT_ADDRESS}},
+        {address, {client, undefined}},
         {port, {client, 0}},
+        {servers, {client, undefined}},
         {protocol, {client, ?DEFAULT_PROTOCOL}},
         {service_name, {client, undefined}},
         {reconnect, {client, ?DEFAULT_RECONNECT}},
@@ -363,6 +357,7 @@ validate([{pool_strategy, consistent_hash} | T]) -> validate(T);
 validate([{ip, V} | T]) when is_list(V); is_tuple(V) -> validate(T);
 validate([{address, V} | T]) when is_list(V); is_tuple(V) -> validate(T);
 validate([{port, V} | T]) when is_integer(V) -> validate(T);
+validate([{servers, V} | T]) when is_list(V) -> validate(T);
 validate([{protocol, shackle_tcp} | T]) -> validate(T);
 validate([{protocol, shackle_udp} | T]) -> validate(T);
 validate([{protocol, shackle_ssl} | T]) -> validate(T);
