@@ -10,6 +10,10 @@
   timeout is sent by the server. An `infinity` timeout still waits
   forever.
 
+- `shackle_pool:start/3,4` returns `{error, Reason}` when a pool
+  server does not start, and stops the servers it already started.
+  Before, it returned `ok` and left a pool with missing servers.
+
 ## 0.9.1
 
 ### Fixed

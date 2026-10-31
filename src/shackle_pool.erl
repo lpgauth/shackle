@@ -36,13 +36,13 @@
 
 %% public
 -spec start(shackle_pool:name(), shackle:client(), shackle_client:options()) ->
-    ok | {error, shackle_not_started | pool_already_started}.
+    ok | {error, shackle_not_started | pool_already_started | term()}.
 
 start(Name, Client, ClientOptions) ->
     start(Name, Client, ClientOptions, []).
 
 -spec start(shackle_pool:name(), shackle:client(), shackle_client:options(), options()) ->
-    ok | {error, shackle_not_started | pool_already_started}.
+    ok | {error, shackle_not_started | pool_already_started | term()}.
 
 start(Name, Client, ClientOptions, Options) ->
     case options(Name) of
@@ -53,8 +53,13 @@ start(Name, Client, ClientOptions, Options) ->
         {error, pool_not_started} ->
             OptionsRec = options_rec(Name, Client, Options),
             persistent_term:put(key(Name), OptionsRec),
-            start_children(ClientOptions, OptionsRec),
-            ok
+            case start_children(ClientOptions, OptionsRec) of
+                ok ->
+                    ok;
+                {error, Reason} ->
+                    stop(Name),
+                    {error, Reason}
+            end
     end.
 
 -spec stop(shackle_pool:name()) ->
@@ -208,9 +213,20 @@ start_children(ClientOptions, #pool_options {
         pool_size = PoolSize
     } = OptionsRec) ->
 
-    [supervisor:start_child(?SUPERVISOR,
-        server_spec(Index, ClientOptions, OptionsRec)) ||
-        Index <- lists:seq(1, PoolSize)].
+    start_children(1, PoolSize, ClientOptions, OptionsRec).
+
+start_children(Index, PoolSize, _ClientOptions, _OptionsRec)
+        when Index > PoolSize ->
+
+    ok;
+start_children(Index, PoolSize, ClientOptions, OptionsRec) ->
+    case supervisor:start_child(?SUPERVISOR,
+            server_spec(Index, ClientOptions, OptionsRec)) of
+        {ok, _Pid} ->
+            start_children(Index + 1, PoolSize, ClientOptions, OptionsRec);
+        {error, Reason} ->
+            {error, Reason}
+    end.
 
 stop_children([]) ->
     ok;
