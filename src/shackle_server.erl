@@ -157,6 +157,8 @@ handle_msg({tcp_error, Socket, Reason}, {State, ClientState}) ->
     handle_msg_error(Socket, Reason, State, ClientState);
 handle_msg({udp, Socket, _Ip, _InPortNo, Data}, {State, ClientState}) ->
     handle_msg_data(Socket, Data, State, ClientState);
+handle_msg({udp_closed, Socket}, {State, ClientState}) ->
+    handle_msg_close(Socket, State, ClientState);
 handle_msg({udp_error, Socket, Reason}, {State, ClientState}) ->
     handle_msg_error(Socket, Reason, State, ClientState);
 handle_msg(?MSG_CONNECT, {#state {

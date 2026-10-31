@@ -341,6 +341,16 @@ shackle_timeout_udp_test_() ->
         fun (_) -> cleanup(?CLIENT_UDP) end,
     [fun () -> timeout_subtest(?CLIENT_UDP) end]}.
 
+shackle_udp_closed_test_() ->
+    {setup,
+        fun () ->
+            setup(?CLIENT_UDP, [
+                {pool_size, 1}
+            ])
+        end,
+        fun (_) -> cleanup(?CLIENT_UDP) end,
+    [fun udp_closed_subtest/0]}.
+
 %% tests
 add_subtest(Client) ->
     [assert_random_add(Client) || _ <- lists:seq(1, ?N)].
@@ -463,6 +473,14 @@ stop_start_race_subtest() ->
 
 timeout_subtest(Client) ->
     ?assertEqual({error, timeout_handled}, Client:add(255, 255)).
+
+udp_closed_subtest() ->
+    Socket = connected_socket(),
+    whereis(server_name(1)) ! {udp_closed, Socket},
+    timer:sleep(200),
+    ?assertEqual(undefined, erlang:port_info(Socket)),
+    ?assertNotEqual(Socket, connected_socket()),
+    ?assertEqual(2, arithmetic_udp_client:add(1, 1)).
 
 %% utils
 accept_init(LSocket) ->
