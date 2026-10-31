@@ -115,6 +115,15 @@ shackle_stale_sweep_test_() ->
         fun (_) -> cleanup(?CLIENT_TCP) end,
     [fun stale_sweep_subtest/0]}.
 
+shackle_start_failure_test_() ->
+    {setup,
+        fun () ->
+            setup(),
+            arithmetic_tcp_server:start()
+        end,
+        fun (_) -> cleanup(?CLIENT_TCP) end,
+    [fun start_failure_subtest/0]}.
+
 shackle_stop_start_race_test_() ->
     {setup,
         fun () ->
@@ -481,6 +490,19 @@ stale_sweep_subtest() ->
     ?assertEqual(Server, whereis(server_name(1))),
     timer:sleep(1000),
     ?assertEqual(2, arithmetic_tcp_client:add(1, 1)).
+
+start_failure_subtest() ->
+    true = register(server_name(2), self()),
+    ?assertMatch({error, _}, ?CLIENT_TCP:start([{pool_size, 2}])),
+    unregister(server_name(2)),
+    ?assertEqual(undefined, whereis(server_name(1))),
+    ?assertEqual([], [Id || {Id, _, _, _} <-
+        supervisor:which_children(shackle_sup),
+        lists:member(Id, [server_name(1), server_name(2)])]),
+    ?assertEqual({error, pool_not_started}, ?CLIENT_TCP:add(1, 1)),
+    ?assertEqual(ok, ?CLIENT_TCP:start([{pool_size, 2}])),
+    timer:sleep(100),
+    ?assertEqual(2, ?CLIENT_TCP:add(1, 1)).
 
 stop_start_race_subtest() ->
     Pid = self(),
