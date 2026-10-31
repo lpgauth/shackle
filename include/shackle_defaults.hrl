@@ -2,11 +2,10 @@
 -define(CALL_TIMEOUT_GRACE, 1000).
 -define(DEFAULT_ADDRESS, "127.0.0.1").
 -define(DEFAULT_BACKLOG_SIZE, 1024).
--define(DEFAULT_INIT_OPTS, undefined).
 -define(DEFAULT_CONNECT_TIMEOUT, 500).
+-define(DEFAULT_INIT_OPTS, undefined).
 -define(DEFAULT_MAX_REQUESTS, infinity).
 -define(DEFAULT_MAX_RETRIES, 0).
--define(MAX_CAST_BATCH, 64).
 -define(DEFAULT_POOL_SIZE, 16).
 -define(DEFAULT_POOL_STRATEGY, random).
 -define(DEFAULT_PROTOCOL, shackle_tcp).
@@ -15,3 +14,4 @@
 -define(DEFAULT_RECONNECT_MIN, 500).
 -define(DEFAULT_SOCKET_OPTS, []).
 -define(DEFAULT_TIMEOUT, 1000).
+-define(MAX_CAST_BATCH, 64).
