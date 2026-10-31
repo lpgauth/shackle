@@ -217,6 +217,12 @@ shackle_reconnect_socket_test_() ->
         fun (_) -> cleanup(?CLIENT_SOCKET) end,
     [fun () -> reconnect_subtest(?CLIENT_SOCKET) end]}).
 
+shackle_peer_close_socket_test_() ->
+    otp_28({setup,
+        fun () -> setup() end,
+        fun (_) -> cleanup(?CLIENT_SOCKET) end,
+    [fun peer_close_socket_subtest/0]}).
+
 shackle_reconnect_ssl_test_() ->
     {setup,
         fun () ->
@@ -410,6 +416,17 @@ multiply_subtest(Client) ->
 noop_subtest(Client) ->
     [Client:noop() || _ <- lists:seq(1, 10)].
 
+peer_close_socket_subtest() ->
+    {ok, LSocket} = gen_tcp:listen(?PORT,
+        [binary, {active, false}, {reuseaddr, true}]),
+    Before = socket:number_of(),
+    ok = ?CLIENT_SOCKET:start(),
+    [gen_tcp:close(accept_init(LSocket)) || _ <- lists:seq(1, 10)],
+    Socket = accept_init(LSocket),
+    ?assertEqual(Before + 1, socket:number_of()),
+    gen_tcp:close(Socket),
+    gen_tcp:close(LSocket).
+
 reconnect_subtest(Client) ->
     Server = server(Client),
     ?assertEqual({error, no_server}, Client:add(1, 1)),
@@ -448,6 +465,12 @@ timeout_subtest(Client) ->
     ?assertEqual({error, timeout_handled}, Client:add(255, 255)).
 
 %% utils
+accept_init(LSocket) ->
+    {ok, Socket} = gen_tcp:accept(LSocket, 1000),
+    {ok, <<"INIT">>} = gen_tcp:recv(Socket, 0, 1000),
+    ok = gen_tcp:send(Socket, <<"OK">>),
+    Socket.
+
 assert_random_add(Client) ->
     A = rand(),
     B = rand(),
