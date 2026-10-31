@@ -231,7 +231,7 @@ shackle_pool:start(shackle_pool:name(), client(), client_options(), pool_options
 no_server | pool_not_started | shackle_not_started
 ```
 
-Plus `timeout` from `receive_response/2`. The closed sum (added in 0.7.2) lets dialyzer catch typos in error pattern matches.
+Plus `timeout` from `receive_response/2`, and from `call/2,3` when the server stops before it replies (`call/3` waits for its timeout plus 1000 ms). The closed sum (added in 0.7.2) lets dialyzer catch typos in error pattern matches.
 
 ## Telemetry
 

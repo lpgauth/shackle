@@ -58,6 +58,10 @@ call(PoolName, Request) ->
 %% can skip the messages that were in the mailbox before the request
 %% (recv_marker). If you use cast/4 and receive_response/1, the
 %% receive scans all of the mailbox.
+%%
+%% The server sends the timeout reply. If the server stops before it
+%% replies, no reply comes. The after clause stops the wait in that
+%% case.
 call(PoolName, Request, Timeout) ->
     Timestamp = erlang:monotonic_time(microsecond),
     case shackle_pool:server(PoolName) of
@@ -70,6 +74,8 @@ call(PoolName, Request, Timeout) ->
                     receive
                         {shackle_reply, {_, Ref}, Reply} ->
                             Reply
+                    after recv_timeout(Timeout) ->
+                        {error, timeout}
                     end;
                 {error, Reason} ->
                     {error, Reason}
@@ -131,6 +137,11 @@ receive_response(RequestId, Timeout) ->
     end.
 
 %% private
+recv_timeout(infinity) ->
+    infinity;
+recv_timeout(Timeout) ->
+    Timeout + ?CALL_TIMEOUT_GRACE.
+
 %% The server can stop between the pool lookup and the send (a crash
 %% before the restart, or a pool stop). A send to a name that is not
 %% registered causes badarg.
