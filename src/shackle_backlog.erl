@@ -5,6 +5,7 @@
 -export([
     check/3,
     decrement/3,
+    load/2,
     new/1,
     reset/2
 ]).
@@ -47,6 +48,12 @@ decrement(Ref, Index, _BacklogSize) ->
         _Value ->
             ok
     end.
+
+-spec load(atomics:atomics_ref(), shackle_server:index()) ->
+    non_neg_integer().
+
+load(Ref, Index) ->
+    atomics:get(Ref, ix(Index)).
 
 -spec new(shackle_pool:pool_size()) ->
     atomics:atomics_ref().

@@ -155,6 +155,65 @@ shackle_max_requests_test_() ->
         fun (_) -> cleanup(?CLIENT_TCP) end,
     [fun max_requests_subtest/0]}.
 
+shackle_pool_strategy_unknown_test_() ->
+    {setup,
+        fun () -> setup() end,
+        fun (_) -> cleanup() end,
+    [fun pool_strategy_unknown_subtest/0]}.
+
+shackle_power_of_two_disabled_test_() ->
+    {setup,
+        fun () ->
+            setup(?CLIENT_TCP, [
+                {pool_size, 2},
+                {pool_strategy, power_of_two}
+            ])
+        end,
+        fun (_) -> cleanup(?CLIENT_TCP) end,
+    [fun power_of_two_disabled_subtest/0]}.
+
+shackle_power_of_two_infinity_test_() ->
+    {setup,
+        fun () -> setup() end,
+        fun (_) -> cleanup() end,
+    [fun power_of_two_infinity_subtest/0]}.
+
+shackle_power_of_two_load_test_() ->
+    {setup,
+        fun () ->
+            setup(?CLIENT_TCP, [
+                {pool_size, 2},
+                {pool_strategy, power_of_two}
+            ])
+        end,
+        fun (_) -> cleanup(?CLIENT_TCP) end,
+    [fun power_of_two_load_subtest/0]}.
+
+shackle_power_of_two_one_server_test_() ->
+    {setup,
+        fun () ->
+            setup(?CLIENT_TCP, [
+                {pool_size, 1},
+                {pool_strategy, power_of_two}
+            ])
+        end,
+        fun (_) -> cleanup(?CLIENT_TCP) end,
+    [fun () -> add_subtest(?CLIENT_TCP) end]}.
+
+shackle_power_of_two_tcp_test_() ->
+    {setup,
+        fun () ->
+            setup(?CLIENT_TCP, [
+                {pool_strategy, power_of_two}
+            ])
+        end,
+        fun (_) -> cleanup(?CLIENT_TCP) end,
+    {inparallel, [
+        fun () -> add_subtest(?CLIENT_TCP) end,
+        fun () -> multiply_subtest(?CLIENT_TCP) end,
+        fun () -> noop_subtest(?CLIENT_TCP) end
+    ]}}.
+
 shackle_random_socket_test_() ->
     otp_28({setup,
         fun () ->
@@ -466,6 +525,38 @@ peer_close_socket_subtest() ->
     ?assertEqual(Before + 1, socket:number_of()),
     gen_tcp:close(Socket),
     gen_tcp:close(LSocket).
+
+pool_strategy_unknown_subtest() ->
+    ?assertError(function_clause, ?CLIENT_TCP:start([
+        {pool_strategy, power_of_2}
+    ])),
+    ?assertEqual({error, pool_not_started}, ?CLIENT_TCP:add(1, 1)).
+
+power_of_two_disabled_subtest() ->
+    #pool_options {backlog = Backlog, status = Status} =
+        persistent_term:get({shackle_pool, ?POOL_NAME}),
+    [true = shackle_backlog:check(Backlog, 2, ?BACKLOG_SIZE) ||
+        _ <- lists:seq(1, 100)],
+    shackle_status:disable(Status, 1),
+    Replies = [shackle_pool:server(?POOL_NAME) || _ <- lists:seq(1, 50)],
+    ?assertEqual(lists:duplicate(50, {ok, ?CLIENT_TCP, server_name(2)}),
+        Replies).
+
+power_of_two_infinity_subtest() ->
+    ?assertEqual({error, invalid_backlog_size}, ?CLIENT_TCP:start([
+        {backlog_size, infinity},
+        {pool_strategy, power_of_two}
+    ])),
+    ?assertEqual({error, pool_not_started}, ?CLIENT_TCP:add(1, 1)).
+
+power_of_two_load_subtest() ->
+    #pool_options {backlog = Backlog} =
+        persistent_term:get({shackle_pool, ?POOL_NAME}),
+    [true = shackle_backlog:check(Backlog, 1, ?BACKLOG_SIZE) ||
+        _ <- lists:seq(1, 100)],
+    Servers = [Server || _ <- lists:seq(1, 50),
+        {ok, _, Server} <- [shackle_pool:server(?POOL_NAME)]],
+    ?assertEqual(lists:duplicate(50, server_name(2)), Servers).
 
 reconnect_subtest(Client) ->
     Server = server(Client),

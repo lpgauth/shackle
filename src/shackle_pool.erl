@@ -19,7 +19,7 @@
 -type max_retries() :: non_neg_integer().
 -type name() :: atom().
 -type pool_size() :: pos_integer().
--type pool_strategy() :: random | round_robin.
+-type pool_strategy() :: power_of_two | random | round_robin.
 -type option() :: {backlog_size, shackle_backlog:backlog_size()} |
                   {max_retries, max_retries()} |
                   {pool_size, pool_size()} |
@@ -36,30 +36,25 @@
 
 %% public
 -spec start(shackle_pool:name(), shackle:client(), shackle_client:options()) ->
-    ok | {error, shackle_not_started | pool_already_started | term()}.
+    ok | {error, shackle_not_started | pool_already_started |
+        invalid_backlog_size | term()}.
 
 start(Name, Client, ClientOptions) ->
     start(Name, Client, ClientOptions, []).
 
 -spec start(shackle_pool:name(), shackle:client(), shackle_client:options(), options()) ->
-    ok | {error, shackle_not_started | pool_already_started | term()}.
+    ok | {error, shackle_not_started | pool_already_started |
+        invalid_backlog_size | term()}.
 
+%% power_of_two compares the backlog counters, and the counters are
+%% not kept when backlog_size is infinity.
 start(Name, Client, ClientOptions, Options) ->
-    case options(Name) of
-        {ok, _OptionsRec} ->
-            {error, pool_already_started};
-        {error, shackle_not_started} ->
-            {error, shackle_not_started};
-        {error, pool_not_started} ->
-            OptionsRec = options_rec(Name, Client, Options),
-            persistent_term:put(key(Name), OptionsRec),
-            case start_children(ClientOptions, OptionsRec) of
-                ok ->
-                    ok;
-                {error, Reason} ->
-                    stop(Name),
-                    {error, Reason}
-            end
+    case {?LOOKUP(pool_strategy, Options, ?DEFAULT_POOL_STRATEGY),
+          ?LOOKUP(backlog_size, Options, ?DEFAULT_BACKLOG_SIZE)} of
+        {power_of_two, infinity} ->
+            {error, invalid_backlog_size};
+        _ ->
+            start_pool(Name, Client, ClientOptions, Options)
     end.
 
 -spec stop(shackle_pool:name()) ->
@@ -151,6 +146,8 @@ round_robin(round_robin) ->
     [atomics:put(Ref, (N - 1) * ?STRIDE + 1, N - 1) ||
         N <- lists:seq(1, Schedulers)],
     Ref;
+round_robin(power_of_two) ->
+    undefined;
 round_robin(random) ->
     undefined.
 
@@ -190,12 +187,44 @@ server_index(#pool_options {
 
     shackle_utils:random(PoolSize);
 server_index(#pool_options {
+        pool_size = 1,
+        pool_strategy = power_of_two
+    }) ->
+
+    1;
+server_index(#pool_options {
+        backlog = Backlog,
+        pool_size = PoolSize,
+        pool_strategy = power_of_two,
+        status = Status
+    }) ->
+
+    %% Pick two different servers. If both picks are the same slow
+    %% server, that server gets the request.
+    A = shackle_utils:random(PoolSize),
+    B = case shackle_utils:random(PoolSize - 1) of
+        N when N >= A -> N + 1;
+        N -> N
+    end,
+    case server_load(Backlog, Status, A) =< server_load(Backlog, Status, B) of
+        true -> A;
+        false -> B
+    end;
+server_index(#pool_options {
         pool_size = PoolSize,
         round_robin = RoundRobin
     }) ->
 
     Ix = (erlang:system_info(scheduler_id) - 1) * ?STRIDE + 1,
     atomics:add_get(RoundRobin, Ix, 1) rem PoolSize + 1.
+
+%% A disabled server has an empty backlog. Without this, power_of_two
+%% would prefer it and the request would fail with no_server.
+server_load(Backlog, Status, Index) ->
+    case shackle_status:active(Status, Index) of
+        true -> shackle_backlog:load(Backlog, Index);
+        false -> infinity
+    end.
 
 server_name(Name, Index) ->
     list_to_atom(atom_to_list(Name) ++ "_" ++ integer_to_list(Index)).
@@ -226,6 +255,24 @@ start_children(Index, PoolSize, ClientOptions, OptionsRec) ->
             start_children(Index + 1, PoolSize, ClientOptions, OptionsRec);
         {error, Reason} ->
             {error, Reason}
+    end.
+
+start_pool(Name, Client, ClientOptions, Options) ->
+    case options(Name) of
+        {ok, _OptionsRec} ->
+            {error, pool_already_started};
+        {error, shackle_not_started} ->
+            {error, shackle_not_started};
+        {error, pool_not_started} ->
+            OptionsRec = options_rec(Name, Client, Options),
+            persistent_term:put(key(Name), OptionsRec),
+            case start_children(ClientOptions, OptionsRec) of
+                ok ->
+                    ok;
+                {error, Reason} ->
+                    stop(Name),
+                    {error, Reason}
+            end
     end.
 
 stop_children([]) ->

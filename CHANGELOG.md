@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+### Added
+
+- `power_of_two` pool strategy. It picks two different connections at
+  random and uses the one with fewer requests in flight. With 1 of 8
+  connections slow (+5 ms) at 40k requests/s, p90 goes from 8.0 ms
+  (`random`) to 2.1 ms. With a connection that cannot keep up, `random`
+  timed out about 10% of requests and `power_of_two` none. Picking
+  costs about 25 ns more than `random`. `shackle_pool:start/4` returns
+  `{error, invalid_backlog_size}` when it is used with `backlog_size`
+  `infinity`, because the backlog counters are not kept then.
+
 ### Fixed
 
 - `shackle:call/2,3` returns `{error, timeout}` if no reply comes

@@ -199,9 +199,9 @@ shackle_pool:start(shackle_pool:name(), client(), client_options(), pool_options
   </tr>
   <tr>
     <td>pool_strategy</td>
-    <td>random | round_robin</td>
+    <td>power_of_two | random | round_robin</td>
     <td>random</td>
-    <td>connection selection strategy</td>
+    <td>connection selection strategy. power_of_two picks two different connections at random and uses the one with fewer requests in flight, so slow connections get less traffic. It needs a finite backlog_size.</td>
   </tr>
 </table>
 
