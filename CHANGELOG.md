@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.10.0
 
 ### Added
 
@@ -13,7 +13,23 @@
   `{error, invalid_backlog_size}` when it is used with `backlog_size`
   `infinity`, because the backlog counters are not kept then.
 
+### Changed
+
+- CI also tests OTP 29.
+
 ### Fixed
+
+- A peer close on a connection now closes the local socket. With
+  `shackle_socket`, each reconnect after a peer close left one socket
+  open, which leaked a file descriptor.
+
+- A connection that the peer closes during client setup is no longer
+  enabled. Before, `setopts(active, true)` returned an error that was
+  ignored, and the server could stay enabled on a dead socket.
+
+- `{udp_closed, Socket}` is handled like `tcp_closed` and
+  `ssl_closed`. Before, it was logged as an unknown message and the
+  closed socket stayed in use.
 
 - `shackle:call/2,3` returns `{error, timeout}` if no reply comes
   within the timeout plus 1000 ms. Before, a call blocked forever when
@@ -24,6 +40,8 @@
 - `shackle_pool:start/3,4` returns `{error, Reason}` when a pool
   server does not start, and stops the servers it already started.
   Before, it returned `ok` and left a pool with missing servers.
+
+- The README gave 3 as the `max_retries` default. The default is 0.
 
 ## 0.9.1
 
