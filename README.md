@@ -188,8 +188,8 @@ shackle_pool:start(shackle_pool:name(), client(), client_options(), pool_options
   <tr>
     <td>max_retries</td>
     <td>non_neg_integer()</td>
-    <td>3</td>
-    <td>maximum number of tries to find an active server</td>
+    <td>0</td>
+    <td>maximum number of retries to find an active server</td>
   </tr>
   <tr>
     <td>pool_size</td>

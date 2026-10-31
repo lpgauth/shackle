@@ -85,8 +85,8 @@ server(Name) ->
     case options(Name) of
         {ok, #pool_options {max_retries = MaxRetries} = Options} ->
             server(Options, MaxRetries + 1);
-        {error, Reson} ->
-            {error, Reson}
+        {error, Reason} ->
+            {error, Reason}
     end.
 
 -spec terminate() ->
