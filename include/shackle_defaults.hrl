@@ -1,4 +1,5 @@
 %% defaults
+-define(CALL_TIMEOUT_GRACE, 1000).
 -define(DEFAULT_ADDRESS, "127.0.0.1").
 -define(DEFAULT_BACKLOG_SIZE, 1024).
 -define(DEFAULT_INIT_OPTS, undefined).

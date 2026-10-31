@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- `shackle:call/2,3` returns `{error, timeout}` if no reply comes
+  within the timeout plus 1000 ms. Before, a call blocked forever when
+  its server crashed or was killed before it replied, because the
+  timeout is sent by the server. An `infinity` timeout still waits
+  forever.
+
 ## 0.9.1
 
 ### Fixed

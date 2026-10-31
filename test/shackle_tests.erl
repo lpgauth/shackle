@@ -65,6 +65,16 @@ shackle_call_infinity_timeout_test_() ->
         fun (_) -> cleanup(?CLIENT_TCP) end,
     [fun call_infinity_timeout_subtest/0]}.
 
+shackle_call_server_killed_test_() ->
+    {setup,
+        fun () ->
+            setup(?CLIENT_TCP, [
+                {pool_size, 1}
+            ])
+        end,
+        fun (_) -> cleanup(?CLIENT_TCP) end,
+    [fun call_server_killed_subtest/0]}.
+
 shackle_call_no_server_test_() ->
     {setup,
         fun () ->
@@ -390,6 +400,17 @@ call_no_server_subtest() ->
     ?assertEqual({error, no_server},
         shackle:cast(?POOL_NAME, {add, 1, 1}, self(), ?TIMEOUT)),
     {ok, _} = supervisor:restart_child(shackle_sup, ServerName).
+
+call_server_killed_subtest() ->
+    Self = self(),
+    spawn(fun () ->
+        %% the backend does not reply to add(255, 255)
+        Self ! {reply, shackle:call(?POOL_NAME, {add, 255, 255}, 100)}
+    end),
+    timer:sleep(20),
+    exit(whereis(server_name(1)), kill),
+    Reply = receive {reply, R} -> R after 3000 -> no_reply end,
+    ?assertEqual({error, timeout}, Reply).
 
 call_crash_subtest() ->
     ?assertEqual({error, client_crash}, arithmetic_tcp_client:add(a, b)),
