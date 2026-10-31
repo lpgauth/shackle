@@ -217,6 +217,12 @@ shackle_reconnect_socket_test_() ->
         fun (_) -> cleanup(?CLIENT_SOCKET) end,
     [fun () -> reconnect_subtest(?CLIENT_SOCKET) end]}).
 
+shackle_peer_close_socket_test_() ->
+    otp_28({setup,
+        fun () -> setup() end,
+        fun (_) -> cleanup(?CLIENT_SOCKET) end,
+    [fun peer_close_socket_subtest/0]}).
+
 shackle_reconnect_ssl_test_() ->
     {setup,
         fun () ->
@@ -335,6 +341,16 @@ shackle_timeout_udp_test_() ->
         fun (_) -> cleanup(?CLIENT_UDP) end,
     [fun () -> timeout_subtest(?CLIENT_UDP) end]}.
 
+shackle_udp_closed_test_() ->
+    {setup,
+        fun () ->
+            setup(?CLIENT_UDP, [
+                {pool_size, 1}
+            ])
+        end,
+        fun (_) -> cleanup(?CLIENT_UDP) end,
+    [fun udp_closed_subtest/0]}.
+
 %% tests
 add_subtest(Client) ->
     [assert_random_add(Client) || _ <- lists:seq(1, ?N)].
@@ -410,6 +426,17 @@ multiply_subtest(Client) ->
 noop_subtest(Client) ->
     [Client:noop() || _ <- lists:seq(1, 10)].
 
+peer_close_socket_subtest() ->
+    {ok, LSocket} = gen_tcp:listen(?PORT,
+        [binary, {active, false}, {reuseaddr, true}]),
+    Before = socket:number_of(),
+    ok = ?CLIENT_SOCKET:start(),
+    [gen_tcp:close(accept_init(LSocket)) || _ <- lists:seq(1, 10)],
+    Socket = accept_init(LSocket),
+    ?assertEqual(Before + 1, socket:number_of()),
+    gen_tcp:close(Socket),
+    gen_tcp:close(LSocket).
+
 reconnect_subtest(Client) ->
     Server = server(Client),
     ?assertEqual({error, no_server}, Client:add(1, 1)),
@@ -447,7 +474,21 @@ stop_start_race_subtest() ->
 timeout_subtest(Client) ->
     ?assertEqual({error, timeout_handled}, Client:add(255, 255)).
 
+udp_closed_subtest() ->
+    Socket = connected_socket(),
+    whereis(server_name(1)) ! {udp_closed, Socket},
+    timer:sleep(200),
+    ?assertEqual(undefined, erlang:port_info(Socket)),
+    ?assertNotEqual(Socket, connected_socket()),
+    ?assertEqual(2, arithmetic_udp_client:add(1, 1)).
+
 %% utils
+accept_init(LSocket) ->
+    {ok, Socket} = gen_tcp:accept(LSocket, 1000),
+    {ok, <<"INIT">>} = gen_tcp:recv(Socket, 0, 1000),
+    ok = gen_tcp:send(Socket, <<"OK">>),
+    Socket.
+
 assert_random_add(Client) ->
     A = rand(),
     B = rand(),

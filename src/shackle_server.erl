@@ -157,6 +157,8 @@ handle_msg({tcp_error, Socket, Reason}, {State, ClientState}) ->
     handle_msg_error(Socket, Reason, State, ClientState);
 handle_msg({udp, Socket, _Ip, _InPortNo, Data}, {State, ClientState}) ->
     handle_msg_data(Socket, Data, State, ClientState);
+handle_msg({udp_closed, Socket}, {State, ClientState}) ->
+    handle_msg_close(Socket, State, ClientState);
 handle_msg({udp_error, Socket, Reason}, {State, ClientState}) ->
     handle_msg_error(Socket, Reason, State, ClientState);
 handle_msg(?MSG_CONNECT, {#state {
@@ -345,7 +347,6 @@ handle_casts(RequestCasts, #state {
                     maybe_recycle(State3, ClientState2);
                 {error, Reason} ->
                     ?WARN(PoolName, "send error: ~p", [Reason]),
-                    Protocol:close(Socket),
                     [reply({error, socket_closed}, Cast, State) ||
                         {Cast, _ExtRequestId} <- Entries],
                     close(State, ClientState2)
@@ -357,9 +358,7 @@ expire([], State, ClientState) ->
 expire([ExtRequestId | T], #state {
         client = Client,
         pool_name = PoolName,
-        protocol = Protocol,
         queue = Queue,
-        socket = Socket,
         telemetry = Telemetry
     } = State, ClientState) ->
 
@@ -372,13 +371,11 @@ expire([ExtRequestId | T], #state {
                     expire(T, State2, ClientState2);
                 {error, Reason, ClientState2} ->
                     ?WARN(PoolName, "handle_timeout error: ~p", [Reason]),
-                    Protocol:close(Socket),
                     close(State, ClientState2)
             catch
                 ?EXCEPTION(E, R, Stacktrace) ->
                     ?WARN(PoolName, "handle_timeout error: ~p:~p~n~p~n",
                         [E, R, ?GET_STACK(Stacktrace)]),
-                    Protocol:close(Socket),
                     close(State, ClientState)
             end;
         false ->
@@ -431,8 +428,13 @@ client_setup(Client, PoolName, Protocol, Socket, ClientState) ->
     Protocol:setopts(Socket, [{active, false}]),
     try Client:setup(Socket, ClientState) of
         {ok, ClientState2} ->
-            Protocol:setopts(Socket, [{active, true}]),
-            {ok, ClientState2};
+            case Protocol:setopts(Socket, [{active, true}]) of
+                ok ->
+                    {ok, ClientState2};
+                {error, Reason} ->
+                    ?WARN(PoolName, "setopts error: ~p", [Reason]),
+                    {error, Reason, ClientState2}
+            end;
         {error, Reason, ClientState2} ->
             ?WARN(PoolName, "setup error: ~p", [Reason]),
             {error, Reason, ClientState2}
@@ -443,12 +445,18 @@ client_setup(Client, PoolName, Protocol, Socket, ClientState) ->
             {error, client_crash, ClientState}
     end.
 
+%% A socket NIF socket stays open after the peer closes it. It closes
+%% only with socket:close/1 or when its owner stops. Thus, close the
+%% socket here on all disconnect paths.
 close(#state {
         index = Index,
+        protocol = Protocol,
+        socket = Socket,
         status = Status
     } = State, ClientState) ->
 
     shackle_status:disable(Status, Index),
+    Protocol:close(Socket),
     State2 = reply_all({error, socket_closed}, State),
     reconnect(State2, ClientState).
 
@@ -481,7 +489,6 @@ handle_msg_close(_Socket, State, ClientState) ->
 handle_msg_data(Socket, Data, #state {
         client = Client,
         pool_name = PoolName,
-        protocol = Protocol,
         socket = Socket,
         telemetry = Telemetry
     } = State, ClientState) ->
@@ -493,13 +500,11 @@ handle_msg_data(Socket, Data, #state {
             maybe_recycle(State2, ClientState2);
         {error, Reason, ClientState2} ->
             ?WARN(PoolName, "handle_data error: ~p", [Reason]),
-            Protocol:close(Socket),
             close(State, ClientState2)
     catch
         ?EXCEPTION(E, R, Stacktrace) ->
             ?WARN(PoolName, "handle_data crash: ~p:~p~n~p~n",
                 [E, R, ?GET_STACK(Stacktrace)]),
-            Protocol:close(Socket),
             close(State, ClientState)
     end;
 handle_msg_data(_Socket, _Data, State, ClientState) ->
@@ -507,12 +512,10 @@ handle_msg_data(_Socket, _Data, State, ClientState) ->
 
 handle_msg_error(Socket, Reason, #state {
         socket = Socket,
-        pool_name = PoolName,
-        protocol = Protocol
+        pool_name = PoolName
     } = State, ClientState) ->
 
     ?WARN(PoolName, "connection error: ~p", [Reason]),
-    Protocol:close(Socket),
     close(State, ClientState);
 handle_msg_error(_Socket, _Reason, State, ClientState) ->
     {ok, {State, ClientState}}.
