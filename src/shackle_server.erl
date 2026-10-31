@@ -431,8 +431,13 @@ client_setup(Client, PoolName, Protocol, Socket, ClientState) ->
     Protocol:setopts(Socket, [{active, false}]),
     try Client:setup(Socket, ClientState) of
         {ok, ClientState2} ->
-            Protocol:setopts(Socket, [{active, true}]),
-            {ok, ClientState2};
+            case Protocol:setopts(Socket, [{active, true}]) of
+                ok ->
+                    {ok, ClientState2};
+                {error, Reason} ->
+                    ?WARN(PoolName, "setopts error: ~p", [Reason]),
+                    {error, Reason, ClientState2}
+            end;
         {error, Reason, ClientState2} ->
             ?WARN(PoolName, "setup error: ~p", [Reason]),
             {error, Reason, ClientState2}
