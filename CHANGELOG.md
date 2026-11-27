@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- `shackle_tcp_ktls` and `shackle_socket_ktls`: ssl does the TLS 1.3
+  handshake, then hands the session to kernel TLS, so the connection runs
+  like `shackle_tcp` / `shackle_socket` with no ssl processes. The
+  handshake is pinned to `TLS_AES_256_GCM_SHA384`, the only suite OTP maps
+  to kernel parameters, and `TLS_RX_EXPECT_NO_PAD` is set where the kernel
+  has it. They need Linux with the `tls` module and OTP 26+.
+  `shackle_socket_ktls` also needs an ssl that supports the kTLS handover on
+  socket NIF sockets (lpgauth/otp `marketops`).
+
 ## 0.10.0
 
 ### Added

@@ -13,7 +13,7 @@ High-Performance Erlang Network Client Framework
 * Backpressure via backlog (OOM protection)
 * Fast pool implementation (random, round_robin)
 * Managed timeouts
-* Multi-protocol support (SSL / TCP / UDP)
+* Multi-protocol support (SSL / kernel TLS / TCP / UDP)
 * Performance-optimized
 * Request pipelining
 * Smart reconnect mechanism (exponential backoff)
@@ -140,9 +140,9 @@ shackle_pool:start(shackle_pool:name(), client(), client_options(), pool_options
   </tr>
   <tr>
     <td>protocol</td>
-    <td>shackle_socket | shackle_ssl | shackle_ssl_socket | shackle_tcp | shackle_udp</td>
+    <td>shackle_socket | shackle_socket_ktls | shackle_ssl | shackle_ssl_socket | shackle_tcp | shackle_tcp_ktls | shackle_udp</td>
     <td>shackle_tcp</td>
-    <td>server protocol (shackle_socket and shackle_ssl_socket require OTP 28+)</td>
+    <td>server protocol (shackle_socket and shackle_ssl_socket require OTP 28+; for the ktls ones see below)</td>
   </tr>
   <tr>
     <td>reconnect</td>
