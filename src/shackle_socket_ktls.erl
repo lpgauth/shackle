@@ -9,7 +9,8 @@
 %% and the `tls` kernel module.
 -ignore_xref([{ssl_gen_statem, ktls_handover, 1},
               {inet_tls_dist, set_ktls, 1}]).
--dialyzer({nowarn_function, [connect/3, handover/1, handshake/3]}).
+-dialyzer({nowarn_function, [connect/3, error_reason/1, handover/1, handshake/3,
+                            set_ktls/2]}).
 
 -behavior(shackle_protocol).
 -export([
