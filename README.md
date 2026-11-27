@@ -233,6 +233,18 @@ no_server | pool_not_started | shackle_not_started
 
 Plus `timeout` from `receive_response/2`, and from `call/2,3` when the server stops before it replies (`call/3` waits for its timeout plus 1000 ms). The closed sum (added in 0.7.2) lets dialyzer catch typos in error pattern matches.
 
+#### Kernel TLS
+
+`shackle_tcp_ktls` and `shackle_socket_ktls` take the same `socket_options` as `shackle_ssl` / `shackle_ssl_socket`. ssl does the TLS 1.3 handshake, then hands the record keys to the kernel and exits. The client then sends and receives plaintext like `shackle_tcp` / `shackle_socket`: there is no ssl sender or connection process per connection, and encryption runs inside the send and recv syscalls.
+
+Requirements:
+
+* Linux with the `tls` kernel module loaded (`ss -ti` shows `tcp-ulp-tls` on the connections, and `/proc/net/tls_stat` counts them).
+* OTP 26+. `shackle_socket_ktls` also needs an ssl that supports the kTLS handover on socket NIF sockets, which stock OTP does not ([lpgauth/otp `marketops`](https://github.com/lpgauth/otp/tree/marketops)).
+* A server that offers `TLS_AES_256_GCM_SHA384`. It is the only suite OTP maps to kernel parameters, so the handshake is pinned to it and to TLS 1.3.
+
+A server that sends a TLS 1.3 post-handshake message (a session ticket or a key update) after the handover makes `recv` fail, and the connection reconnects. A connection that fails to set up kernel TLS returns `{error, ktls_unavailable}`.
+
 ## Telemetry
 
 Shackle integrates with the backend-agnostic [telemetry](https://hexdocs.pm/telemetry/) library. All events carry `#{client => Client}` as metadata, where `Client` is the client module name.
