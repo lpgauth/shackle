@@ -19,6 +19,8 @@
     setopts/2
 ]).
 
+-define(SOL_TLS, 282).
+-define(TLS_RX_EXPECT_NO_PAD, 4).
 -define(KTLS_CIPHER, #{cipher => aes_256_gcm, key_exchange => any,
                        mac => aead, prf => sha384}).
 
@@ -88,6 +90,9 @@ set_ktls(Socket, Info) ->
         getopt_fun => fun getopt_native/3
     }) of
         ok ->
+            %% TLS_RX_EXPECT_NO_PAD (Linux 6.0+) decrypts into the user
+            %% buffer; a padded record only costs a retry.
+            _ = socket:setopt_native(Socket, {?SOL_TLS, ?TLS_RX_EXPECT_NO_PAD}, 1),
             {ok, Socket};
         {error, _} ->
             _ = socket:close(Socket),

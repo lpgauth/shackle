@@ -20,6 +20,8 @@
     setopts/2
 ]).
 
+-define(SOL_TLS, 282).
+-define(TLS_RX_EXPECT_NO_PAD, 4).
 -define(KTLS_CIPHER, #{cipher => aes_256_gcm, key_exchange => any,
                        mac => aead, prf => sha384}).
 
@@ -75,6 +77,10 @@ handover(SslSocket, SocketOptions) ->
                 getopt_fun => fun inet_tls_dist:inet_ktls_getopt/3
             }) of
                 ok ->
+                    %% TLS_RX_EXPECT_NO_PAD (Linux 6.0+) decrypts into the
+                    %% user buffer; a padded record only costs a retry.
+                    _ = inet:setopts(Socket, [{raw, ?SOL_TLS, ?TLS_RX_EXPECT_NO_PAD,
+                                               <<1:32/native>>}]),
                     case inet:setopts(Socket, user_opts(SocketOptions)) of
                         ok ->
                             {ok, Socket};
